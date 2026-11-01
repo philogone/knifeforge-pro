@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowR
 import { onBeforeRouteLeave, useRoute } from "vue-router";
 
 import { ApiError, saveBlob } from "@/composables/useApi";
+import { useSnapshotDirty } from "@/composables/useSnapshotDirty";
 import { ROLE_STYLE } from "@/editor/constants";
 import { EditorEngine, formatMm } from "@/editor/engine";
 import type { AlignKind, BooleanOp } from "@/editor/engine";
@@ -36,7 +37,7 @@ const designId = computed(() => Number(route.params.id));
 const design = ref<Design | null>(null);
 const loadError = ref("");
 const meta = reactive({ name: "", kind: "other" as DesignKind, notes: "", knife_model_id: 0, material_id: 0 });
-const metaDirty = ref(false);
+const { dirty: metaDirty, markClean: markMetaClean } = useSnapshotDirty(() => ({ ...meta }));
 
 const stage = ref<HTMLDivElement | null>(null);
 const gridCanvas = ref<HTMLCanvasElement | null>(null);
@@ -197,11 +198,11 @@ async function load() {
     meta.notes = d.notes ?? "";
     meta.knife_model_id = d.knife_model_id ?? 0;
     meta.material_id = d.material_id ?? 0;
-    metaDirty.value = false;
+    markMetaClean();
     await nextTick();
     attachEngine(d);
   } catch (err) {
-    loadError.value = err instanceof ApiError ? String(err.detail) : "Failed";
+    loadError.value = err instanceof ApiError ? err.message : "Failed";
   }
 }
 
@@ -241,9 +242,6 @@ onBeforeRouteLeave(() => {
   return true;
 });
 
-watch(meta, () => {
-  if (design.value) metaDirty.value = true;
-});
 watch(() => [opts.gridSize, opts.snapToGrid, opts.snapToNodes, opts.cornerRadius, opts.polygonSides], () => {
   const e = engine.value;
   if (!e) return;
@@ -270,12 +268,12 @@ async function save(): Promise<boolean> {
     });
     design.value = { ...design.value, ...updated };
     e.markSaved();
-    metaDirty.value = false;
+    markMetaClean();
     refreshState();
     setStatus(t("editor.saved"));
     return true;
   } catch (err) {
-    setStatus(t("editor.saveFailed", { error: err instanceof ApiError ? String(err.detail) : "?" }), true);
+    setStatus(t("editor.saveFailed", { error: err instanceof ApiError ? err.message : "?" }), true);
     return false;
   } finally {
     saving.value = false;
@@ -288,7 +286,7 @@ async function exportFile(kind: "export.svg" | "export.dxf") {
     const blob = await store.downloadDesignFile(designId.value, kind);
     saveBlob(blob, `${meta.name.replace(/[^\w.-]+/g, "_")}.${kind.split(".")[1]}`);
   } catch (err) {
-    setStatus(t("designs.exportFailed", { error: err instanceof ApiError ? String(err.detail) : "?" }), true);
+    setStatus(t("designs.exportFailed", { error: err instanceof ApiError ? err.message : "?" }), true);
   }
 }
 
@@ -401,7 +399,7 @@ async function applyOffset() {
     e.replaceSelectionWithContours(result, offsetForm.keep);
     setStatus("");
   } catch (err) {
-    setStatus(t("editor.offsetFailed", { error: err instanceof ApiError ? String(err.detail) : "?" }), true);
+    setStatus(t("editor.offsetFailed", { error: err instanceof ApiError ? err.message : "?" }), true);
   }
 }
 
@@ -483,7 +481,7 @@ async function refreshPlan() {
     if (planUrl.value) URL.revokeObjectURL(planUrl.value);
     planUrl.value = URL.createObjectURL(blob);
   } catch (err) {
-    planError.value = t("plan.failed", { error: err instanceof ApiError ? String(err.detail) : "?" });
+    planError.value = t("plan.failed", { error: err instanceof ApiError ? err.message : "?" });
   } finally {
     planBusy.value = false;
   }
@@ -494,7 +492,7 @@ async function downloadPlan() {
     const blob = await store.designPlan(designId.value, planParams(), true);
     saveBlob(blob, `plan_${meta.name.replace(/[^\w.-]+/g, "_")}.svg`);
   } catch (err) {
-    planError.value = t("plan.failed", { error: err instanceof ApiError ? String(err.detail) : "?" });
+    planError.value = t("plan.failed", { error: err instanceof ApiError ? err.message : "?" });
   }
 }
 

@@ -33,3 +33,8 @@ export function useI18n() {
   };
   return { t, locale: computed(() => locale.value), setLocale };
 }
+
+/** Locale-aware decimal ("1,94" in French, "1.94" in English) — never a bare "1.939" a French reader takes for 1939. */
+export function formatDecimal(n: number, loc: Locale, maxDigits = 2): string {
+  return n.toLocaleString(loc === "fr" ? "fr-FR" : "en-US", { maximumFractionDigits: maxDigits });
+}

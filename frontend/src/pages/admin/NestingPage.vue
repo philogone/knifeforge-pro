@@ -3,11 +3,11 @@ import { computed, onMounted, reactive, ref, watch } from "vue";
 
 import NestingSheetVisual from "@/components/NestingSheetVisual.vue";
 import { ApiError, saveBlob } from "@/composables/useApi";
-import { useI18n } from "@/i18n";
+import { formatDecimal, useI18n } from "@/i18n";
 import { useAppStore } from "@/stores/app.store";
 import type { NestingCandidates, NestingRequest, NestingResult } from "@/types";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const store = useAppStore();
 
 const materialId = ref(0);
@@ -43,7 +43,7 @@ watch(materialId, async (id) => {
     candidates.value = await store.nestingCandidates(id);
     selectedOrders.value = candidates.value.orders.map((o) => o.order_id);
   } catch (err) {
-    error.value = err instanceof ApiError ? String(err.detail) : "Failed";
+    error.value = err instanceof ApiError ? err.message : "Failed";
   }
 });
 
@@ -80,7 +80,7 @@ async function run() {
     lastRequest.value = req;
     activeSheet.value = 0;
   } catch (err) {
-    error.value = t("nesting.failed", { error: err instanceof ApiError ? String(err.detail) : "?" });
+    error.value = t("nesting.failed", { error: err instanceof ApiError ? err.message : "?" });
   } finally {
     busy.value = false;
   }
@@ -93,7 +93,7 @@ async function exportSheet(format: "svg" | "dxf") {
     const base = (result.value?.material_name ?? "nesting").replace(/[^\w.-]+/g, "_");
     saveBlob(blob, `${base}_${activeSheet.value + 1}.${format}`);
   } catch (err) {
-    error.value = t("nesting.failed", { error: err instanceof ApiError ? String(err.detail) : "?" });
+    error.value = t("nesting.failed", { error: err instanceof ApiError ? err.message : "?" });
   }
 }
 
@@ -194,7 +194,7 @@ const wastePct = computed(() => (result.value ? Math.round((100 - result.value.u
               <p class="text-sm font-semibold" :class="result.stock_sufficient ? 'text-emerald-600' : 'text-red-600'">
                 {{ result.stock_sufficient ? t("nesting.stockOk") : t("nesting.stockShort") }}
               </p>
-              <p class="text-xs text-slate-400">{{ t("nesting.stockUnits", { n: result.stock_sheets_available }) }}</p>
+              <p class="text-xs text-slate-400">{{ t("nesting.stockUnits", { n: formatDecimal(result.stock_sheets_available, locale) }) }}</p>
             </div>
           </div>
 
@@ -211,7 +211,7 @@ const wastePct = computed(() => (result.value ? Math.round((100 - result.value.u
                 class="px-3 py-1 rounded-lg text-sm border"
                 :class="s.index === activeSheet ? 'bg-indigo-600 text-white border-indigo-600' : 'border-slate-300 text-slate-600'"
                 @click="activeSheet = s.index"
-              >{{ t("nesting.sheet", { n: s.index + 1 }) }}</button>
+              >{{ t(material?.dimension_type === "length" ? "nesting.bar" : "nesting.sheet", { n: s.index + 1 }) }}</button>
               <span class="text-xs text-slate-500 ml-auto">{{ t("nesting.sheetStats", { parts: sheet.placements.length, pct: sheet.utilization_pct.toFixed(1) }) }}</span>
             </div>
             <NestingSheetVisual :sheet="sheet" :length="result.sheet_length_mm" :width="result.sheet_width_mm" :margin="result.margin_mm" />

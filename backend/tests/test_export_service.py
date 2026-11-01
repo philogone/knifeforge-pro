@@ -82,3 +82,20 @@ def test_nesting_svg_and_dxf_per_sheet():
     assert layers == {"SHEET", "CUT"}
     with pytest.raises(ValueError):
         nesting_to_svg(result, 5)
+
+
+def test_plan_overall_dimensions_do_not_overlap_user_dimensions():
+    # The blade template has a user dimension along its bottom edge (112 mm, offset 8 mm): the overall
+    # 182 mm width used to be drawn 7 mm below the part, i.e. on top of it.
+    root = ET.fromstring(plan_svg(blade_doc(), title="x"))
+    lines = [
+        tuple(float(line.attrib[k]) for k in ("x1", "y1", "x2", "y2"))
+        for line in root.iter("{http://www.w3.org/2000/svg}line")
+        if line.attrib.get("stroke-width") == "0.25"  # dimension lines (extension lines are 0.18)
+    ]
+    horizontal = sorted(y1 for x1, y1, x2, y2 in lines if abs(y1 - y2) < 1e-6)
+    vertical = sorted(x1 for x1, y1, x2, y2 in lines if abs(x1 - x2) < 1e-6)
+    assert len(horizontal) == 2  # user 112 mm + overall 182 mm
+    for group in (horizontal, vertical):
+        for a, b in zip(group, group[1:]):
+            assert b - a >= 5.0  # room for the 3.5 mm label between parallel dimension lines

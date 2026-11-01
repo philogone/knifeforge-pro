@@ -314,10 +314,9 @@ def plan_svg(
         )
 
     dims: list[str] = []
-    # Overall width (below) and height (right)
-    dims.append(_dimension_svg(X(minx), Y(maxy), X(maxx), Y(maxy), 7.0, _fmt_mm(dw)))
-    dims.append(_dimension_svg(X(maxx), Y(maxy), X(maxx), Y(miny), 7.0, _fmt_mm(dh)))
-    # User-placed dimensions on dimension layers
+    # User-placed dimensions on dimension layers. Track how far their lines reach below / right of
+    # the part so the overall dimensions go beyond them instead of being drawn on top of them.
+    lowest, rightmost = Y(maxy), X(maxx)
     for obj in doc.objects:
         if not isinstance(obj, DimensionObject):
             continue
@@ -326,7 +325,17 @@ def plan_svg(
             continue
         measured = math.hypot(obj.b[0] - obj.a[0], obj.b[1] - obj.a[1])
         label = obj.label or _fmt_mm(measured)
-        dims.append(_dimension_svg(X(obj.a[0]), Y(obj.a[1]), X(obj.b[0]), Y(obj.b[1]), obj.offset * s if obj.offset else 6.0, label))
+        ax, ay, bx, by = X(obj.a[0]), Y(obj.a[1]), X(obj.b[0]), Y(obj.b[1])
+        offset = obj.offset * s if obj.offset else 6.0
+        dims.append(_dimension_svg(ax, ay, bx, by, offset, label))
+        length = math.hypot(bx - ax, by - ay)
+        if length >= 0.5:
+            nx, ny = -(by - ay) / length * offset, (bx - ax) / length * offset
+            lowest = max(lowest, ay + ny, by + ny)
+            rightmost = max(rightmost, ax + nx, bx + nx)
+    # Overall width (below) and height (right), at least 7 mm out and 7 mm past any user dimension
+    dims.append(_dimension_svg(X(minx), Y(maxy), X(maxx), Y(maxy), max(7.0, lowest - Y(maxy) + 7.0), _fmt_mm(dw)))
+    dims.append(_dimension_svg(X(maxx), Y(maxy), X(maxx), Y(miny), max(7.0, rightmost - X(maxx) + 7.0), _fmt_mm(dh)))
 
     # Title block
     tb_x, tb_y = SHEET_MARGIN, page_h - SHEET_MARGIN - TITLE_BLOCK_H

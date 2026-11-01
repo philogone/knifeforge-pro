@@ -25,6 +25,9 @@ export function defaultLayers(): DocLayer[] {
 }
 
 export const GRID_SIZES_MM = [0.1, 0.5, 1, 2, 5, 10, 25];
+/** Free grid step bounds (mm) */
+export const MIN_GRID_MM = 0.01;
+export const MAX_GRID_MM = 1000;
 export const MIN_ZOOM = 0.05; // px per mm
 export const MAX_ZOOM = 400;
 export const HISTORY_LIMIT = 100;

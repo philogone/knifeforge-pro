@@ -1,8 +1,9 @@
 import paper from "paper";
 
 import { UI_COLOR } from "./constants";
-import type { EditorEngine, Mods } from "./engine";
+import { formatMm, type EditorEngine, type Mods } from "./engine";
 import type { ToolName } from "./types";
+import { RULER_SIZE } from "./view";
 
 export interface ToolHandler {
   cursor: string;
@@ -82,7 +83,8 @@ type HandleName = (typeof HANDLE_NAMES)[number] | "rot";
 class SelectTool extends BaseTool {
   cursor = "default";
   hint = "hint.select";
-  private mode: "none" | "move" | "scale" | "rotate" | "band" = "none";
+  private mode: "none" | "move" | "scale" | "rotate" | "band" | "guide" = "none";
+  private guideIndex = -1;
   private start = new paper.Point(0, 0);
   private last = new paper.Point(0, 0);
   private startBounds: paper.Rectangle | null = null;
@@ -128,6 +130,12 @@ class SelectTool extends BaseTool {
       this.startBounds = this.e.selectionBounds();
       return;
     }
+    const guide = this.e.guideAt(p);
+    if (guide >= 0) {
+      this.guideIndex = guide;
+      this.mode = "guide";
+      return;
+    }
     if (!m.shift) this.e.selectItems([]);
     this.mode = "band";
   }
@@ -155,11 +163,27 @@ class SelectTool extends BaseTool {
       this.uiStroke(this.band, true);
       this.band.fillColor = new paper.Color(79 / 255, 70 / 255, 229 / 255, 0.08);
       this.e.addUi(this.band, "band");
+    } else if (this.mode === "guide") {
+      const g = this.e.guides[this.guideIndex];
+      if (g) {
+        const pos = this.e.snapAxis(g.axis === "x" ? p.x : p.y);
+        this.e.moveGuide(this.guideIndex, pos, false);
+        this.e.hintValue(`${g.axis === "x" ? "X" : "Y"} = ${formatMm(pos)} mm`);
+      }
     }
     this.last = p.clone();
   }
 
   up(p: paper.Point, m: Mods): void {
+    if (this.mode === "guide") {
+      // dropped back on a ruler = deleted (as in Inkscape); otherwise one undo step for the move
+      if (this.e.overRuler(p, RULER_SIZE)) this.e.removeGuide(this.guideIndex);
+      else if (p.getDistance(this.start) > 1e-9) this.e.commit();
+      this.e.hintValue("");
+      this.mode = "none";
+      this.guideIndex = -1;
+      return;
+    }
     if (this.mode === "band") {
       this.band?.remove();
       this.band = null;
@@ -181,7 +205,17 @@ class SelectTool extends BaseTool {
   }
 
   move(p: paper.Point): void {
-    this.e.canvas.style.cursor = this.hitHandle(p) ? "crosshair" : this.hitItem(p) ? "move" : "default";
+    const guide = this.e.guideAt(p);
+    const axis = guide >= 0 ? this.e.guides[guide].axis : null;
+    this.e.canvas.style.cursor = this.hitHandle(p)
+      ? "crosshair"
+      : this.hitItem(p)
+        ? "move"
+        : axis === "x"
+          ? "ew-resize"
+          : axis === "y"
+            ? "ns-resize"
+            : "default";
   }
 
   doubleClick(p: paper.Point): void {
@@ -432,7 +466,7 @@ class NodeTool extends BaseTool {
       if (!segs.length) return;
       if (!this.changed && p.subtract(this.start).length < this.e.px(2)) return;
       if (segs.length === 1 && !m.alt) {
-        segs[0].point = this.e.snap(p);
+        segs[0].point = this.e.snap(p, [], { skipSegments: [segs[0]], skipPaths: [segs[0].path] });
       } else {
         const delta = p.subtract(this.last);
         for (const s of segs) s.point = s.point.add(delta);
@@ -614,9 +648,9 @@ class PenTool extends BaseTool {
   private dragging = false;
   private rubber: paper.Path | null = null;
 
-  down(p: paper.Point): void {
+  down(p: paper.Point, m: Mods): void {
     if (!this.path && !this.activeLayerUsable()) return;
-    const pt = this.e.snap(p);
+    const pt = this.e.snap(p, [], { from: this.path?.lastSegment?.point, constrain: m.shift });
     if (!this.path) {
       this.path = new paper.Path({ insert: false });
       this.path.strokeColor = new paper.Color(UI_COLOR);
@@ -636,21 +670,21 @@ class PenTool extends BaseTool {
     this.dragging = true;
   }
 
-  drag(p: paper.Point): void {
+  drag(p: paper.Point, m: Mods): void {
     if (!this.path || !this.dragging) return;
     const seg = this.path.lastSegment;
     const handle = p.subtract(seg.point);
     seg.handleOut = handle;
     seg.handleIn = handle.multiply(-1);
-    this.drawRubber(p);
+    this.drawRubber(p, m);
   }
 
   up(): void {
     this.dragging = false;
   }
 
-  move(p: paper.Point): void {
-    this.drawRubber(p);
+  move(p: paper.Point, m: Mods): void {
+    this.drawRubber(p, m);
     if (this.path && this.path.segments.length >= 2) {
       this.e.canvas.style.cursor = this.path.firstSegment.point.getDistance(p) < this.e.px(9) ? "pointer" : "crosshair";
     }
@@ -693,14 +727,16 @@ class PenTool extends BaseTool {
     this.e.clearUi("rubber");
   }
 
-  private drawRubber(p: paper.Point): void {
+  private drawRubber(p: paper.Point, m: Mods = { shift: false, alt: false, ctrl: false }): void {
     this.rubber?.remove();
     this.rubber = null;
     if (!this.path || this.path.segments.length === 0 || this.dragging) return;
     const last = this.path.lastSegment;
     const rubber = new paper.Path({ insert: false });
     rubber.add(new paper.Segment(last.point, undefined, last.handleOut));
-    rubber.add(this.e.snap(p));
+    const end = this.e.snap(p, [], { from: last.point, constrain: m.shift });
+    rubber.add(end);
+    this.e.hintValue(`${formatMm(end.getDistance(last.point))} mm`);
     this.uiStroke(rubber, true);
     this.rubber = rubber;
     this.e.addUi(rubber, "rubber");
@@ -852,8 +888,8 @@ class DimensionTool extends BaseTool {
   private a: paper.Point | null = null;
   private preview: paper.Path | null = null;
 
-  down(p: paper.Point): void {
-    const pt = this.e.snap(p);
+  down(p: paper.Point, m: Mods): void {
+    const pt = this.e.snap(p, [], { from: this.a ?? undefined, constrain: m.shift });
     if (!this.a) {
       this.a = pt;
       return;
@@ -865,10 +901,13 @@ class DimensionTool extends BaseTool {
     this.e.commit();
   }
 
-  move(p: paper.Point): void {
-    if (!this.a) return;
+  move(p: paper.Point, m: Mods): void {
+    if (!this.a) {
+      this.e.snap(p); // show what the first click would lock onto
+      return;
+    }
     this.preview?.remove();
-    this.preview = new paper.Path.Line({ from: this.a, to: this.e.snap(p), insert: false });
+    this.preview = new paper.Path.Line({ from: this.a, to: this.e.snap(p, [], { from: this.a, constrain: m.shift }), insert: false });
     this.uiStroke(this.preview, true);
     this.e.addUi(this.preview, "dimpreview");
   }
@@ -890,6 +929,174 @@ class DimensionTool extends BaseTool {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Measure: distance / ΔX / ΔY / angle between two snapped points
+// ---------------------------------------------------------------------------
+
+class MeasureTool extends BaseTool {
+  cursor = "crosshair";
+  hint = "hint.measure";
+  private a: paper.Point | null = null;
+  private b: paper.Point | null = null;
+  /** true once the second point is placed: the reading stays on screen until the next click */
+  private fixed = false;
+
+  down(p: paper.Point, m: Mods): void {
+    if (!this.a || this.fixed) {
+      this.a = this.e.snap(p);
+      this.b = null;
+      this.fixed = false;
+      this.e.setMeasurement(null, null);
+      this.draw();
+      return;
+    }
+    const b = this.e.snap(p, [], { from: this.a, constrain: m.shift });
+    if (b.getDistance(this.a) < 1e-9) return;
+    this.b = b;
+    this.fixed = true;
+    this.e.setMeasurement(this.a, this.b);
+    this.draw();
+  }
+
+  move(p: paper.Point, m: Mods): void {
+    if (!this.a || this.fixed) {
+      this.e.snap(p); // preview what a click would lock onto
+      return;
+    }
+    this.b = this.e.snap(p, [], { from: this.a, constrain: m.shift });
+    this.e.setMeasurement(this.a, this.b);
+    this.draw();
+  }
+
+  key(key: string): boolean {
+    if (key === "Enter" && this.fixed) {
+      if (this.e.measurementToDimension()) this.cancel();
+      return true;
+    }
+    if (key === "Escape" && this.a) {
+      this.cancel();
+      return true;
+    }
+    return false;
+  }
+
+  cancel(): void {
+    this.a = null;
+    this.b = null;
+    this.fixed = false;
+    this.e.clearUi("measure");
+    this.e.clearUi("snap");
+    this.e.setMeasurement(null, null);
+    this.e.hintValue("");
+  }
+
+  drawOverlay(): void {
+    this.draw();
+  }
+
+  private draw(): void {
+    const e = this.e;
+    e.clearUi("measure");
+    if (!this.a) return;
+    const tick = (pt: paper.Point) => {
+      const c = new paper.Path.Circle({ center: pt, radius: e.px(3), insert: false });
+      c.fillColor = new paper.Color("#0ea5e9");
+      e.addUi(c, "measure");
+    };
+    tick(this.a);
+    const m = e.measurement;
+    if (!this.b || !m) return;
+    tick(this.b);
+    const line = new paper.Path.Line({ from: this.a, to: this.b, insert: false });
+    line.strokeColor = new paper.Color("#0ea5e9");
+    line.strokeWidth = 1.5;
+    line.strokeScaling = false;
+    line.dashArray = this.fixed ? [] : [5, 3];
+    e.addUi(line, "measure");
+    const text = `${formatMm(m.distance)} mm · ${m.angle}°`;
+    const label = e.screenText(this.a.add(this.b).divide(2).add([0, -e.px(8)]), text, 12, "#0369a1", "center");
+    // white backing so the reading stays legible over shapes, guides and a busy photo
+    const backing = new paper.Path.Rectangle({ rectangle: label.bounds.expand(e.px(6), e.px(3)), radius: e.px(3), insert: false });
+    backing.fillColor = new paper.Color(1, 1, 1, 0.9);
+    e.addUi(backing, "measure");
+    e.addUi(label, "measure");
+    e.hintValue(`${text} · ΔX ${formatMm(m.dx)} · ΔY ${formatMm(m.dy)}`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Calibrate the reference image: two clicks on a known distance
+// ---------------------------------------------------------------------------
+
+class CalibrateTool extends BaseTool {
+  cursor = "crosshair";
+  hint = "hint.calibrate";
+  private a: paper.Point | null = null;
+
+  // Raw points on purpose: snapping to the grid or to drawn nodes would move the click away from
+  // the feature on the photo and falsify the scale. Zoom in to click precisely instead.
+  down(p: paper.Point): void {
+    if (!this.e.background) {
+      this.e.hint("hint.noBackground");
+      return;
+    }
+    if (!this.a) {
+      this.a = p.clone();
+      this.draw(p);
+      return;
+    }
+    if (p.getDistance(this.a) < this.e.px(4)) return;
+    const a = this.a;
+    this.a = null;
+    this.draw(p, a);
+    this.e.emit("calibrate", [a.x, a.y], [p.x, p.y]);
+  }
+
+  move(p: paper.Point): void {
+    if (this.a) this.draw(p, this.a);
+  }
+
+  key(key: string): boolean {
+    if (key === "Escape" && this.a) {
+      this.cancel();
+      return true;
+    }
+    return false;
+  }
+
+  cancel(): void {
+    this.a = null;
+    this.e.clearUi("calib");
+    this.e.hintValue("");
+  }
+
+  private draw(p: paper.Point, from?: paper.Point): void {
+    const e = this.e;
+    e.clearUi("calib");
+    const cross = (pt: paper.Point) => {
+      const r = e.px(8);
+      for (const [dx, dy] of [[r, 0], [0, r]]) {
+        const l = new paper.Path.Line({ from: pt.subtract([dx, dy]), to: pt.add([dx, dy]), insert: false });
+        l.strokeColor = new paper.Color("#e11d48");
+        l.strokeWidth = 1.5;
+        l.strokeScaling = false;
+        e.addUi(l, "calib");
+      }
+    };
+    cross(p);
+    if (!from) return;
+    cross(from);
+    const line = new paper.Path.Line({ from, to: p, insert: false });
+    line.strokeColor = new paper.Color("#e11d48");
+    line.strokeWidth = 1;
+    line.strokeScaling = false;
+    line.dashArray = [5, 3];
+    e.addUi(line, "calib");
+    e.hintValue(`${formatMm(p.getDistance(from))} mm (${e.background?.calibrated ? "✓" : "?"})`);
+  }
+}
+
+
 class PanTool extends BaseTool {
   cursor = "grab";
   hint = "hint.pan";
@@ -910,6 +1117,10 @@ export function createTool(name: ToolName, engine: EditorEngine): ToolHandler {
       return new ShapeTool(engine, name);
     case "dimension":
       return new DimensionTool(engine);
+    case "measure":
+      return new MeasureTool(engine);
+    case "calibrate":
+      return new CalibrateTool(engine);
     case "pan":
       return new PanTool(engine);
   }

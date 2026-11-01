@@ -105,12 +105,14 @@ def get_design(design_id: int, db: Session = Depends(get_db)):
 @router.patch("/{design_id}", response_model=DesignOut)
 def update_design(design_id: int, payload: DesignUpdate, db: Session = Depends(get_db)):
     design = _get_or_404(db, design_id)
-    data = payload.model_dump(exclude_unset=True, exclude={"document"})
+    data = payload.model_dump(exclude_unset=True, exclude={"document", "background"})
     _check_refs(db, data.get("knife_model_id"), data.get("material_id"))
     for field, value in data.items():
         setattr(design, field, value)
     if payload.document is not None:
         _apply_metrics(design, payload.document)
+    if "background" in payload.model_fields_set:
+        design.background = payload.background.model_dump(mode="json") if payload.background else None
     db.commit()
     return _get_or_404(db, design_id)
 
@@ -125,6 +127,7 @@ def duplicate_design(design_id: int, db: Session = Depends(get_db)):
         knife_model_id=source.knife_model_id,
         material_id=source.material_id,
         document=source.document,
+        background=source.background,
         width_mm=source.width_mm,
         height_mm=source.height_mm,
         area_mm2=source.area_mm2,

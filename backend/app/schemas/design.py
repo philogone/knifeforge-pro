@@ -7,10 +7,11 @@ their anchor (``ix, iy`` = incoming handle offset, ``ox, oy`` = outgoing), which
 matches Paper.js segments one-to-one and keeps translations trivial.
 """
 
+import re
 from datetime import datetime
 from typing import Annotated, Literal, Union
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.design import DesignKind
 
@@ -69,11 +70,20 @@ class DimensionObject(BaseModel):
 DesignObject = Annotated[Union[PathObject, DimensionObject], Field(discriminator="type")]
 
 
+class Guide(BaseModel):
+    """Construction guide drawn in the editor (x = pos for axis "x", y = pos for "y").
+    Drawing aid only: ignored by geometry, exports and nesting."""
+
+    axis: Literal["x", "y"]
+    pos: Coord
+
+
 class DesignDocument(BaseModel):
     version: Literal[1] = 1
     unit: Literal["mm"] = "mm"
     layers: list[Layer] = Field(min_length=1, max_length=32)
     objects: list[DesignObject] = Field(default_factory=list, max_length=MAX_OBJECTS)
+    guides: list[Guide] = Field(default_factory=list, max_length=200)
 
     @model_validator(mode="after")
     def _check_layer_refs(self):
@@ -89,6 +99,40 @@ class DesignDocument(BaseModel):
                 raise ValueError(f'Duplicate object id "{obj.id}"')
             seen.add(obj.id)
         return self
+
+
+# A downscaled photo (the editor re-encodes to ≤ 4000 px JPEG) is 1–3 MB of base64; 12 MB leaves room
+# for a large PNG scan while keeping one design row bounded.
+MAX_BACKGROUND_IMAGE_CHARS = 12_000_000
+_BACKGROUND_DATA_URL = re.compile(r"data:image/(jpeg|png|webp);base64,([A-Za-z0-9+/]+={0,2})")
+
+
+class DesignBackground(BaseModel):
+    """Reference photo or scan shown under the drawing, to trace a pattern from it.
+
+    Stored beside the document, not in it: it is never exported, nested, measured
+    or part of the undo history. Placement is in document millimetres: centre,
+    size and rotation (degrees, clockwise since y points down)."""
+
+    image: str = Field(min_length=32, max_length=MAX_BACKGROUND_IMAGE_CHARS)
+    cx: Coord
+    cy: Coord
+    width_mm: float = Field(gt=0, le=MAX_COORD_MM, allow_inf_nan=False)
+    height_mm: float = Field(gt=0, le=MAX_COORD_MM, allow_inf_nan=False)
+    rotation_deg: float = Field(default=0.0, ge=-360, le=360, allow_inf_nan=False)
+    opacity: float = Field(default=0.5, ge=0.05, le=1)
+    visible: bool = True
+    locked: bool = True
+    # True once the user scaled it from a known distance; until then its size is a guess.
+    calibrated: bool = False
+
+    @field_validator("image")
+    @classmethod
+    def _raster_data_url(cls, value: str) -> str:
+        # Raster data URLs only: no SVG (scriptable) and no remote URL the browser would fetch.
+        if not _BACKGROUND_DATA_URL.fullmatch(value):
+            raise ValueError("image must be a base64 JPEG, PNG or WebP data URL")
+        return value
 
 
 class DesignCreate(BaseModel):
@@ -107,6 +151,8 @@ class DesignUpdate(BaseModel):
     knife_model_id: int | None = None
     material_id: int | None = None
     document: DesignDocument | None = None
+    # Omitted = unchanged, null = remove the background.
+    background: DesignBackground | None = None
 
 
 class DesignSummaryOut(BaseModel):
@@ -132,6 +178,7 @@ class DesignSummaryOut(BaseModel):
 
 class DesignOut(DesignSummaryOut):
     document: DesignDocument
+    background: DesignBackground | None = None
 
 
 class OffsetRequest(BaseModel):

@@ -41,14 +41,22 @@ export interface DimensionObject {
 
 export type DocObject = PathObject | DimensionObject;
 
+/** Construction guide: an infinite line, x = pos ("x" axis, vertical) or y = pos ("y", horizontal). */
+export interface Guide {
+  axis: "x" | "y";
+  pos: number;
+}
+
 export interface DesignDocument {
   version: 1;
   unit: "mm";
   layers: DocLayer[];
   objects: DocObject[];
+  /** omitted when there are none */
+  guides?: Guide[];
 }
 
-export type ToolName = "select" | "node" | "pen" | "rect" | "ellipse" | "line" | "polygon" | "dimension" | "pan";
+export type ToolName = "select" | "node" | "pen" | "rect" | "ellipse" | "line" | "polygon" | "dimension" | "measure" | "calibrate" | "pan";
 
 export interface Bounds {
   x: number;

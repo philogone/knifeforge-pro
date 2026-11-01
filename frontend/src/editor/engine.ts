@@ -1,6 +1,7 @@
 import paper from "paper";
 
-import { GRID_SIZES_MM, MAX_ZOOM, MIN_ZOOM, PX_PER_MM_CSS, ROLE_STYLE, UI_COLOR, defaultLayers } from "./constants";
+import { calibrate, type BackgroundState, type Straighten } from "./background";
+import { MAX_GRID_MM, MAX_ZOOM, MIN_GRID_MM, MIN_ZOOM, PX_PER_MM_CSS, ROLE_STYLE, UI_COLOR, defaultLayers } from "./constants";
 import { History } from "./history";
 import { createTool, type ToolHandler } from "./tools";
 import type {
@@ -10,6 +11,7 @@ import type {
   DocLayer,
   DocNode,
   DocObject,
+  Guide,
   LayerRole,
   PathObject,
   SelectionInfo,
@@ -32,6 +34,53 @@ export interface EngineEvents {
   layers: [];
   hint: [string];
   value: [string];
+  /** the reference image changed (placement, opacity, loaded…) */
+  background: [];
+  /** the calibration tool picked two points on the reference image */
+  calibrate: [[number, number], [number, number]];
+  /** the measure tool's current reading (null when cleared) */
+  measure: [Measurement | null];
+  /** guides changed (added, moved, removed, or restored by undo) */
+  guides: [];
+}
+
+export interface Measurement {
+  a: [number, number];
+  b: [number, number];
+  distance: number;
+  dx: number;
+  dy: number;
+  /** degrees, counter-clockwise from +x as a draughtsman reads it (y is flipped) */
+  angle: number;
+}
+
+export type SnapKind = "node" | "intersection" | "midpoint" | "center" | "path" | "guide" | "grid" | "angle";
+
+export interface SnapOptions {
+  nodes: boolean;
+  intersections: boolean;
+  midpoints: boolean;
+  centers: boolean;
+  /** nearest point on any outline */
+  path: boolean;
+  guides: boolean;
+  grid: boolean;
+}
+
+export interface SnapRequest {
+  /** start point of the segment being drawn: enables the angle constraint */
+  from?: paper.Point;
+  /** lock the direction from `from` to multiples of 15° (Shift) */
+  constrain?: boolean;
+  /** paths whose curves must not attract (the path whose node is being dragged) */
+  skipPaths?: paper.Path[];
+  /** nodes that must not attract (the node being dragged) */
+  skipSegments?: paper.Segment[];
+}
+
+interface SnapHit {
+  kind: SnapKind;
+  point: paper.Point;
 }
 
 type Listener<T extends unknown[]> = (...args: T) => void;
@@ -53,12 +102,38 @@ export class EditorEngine {
   readonly scope: paper.PaperScope;
   readonly canvas: HTMLCanvasElement;
   readonly ui: paper.Layer;
+  /** reference image layer: always at the bottom, locked, never part of the document */
+  private readonly bgLayer: paper.Layer;
+  private bg: BackgroundState | null = null;
+  private raster: paper.Raster | null = null;
+  private lastMeasure: Measurement | null = null;
   layers: DocLayer[] = defaultLayers();
   activeLayerId = "cut";
 
   gridSize = 1;
-  snapToGrid = true;
-  snapToNodes = true;
+  snapOptions: SnapOptions = { nodes: true, intersections: true, midpoints: true, centers: true, path: false, guides: true, grid: true };
+  /** attraction distance, in screen pixels (so it feels the same at any zoom) */
+  snapRadiusPx = 10;
+  /** labels shown next to the snap marker, set by the UI in its language */
+  snapLabels: Partial<Record<SnapKind, string>> = {};
+  /** what the last snap() call locked onto (null = free point) */
+  lastSnap: SnapHit | null = null;
+  guides: Guide[] = [];
+  /** guide being dragged out of a ruler (drawn, not yet part of the document) */
+  previewGuide: Guide | null = null;
+
+  get snapToGrid(): boolean {
+    return this.snapOptions.grid;
+  }
+  set snapToGrid(on: boolean) {
+    this.snapOptions.grid = on;
+  }
+  get snapToNodes(): boolean {
+    return this.snapOptions.nodes;
+  }
+  set snapToNodes(on: boolean) {
+    this.snapOptions.nodes = on;
+  }
   /** Corner radius (mm) applied by the rectangle tool */
   cornerRadius = 0;
   /** Number of sides used by the polygon tool */
@@ -86,6 +161,8 @@ export class EditorEngine {
     this.scope = new paper.PaperScope();
     this.scope.setup(canvas);
     if (options.headless) this.scope.view.autoUpdate = false;
+    this.bgLayer = new paper.Layer({ name: "__background" });
+    this.bgLayer.locked = true;
     this.ui = new paper.Layer({ name: "__ui" });
     this.rebuildLayers();
     this.handler = createTool("select", this);
@@ -302,48 +379,200 @@ export class EditorEngine {
 
   // -------------------------------------------------------------- snapping
   /** Closest path node within `radius` (world mm), ignoring `exclude` items and hidden/locked layers. */
-  nearestNode(point: paper.Point, radius: number, exclude: paper.Item[] = []): paper.Point | null {
+  nearestNode(point: paper.Point, radius: number, exclude: paper.Item[] = [], skipSegments: paper.Segment[] = []): paper.Point | null {
+    if (!this.snapOptions.nodes) return null;
     let best: paper.Point | null = null;
     let bestDist = radius;
-    for (const item of this.docItems()) {
-      if (!item.visible || exclude.includes(item) || item.parent?.locked || item.data?.kind === "dim") continue;
-      for (const path of this.pathsOf([item])) {
-        for (const seg of path.segments) {
-          const d = seg.point.getDistance(point);
-          if (d < bestDist) {
-            bestDist = d;
-            best = seg.point;
-          }
+    for (const path of this.snapPaths(point, radius, exclude)) {
+      for (const seg of path.segments) {
+        if (skipSegments.includes(seg)) continue;
+        const d = seg.point.getDistance(point);
+        if (d < bestDist) {
+          bestDist = d;
+          best = seg.point;
         }
       }
     }
     return best ? best.clone() : null;
   }
 
-  /** Snap a point to nearby nodes first, then to the grid. */
-  snap(point: paper.Point, exclude: paper.Item[] = []): paper.Point {
-    this.clearUi("snap");
-    if (this.snapToNodes) {
-      const node = this.nearestNode(point, 10 / this.view.zoom, exclude);
-      if (node) {
-        this.showSnapMarker(node);
-        return node;
-      }
-    }
-    if (this.snapToGrid) {
-      const g = this.gridSize;
-      return new paper.Point(Math.round(point.x / g) * g, Math.round(point.y / g) * g);
-    }
-    return point;
+  /** Paths of visible, unlocked document items whose bounds come within `radius` of `point`. */
+  private snapPaths(point: paper.Point, radius: number, exclude: paper.Item[]): paper.Path[] {
+    const items = this.docItems().filter(
+      (i) =>
+        i.visible &&
+        i.parent?.visible !== false &&
+        !i.parent?.locked &&
+        !exclude.includes(i) &&
+        i.data?.kind !== "dim" &&
+        i.bounds.expand(radius * 2).contains(point),
+    );
+    return this.pathsOf(items);
   }
 
-  showSnapMarker(p: paper.Point): void {
+  /**
+   * Snap a point, by priority: exact geometric points (node, intersection, midpoint, centre),
+   * then a point on an outline, then guides and the grid (each axis on its own). With `from` +
+   * `constrain` (Shift) the direction is locked to 15° steps instead, and the length to the grid.
+   */
+  snap(point: paper.Point, exclude: paper.Item[] = [], req: SnapRequest = {}): paper.Point {
     this.clearUi("snap");
-    const marker = new paper.Path.Circle({ center: p, radius: 5 / this.view.zoom, insert: false });
+    this.lastSnap = null;
+    if (req.from && req.constrain) return this.snapAngle(point, req.from);
+
+    const hit = this.findSnap(point, this.px(this.snapRadiusPx), exclude, req);
+    if (hit) {
+      this.lastSnap = hit;
+      this.showSnapMarker(hit.point, hit.kind);
+      return hit.point.clone();
+    }
+    return this.snapToGuidesAndGrid(point);
+  }
+
+  private findSnap(point: paper.Point, r: number, exclude: paper.Item[], req: SnapRequest): SnapHit | null {
+    const o = this.snapOptions;
+    const skipPaths = req.skipPaths ?? [];
+    const own = this.snapPaths(point, r, exclude).filter((p) => !skipPaths.includes(p));
+    const closest = (kind: SnapKind, candidates: paper.Point[]): SnapHit | null => {
+      let best: paper.Point | null = null;
+      let bestDist = r;
+      for (const c of candidates) {
+        const d = c.getDistance(point);
+        if (d < bestDist) {
+          bestDist = d;
+          best = c;
+        }
+      }
+      return best ? { kind, point: best.clone() } : null;
+    };
+
+    if (o.nodes) {
+      const node = this.nearestNode(point, r, exclude, req.skipSegments ?? []);
+      if (node) return { kind: "node", point: node };
+    }
+    if (o.intersections && own.length > 1) {
+      const pts: paper.Point[] = [];
+      const near = own.slice(0, 40); // bounded cost: only paths around the cursor, at most 40
+      for (let i = 0; i < near.length; i++) {
+        for (let j = i + 1; j < near.length; j++) {
+          if (!near[i].bounds.intersects(near[j].bounds)) continue;
+          for (const loc of near[i].getIntersections(near[j])) pts.push(loc.point);
+        }
+      }
+      const hit = closest("intersection", pts);
+      if (hit) return hit;
+    }
+    if (o.midpoints) {
+      const mids = own.flatMap((p) => p.curves.filter((c) => c.length > 1e-6).map((c) => c.getPointAt(c.length / 2)));
+      const hit = closest("midpoint", mids);
+      if (hit) return hit;
+    }
+    if (o.centers) {
+      const hit = closest("center", own.filter((p) => p.closed).map((p) => p.bounds.center));
+      if (hit) return hit;
+    }
+    if (o.path) {
+      const hit = closest("path", own.map((p) => p.getNearestPoint(point)));
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  /** Guides first (each axis on its own), then the grid for any axis no guide claimed. */
+  private snapToGuidesAndGrid(point: paper.Point): paper.Point {
+    let x = point.x;
+    let y = point.y;
+    let onGuideX = false;
+    let onGuideY = false;
+    if (this.snapOptions.guides && this.guides.length) {
+      let bestX = this.px(this.snapRadiusPx);
+      let bestY = bestX;
+      for (const g of this.guides) {
+        const d = Math.abs((g.axis === "x" ? point.x : point.y) - g.pos);
+        if (g.axis === "x" && d < bestX) {
+          bestX = d;
+          x = g.pos;
+          onGuideX = true;
+        } else if (g.axis === "y" && d < bestY) {
+          bestY = d;
+          y = g.pos;
+          onGuideY = true;
+        }
+      }
+    }
+    if (this.snapOptions.grid) {
+      if (!onGuideX) x = this.snapAxis(point.x);
+      if (!onGuideY) y = this.snapAxis(point.y);
+    }
+    const out = new paper.Point(x, y);
+    if (onGuideX || onGuideY) {
+      this.lastSnap = { kind: "guide", point: out };
+      this.showSnapMarker(out, "guide");
+    }
+    return out;
+  }
+
+  /** Lock the direction from `from` to the nearest 15°, and the length to the grid step. */
+  private snapAngle(point: paper.Point, from: paper.Point): paper.Point {
+    const v = point.subtract(from);
+    const angle = Math.round(v.angle / 15) * 15;
+    const length = this.snapOptions.grid ? Math.round(v.length / this.gridSize) * this.gridSize : v.length;
+    const rad = (angle * Math.PI) / 180;
+    const out = new paper.Point(round4(from.x + length * Math.cos(rad)), round4(from.y + length * Math.sin(rad)));
+    this.lastSnap = { kind: "angle", point: out };
+    this.showSnapMarker(out, "angle", `${normalizeAngle(-angle)}°`);
+    return out;
+  }
+
+  showSnapMarker(p: paper.Point, kind: SnapKind = "node", text?: string): void {
+    this.clearUi("snap");
+    const r = this.px(5);
+    let marker: paper.Item;
+    if (kind === "midpoint") {
+      marker = new paper.Path.RegularPolygon({ center: p, sides: 3, radius: r * 1.3, insert: false });
+    } else if (kind === "center" || kind === "angle") {
+      marker = new paper.CompoundPath({
+        children: [
+          new paper.Path.Line({ from: p.add([-r, 0]), to: p.add([r, 0]), insert: false }),
+          new paper.Path.Line({ from: p.add([0, -r]), to: p.add([0, r]), insert: false }),
+        ],
+        insert: false,
+      });
+    } else if (kind === "intersection") {
+      marker = new paper.CompoundPath({
+        children: [
+          new paper.Path.Line({ from: p.add([-r, -r]), to: p.add([r, r]), insert: false }),
+          new paper.Path.Line({ from: p.add([r, -r]), to: p.add([-r, r]), insert: false }),
+        ],
+        insert: false,
+      });
+    } else if (kind === "path" || kind === "guide") {
+      marker = new paper.Path.Rectangle({ center: p, size: [r * 1.4, r * 1.4], insert: false });
+      marker.rotate(45);
+    } else {
+      marker = new paper.Path.Circle({ center: p, radius: r, insert: false });
+    }
     marker.strokeColor = new paper.Color("#f59e0b");
     marker.strokeWidth = 2;
     marker.strokeScaling = false;
+    marker.fillColor = null;
     this.addUi(marker, "snap");
+    const label = text ?? this.snapLabels[kind];
+    if (label) this.addUi(this.screenText(p.add([this.px(9), -this.px(8)]), label, 11, "#b45309"), "snap");
+  }
+
+  /**
+   * Overlay text that is `sizePx` tall on screen at any zoom. Built at its real pixel size and
+   * scaled down by the zoom: a 1.3-unit font scaled up by the view (the naive way) is laid out by
+   * the canvas at that tiny size, and its glyph positions come out garbled.
+   */
+  screenText(at: paper.Point, content: string, sizePx: number, color: string, justification: "left" | "center" = "left"): paper.PointText {
+    const t = new paper.PointText({ point: at, content, insert: false });
+    t.fontSize = sizePx;
+    t.justification = justification;
+    t.fillColor = new paper.Color(color);
+    t.scale(1 / this.view.zoom, at);
+    return t;
   }
 
   /** Live readout (size, length…) shown in the status bar while drawing. */
@@ -659,7 +888,10 @@ export class EditorEngine {
       const obj = this.itemToObject(item);
       if (obj) objects.push(obj);
     }
-    return { version: 1, unit: "mm", layers: this.layers.map((l) => ({ ...l })), objects };
+    const doc: DesignDocument = { version: 1, unit: "mm", layers: this.layers.map((l) => ({ ...l })), objects };
+    // only written when present, so documents without guides round-trip unchanged
+    if (this.guides.length) doc.guides = this.guides.map((g) => ({ ...g }));
+    return doc;
   }
 
   loadDocument(doc: DesignDocument, options: { resetHistory?: boolean; fit?: boolean } = {}): void {
@@ -675,6 +907,8 @@ export class EditorEngine {
       if (this.paperLayers.has(obj.layer)) this.objectToItem(obj);
     }
     this.normalizeDimensions();
+    this.guides = (doc.guides ?? []).map((g) => ({ axis: g.axis, pos: g.pos }));
+    this.emit("guides");
     if (options.resetHistory !== false) {
       const state = JSON.stringify(this.exportDocument());
       this.history.reset(state);
@@ -1186,9 +1420,141 @@ export class EditorEngine {
   }
 
   // ----------------------------------------------------------------- grid
+  /** Any step from MIN_GRID_MM to MAX_GRID_MM (kept to 4 decimals, like every coordinate). */
   setGridSize(size: number): void {
-    this.gridSize = GRID_SIZES_MM.includes(size) ? size : this.gridSize;
+    if (Number.isFinite(size) && size >= MIN_GRID_MM && size <= MAX_GRID_MM) this.gridSize = round4(size);
     this.emit("view");
+  }
+
+  /** Grid-snapped coordinate along one axis. */
+  snapAxis(value: number): number {
+    return this.snapOptions.grid ? round4(Math.round(value / this.gridSize) * this.gridSize) : round4(value);
+  }
+
+  // ---------------------------------------------------------------- guides
+  /** Index of the guide within a few pixels of `p`, or -1. */
+  guideAt(p: paper.Point, tolerancePx = 4): number {
+    let best = -1;
+    let bestDist = this.px(tolerancePx);
+    this.guides.forEach((g, i) => {
+      const d = Math.abs((g.axis === "x" ? p.x : p.y) - g.pos);
+      if (d < bestDist) {
+        bestDist = d;
+        best = i;
+      }
+    });
+    return best;
+  }
+
+  addGuide(axis: Guide["axis"], pos: number): void {
+    this.previewGuide = null;
+    if (!Number.isFinite(pos)) return;
+    this.guides.push({ axis, pos: round4(pos) });
+    this.emit("guides");
+    this.commit();
+  }
+
+  /** Move a guide; `commit` = record it as an undo step (false while dragging). */
+  moveGuide(index: number, pos: number, commit = true): void {
+    const g = this.guides[index];
+    if (!g || !Number.isFinite(pos)) return;
+    g.pos = round4(pos);
+    this.emit("guides");
+    if (commit) this.commit();
+  }
+
+  removeGuide(index: number): void {
+    if (index < 0 || index >= this.guides.length) return;
+    this.guides.splice(index, 1);
+    this.emit("guides");
+    this.commit();
+  }
+
+  clearGuides(): void {
+    if (!this.guides.length) return;
+    this.guides = [];
+    this.emit("guides");
+    this.commit();
+  }
+
+  /** Is this world point under one of the rulers? (a guide dropped there is deleted) */
+  overRuler(p: paper.Point, rulerPx: number): boolean {
+    const v = this.view.projectToView(p);
+    return v.x < rulerPx || v.y < rulerPx;
+  }
+
+  // -------------------------------------------------------- reference image
+  get background(): BackgroundState | null {
+    return this.bg ? { ...this.bg } : null;
+  }
+
+  /** Replace (or remove, with null) the reference image. Not an undo step: it is not part of the document. */
+  setBackground(state: BackgroundState | null): void {
+    this.raster?.remove();
+    this.raster = null;
+    this.bg = state ? { ...state } : null;
+    if (state) {
+      const raster = new paper.Raster({ insert: false });
+      raster.onLoad = () => {
+        if (this.raster !== raster || !this.bg) return;
+        this.bg.pixelWidth = raster.width;
+        this.bg.pixelHeight = raster.height;
+        this.applyBackground();
+        this.emit("background");
+      };
+      raster.source = state.image;
+      this.bgLayer.addChild(raster);
+      this.raster = raster;
+      this.applyBackground();
+    }
+    this.emit("background");
+  }
+
+  updateBackground(patch: Partial<Omit<BackgroundState, "image">>): void {
+    if (!this.bg) return;
+    Object.assign(this.bg, patch);
+    this.applyBackground();
+    this.emit("background");
+  }
+
+  /** Scale (and optionally straighten) the image so the two picked points end up `realMm` apart. */
+  calibrateBackground(a: [number, number], b: [number, number], realMm: number, straighten: Straighten, moveAToOrigin: boolean): void {
+    if (!this.bg) return;
+    this.updateBackground({ ...calibrate(this.bg, a, b, realMm, straighten, moveAToOrigin), calibrated: true });
+  }
+
+  private applyBackground(): void {
+    const bg = this.bg;
+    const r = this.raster;
+    if (!bg || !r) return;
+    r.visible = bg.visible;
+    r.opacity = bg.opacity;
+    if (!r.width || !r.height) return; // not decoded yet: onLoad places it
+    // Raster content is centred on its local origin: scale pixels to mm, rotate, then move the centre.
+    r.matrix = new paper.Matrix()
+      .translate(new paper.Point(bg.cx, bg.cy))
+      .rotate(bg.rotation_deg, new paper.Point(0, 0))
+      .scale(bg.width_mm / r.width, bg.height_mm / r.height, new paper.Point(0, 0));
+  }
+
+  // --------------------------------------------------------------- measure
+  get measurement(): Measurement | null {
+    return this.lastMeasure;
+  }
+
+  setMeasurement(a: paper.Point | null, b: paper.Point | null): void {
+    this.lastMeasure = a && b ? measure(a, b) : null;
+    this.emit("measure", this.lastMeasure);
+  }
+
+  /** Turn the last measurement into a dimension annotation (one undo step). */
+  measurementToDimension(): boolean {
+    const m = this.lastMeasure;
+    if (!m || m.distance < 0.01) return false;
+    const group = this.createDimension(new paper.Point(m.a[0], m.a[1]), new paper.Point(m.b[0], m.b[1]));
+    this.selectItems([group]);
+    this.commit();
+    return true;
   }
 }
 
@@ -1201,6 +1567,27 @@ function shiftObject(obj: DocObject, dx: number, dy: number): DocObject {
     copy.b = [copy.b[0] + dx, copy.b[1] + dy];
   }
   return copy;
+}
+
+function normalizeAngle(deg: number): number {
+  let a = Math.round(deg * 10) / 10;
+  while (a <= -180) a += 360;
+  while (a > 180) a -= 360;
+  return a === 0 ? 0 : a; // no "-0"
+}
+
+/** Distance, components and angle between two points (angle read with y up, as on a drawing). */
+export function measure(a: paper.Point, b: paper.Point): Measurement {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  return {
+    a: [round4(a.x), round4(a.y)],
+    b: [round4(b.x), round4(b.y)],
+    distance: Math.hypot(dx, dy),
+    dx,
+    dy,
+    angle: normalizeAngle((Math.atan2(-dy, dx) * 180) / Math.PI),
+  };
 }
 
 export function formatMm(value: number): string {

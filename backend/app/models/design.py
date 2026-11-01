@@ -53,6 +53,9 @@ class Design(Base):
     material: Mapped["Material | None"] = relationship()
 
     document: Mapped[dict] = mapped_column(JSON, nullable=False)
+    # Optional reference image for tracing (see DesignBackground). Kept out of
+    # `document` so geometry, exports and nesting never see it.
+    background: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # Derived metrics (recomputed from `document` by geometry_service on save).
     width_mm: Mapped[float] = mapped_column(Float, default=0.0)

@@ -244,8 +244,22 @@ export interface DesignSummary {
   updated_at: string;
 }
 
+export interface DesignBackground {
+  image: string;
+  cx: number;
+  cy: number;
+  width_mm: number;
+  height_mm: number;
+  rotation_deg: number;
+  opacity: number;
+  visible: boolean;
+  locked: boolean;
+  calibrated: boolean;
+}
+
 export interface Design extends DesignSummary {
   document: DesignDocument;
+  background?: DesignBackground | null;
 }
 
 export interface DesignTemplate {

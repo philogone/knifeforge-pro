@@ -35,13 +35,38 @@ export function niceStep(zoom: number, minPx: number): number {
   return 10 ** (exp + 1);
 }
 
-export function drawGrid(ctx: CanvasRenderingContext2D, v: ViewTransform, dark = false): void {
+const MAJOR_FACTOR: Record<number, number> = { 1: 10, 2: 5, 5: 2 };
+
+/**
+ * Grid lines to draw for a given snap step: the snap step itself when it is at least `minPx`
+ * apart on screen, else the first of 2×, 5×, 10×, 20×… that is. Major lines fall on multiples of
+ * 10 snap steps (e.g. 1 mm grid → centimetre lines), so the grid you see is the grid you snap to.
+ */
+export function gridSteps(zoom: number, snapStep: number, minPx = 8): { minor: number; major: number } {
+  for (let e = 0; e < 12; e++) {
+    for (const m of NICE) {
+      const minor = snapStep * m * 10 ** e;
+      if (minor * zoom >= minPx) return { minor, major: minor * MAJOR_FACTOR[m] };
+    }
+  }
+  return { minor: snapStep, major: snapStep * 10 };
+}
+
+export interface GridStyle {
+  /** snap step, mm (falls back to a zoom-based step when absent) */
+  step?: number;
+  show?: boolean;
+  dark?: boolean;
+}
+
+export function drawGrid(ctx: CanvasRenderingContext2D, v: ViewTransform, style: GridStyle = {}): void {
+  const dark = !!style.dark;
   ctx.clearRect(0, 0, v.width, v.height);
   ctx.fillStyle = dark ? "#0b1220" : "#ffffff";
   ctx.fillRect(0, 0, v.width, v.height);
+  if (style.show === false) return;
 
-  const minor = niceStep(v.zoom, 12);
-  const major = minor * 5;
+  const { minor, major } = style.step ? gridSteps(v.zoom, style.step) : { minor: niceStep(v.zoom, 12), major: niceStep(v.zoom, 12) * 5 };
   const [wx0, wy0] = screenToWorld(v, 0, 0);
   const [wx1, wy1] = screenToWorld(v, v.width, v.height);
 
@@ -78,8 +103,40 @@ export function drawGrid(ctx: CanvasRenderingContext2D, v: ViewTransform, dark =
 
 export const RULER_SIZE = 20;
 
-export function drawRulers(ctx: CanvasRenderingContext2D, v: ViewTransform, cursor: [number, number] | null): void {
+export interface RulerGuide {
+  axis: "x" | "y";
+  pos: number;
+}
+
+export function drawRulers(
+  ctx: CanvasRenderingContext2D,
+  v: ViewTransform,
+  cursor: [number, number] | null,
+  guides: RulerGuide[] = [],
+  preview: RulerGuide | null = null,
+): void {
   ctx.clearRect(0, 0, v.width, v.height);
+  // guides live on this top canvas so they stay visible over shapes and over a reference photo
+  const guideLine = (g: RulerGuide, dashed: boolean) => {
+    ctx.beginPath();
+    ctx.strokeStyle = dashed ? "rgba(8,145,178,0.7)" : "rgba(6,182,212,0.95)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash(dashed ? [6, 4] : []);
+    if (g.axis === "x") {
+      const sx = Math.round(worldToScreen(v, g.pos, 0)[0]) + 0.5;
+      ctx.moveTo(sx, 0);
+      ctx.lineTo(sx, v.height);
+    } else {
+      const sy = Math.round(worldToScreen(v, 0, g.pos)[1]) + 0.5;
+      ctx.moveTo(0, sy);
+      ctx.lineTo(v.width, sy);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  };
+  for (const g of guides) guideLine(g, false);
+  if (preview) guideLine(preview, true);
+
   ctx.fillStyle = "rgba(248,250,252,0.96)";
   ctx.fillRect(0, 0, v.width, RULER_SIZE);
   ctx.fillRect(0, 0, RULER_SIZE, v.height);

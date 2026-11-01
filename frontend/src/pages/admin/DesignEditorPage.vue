@@ -4,11 +4,12 @@ import { onBeforeRouteLeave, useRoute } from "vue-router";
 
 import { ApiError, saveBlob } from "@/composables/useApi";
 import { useSnapshotDirty } from "@/composables/useSnapshotDirty";
+import { initialPlacement, loadImageFile, mmPerPixel, type BackgroundState, type Straighten } from "@/editor/background";
 import { ROLE_STYLE } from "@/editor/constants";
 import { EditorEngine, formatMm } from "@/editor/engine";
-import type { AlignKind, BooleanOp } from "@/editor/engine";
-import type { DocLayer, LayerRole, SelectionInfo, ToolName } from "@/editor/types";
-import { drawGrid, drawRulers } from "@/editor/view";
+import type { AlignKind, BooleanOp, Measurement, SnapKind, SnapOptions } from "@/editor/engine";
+import type { DocLayer, Guide, LayerRole, SelectionInfo, ToolName } from "@/editor/types";
+import { RULER_SIZE, drawGrid, drawRulers, screenToWorld } from "@/editor/view";
 import { useI18n } from "@/i18n";
 import { useAppStore } from "@/stores/app.store";
 import type { Design, DesignKind } from "@/types";
@@ -28,6 +29,7 @@ const tools: { name: ToolName; icon: string }[] = [
   { name: "line", icon: "∕" },
   { name: "polygon", icon: "⬡" },
   { name: "dimension", icon: "↔" },
+  { name: "measure", icon: "📏" },
   { name: "pan", icon: "✋" },
 ];
 const alignKinds: AlignKind[] = ["left", "centerH", "right", "top", "middleV", "bottom"];
@@ -60,12 +62,29 @@ const valueHint = ref("");
 const dirty = ref(false);
 const canUndo = ref(false);
 const canRedo = ref(false);
-const tab = ref<"object" | "layers" | "document">("object");
+const tab = ref<"object" | "layers" | "background" | "document">("object");
 const saving = ref(false);
 const status = ref("");
 const statusIsError = ref(false);
 
-const opts = reactive({ gridSize: 1, snapToGrid: true, snapToNodes: true, cornerRadius: 0, polygonSides: 6 });
+const opts = reactive({ gridSize: 1, showGrid: true, cornerRadius: 0, polygonSides: 6, snapRadius: 10 });
+const snapOpts = reactive<SnapOptions>({ nodes: true, intersections: true, midpoints: true, centers: true, path: false, guides: true, grid: true });
+const snapKinds = Object.keys(snapOpts) as (keyof SnapOptions)[];
+const guides = ref<Guide[]>([]);
+const guideForm = reactive({ x: 0, y: 0 });
+const measurement = ref<Measurement | null>(null);
+
+// Reference image. Its own "unsaved" tracking: it is saved with the design but is not part of the
+// document, so the engine's dirty flag (document only) does not see it. The data URL is keyed by
+// length + tail so a multi-MB string is never re-serialised on every change.
+const bg = ref<BackgroundState | null>(null);
+const { dirty: bgDirty, markClean: markBgClean } = useSnapshotDirty(() => {
+  const b = bg.value;
+  if (!b) return null;
+  return { ...b, image: `${b.image.length}:${b.image.slice(-48)}`, pixelWidth: undefined, pixelHeight: undefined };
+});
+const bgResolution = computed(() => (bg.value?.pixelWidth ? mmPerPixel(bg.value, bg.value.pixelWidth) : null));
+const calib = reactive({ open: false, a: [0, 0] as [number, number], b: [0, 0] as [number, number], real: "" as number | "", straighten: "horizontal" as Straighten, origin: false });
 const lockRatio = ref(true);
 const rotateBy = ref(0);
 const offsetForm = reactive({ distance: 1, join: "round" as "round" | "mitre" | "bevel", keep: false });
@@ -73,7 +92,7 @@ const nodeXY = reactive({ x: 0, y: 0 });
 const bounds = reactive({ x: 0, y: 0, w: 0, h: 0 });
 const dimForm = reactive({ offset: 8, label: "" });
 
-const unsaved = computed(() => dirty.value || metaDirty.value);
+const unsaved = computed(() => dirty.value || metaDirty.value || bgDirty.value);
 
 function setStatus(msg: string, error = false) {
   status.value = msg;
@@ -92,7 +111,7 @@ function paintBackground() {
   if (!ctx) return;
   const dpr = window.devicePixelRatio || 1;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawGrid(ctx, e.viewTransform);
+  drawGrid(ctx, e.viewTransform, { step: e.gridSize, show: opts.showGrid });
 }
 function paintRulers() {
   const e = engine.value;
@@ -102,7 +121,7 @@ function paintRulers() {
   if (!ctx) return;
   const dpr = window.devicePixelRatio || 1;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawRulers(ctx, e.viewTransform, e.cursor);
+  drawRulers(ctx, e.viewTransform, e.cursor, e.guides, e.previewGuide);
 }
 
 function sizeCanvases() {
@@ -157,8 +176,13 @@ function attachEngine(doc: Design) {
   const canvas = paperCanvas.value!;
   const e = new EditorEngine(canvas);
   engine.value = e;
+  e.snapLabels = Object.fromEntries(
+    (["node", "intersection", "midpoint", "center", "path", "guide"] as SnapKind[]).map((k) => [k, t(`snap.${k}`)]),
+  );
   e.loadDocument(doc.document, { resetHistory: true, fit: false });
   e.gridSize = opts.gridSize;
+  e.snapOptions = { ...snapOpts };
+  guides.value = e.guides.map((g) => ({ ...g }));
   offs = [
     e.on("change", refreshState),
     e.on("selection", (s) => {
@@ -174,7 +198,24 @@ function attachEngine(doc: Design) {
       cursor.value = [x, y];
       paintRulers();
     }),
-    e.on("tool", (name) => (tool.value = name)),
+    e.on("tool", (name) => {
+      tool.value = name;
+      if (name !== "measure") measurement.value = null;
+    }),
+    e.on("guides", () => {
+      guides.value = e.guides.map((g) => ({ ...g }));
+      paintRulers();
+    }),
+    e.on("measure", (m) => (measurement.value = m)),
+    e.on("background", () => (bg.value = e.background)),
+    e.on("calibrate", (a, b) => {
+      calib.a = a;
+      calib.b = b;
+      // left empty on purpose: pre-filling the measured value would let "Apply" mark an
+      // uncalibrated image as calibrated
+      calib.real = "";
+      calib.open = true;
+    }),
     e.on("layers", refreshState),
     e.on("hint", (key) => {
       const text = t(key);
@@ -201,6 +242,8 @@ async function load() {
     markMetaClean();
     await nextTick();
     attachEngine(d);
+    engine.value?.setBackground(d.background ? { ...d.background } : null);
+    markBgClean();
   } catch (err) {
     loadError.value = err instanceof ApiError ? err.message : "Failed";
   }
@@ -242,15 +285,20 @@ onBeforeRouteLeave(() => {
   return true;
 });
 
-watch(() => [opts.gridSize, opts.snapToGrid, opts.snapToNodes, opts.cornerRadius, opts.polygonSides], () => {
-  const e = engine.value;
-  if (!e) return;
-  e.setGridSize(Number(opts.gridSize));
-  e.snapToGrid = opts.snapToGrid;
-  e.snapToNodes = opts.snapToNodes;
-  e.cornerRadius = Math.max(0, Number(opts.cornerRadius) || 0);
-  e.polygonSides = Math.min(64, Math.max(3, Math.round(Number(opts.polygonSides) || 6)));
-});
+watch(
+  () => [opts.gridSize, opts.showGrid, opts.cornerRadius, opts.polygonSides, opts.snapRadius, { ...snapOpts }],
+  () => {
+    const e = engine.value;
+    if (!e) return;
+    e.setGridSize(Number(opts.gridSize));
+    e.snapOptions = { ...snapOpts };
+    e.snapRadiusPx = Math.min(40, Math.max(2, Number(opts.snapRadius) || 10));
+    e.cornerRadius = Math.max(0, Number(opts.cornerRadius) || 0);
+    e.polygonSides = Math.min(64, Math.max(3, Math.round(Number(opts.polygonSides) || 6)));
+    paintBackground();
+  },
+  { deep: true },
+);
 
 // --------------------------------------------------------------------- save
 async function save(): Promise<boolean> {
@@ -265,10 +313,13 @@ async function save(): Promise<boolean> {
       knife_model_id: meta.knife_model_id || null,
       material_id: meta.material_id || null,
       document: e.exportDocument(),
+      // the image is sent only when it changed: it can weigh several MB
+      ...(bgDirty.value ? { background: bg.value ? backgroundPayload(bg.value) : null } : {}),
     });
     design.value = { ...design.value, ...updated };
     e.markSaved();
     markMetaClean();
+    markBgClean();
     refreshState();
     setStatus(t("editor.saved"));
     return true;
@@ -301,17 +352,132 @@ async function onImport(ev: Event) {
   setStatus(n ? t("editor.importDone", { n }) : t("editor.importNone"), !n);
 }
 
+// --------------------------------------------------------- background image
+const bgInput = ref<HTMLInputElement | null>(null);
+
+function backgroundPayload(b: BackgroundState) {
+  const { image, cx, cy, width_mm, height_mm, rotation_deg, opacity, visible, locked, calibrated } = b;
+  return { image, cx, cy, width_mm, height_mm, rotation_deg, opacity, visible, locked, calibrated };
+}
+
+function pickBackground() {
+  if (bg.value && !window.confirm(t("bg.replaceConfirm"))) return;
+  bgInput.value?.click();
+}
+
+async function onBackgroundFile(ev: Event) {
+  const input = ev.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  const e = engine.value;
+  if (!file || !e) return;
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+    setStatus(t("bg.unsupported"), true);
+    return;
+  }
+  try {
+    const img = await loadImageFile(file);
+    const v = e.viewTransform;
+    // a first guess: 60 % of the visible width, centred in the view; calibration fixes the scale
+    const placement = initialPlacement(img.width, img.height, [v.centerX, v.centerY], (v.width / v.zoom) * 0.6);
+    e.setBackground({ image: img.dataUrl, ...placement, opacity: 0.5, visible: true, locked: true, calibrated: false });
+    tab.value = "background";
+    e.setTool("calibrate");
+    setStatus(t("bg.imported"));
+  } catch {
+    setStatus(t("bg.loadFailed"), true);
+  }
+}
+
+function removeBackground() {
+  if (!window.confirm(t("bg.removeConfirm"))) return;
+  engine.value?.setBackground(null);
+  if (tool.value === "calibrate") engine.value?.setTool("select");
+}
+
+function setBgField(field: "cx" | "cy" | "width_mm" | "height_mm" | "rotation_deg", ev: Event) {
+  const e = engine.value;
+  const b = bg.value;
+  const value = Number((ev.target as HTMLInputElement).value);
+  if (!e || !b || !Number.isFinite(value)) return;
+  if (field === "width_mm" || field === "height_mm") {
+    if (value <= 0) return;
+    // the image keeps its aspect ratio
+    const ratio = b.height_mm / b.width_mm;
+    e.updateBackground(field === "width_mm" ? { width_mm: value, height_mm: value * ratio } : { height_mm: value, width_mm: value / ratio });
+  } else {
+    e.updateBackground({ [field]: value });
+  }
+}
+
+function applyCalibration() {
+  const e = engine.value;
+  const real = Number(calib.real);
+  if (!e || !(real > 0)) return;
+  e.calibrateBackground(calib.a, calib.b, real, calib.straighten, calib.origin);
+  calib.open = false;
+  e.clearUi("calib");
+  e.setTool("select");
+  if (calib.origin) e.zoomToFit();
+  const res = bgResolution.value;
+  setStatus(res ? t("calib.done", { mm: formatMm(res) }) : t("bg.calibrated"));
+}
+
+function cancelCalibration() {
+  calib.open = false;
+  engine.value?.clearUi("calib");
+}
+
+// ----------------------------------------------------------------- guides
+/** Drag a new guide out of a ruler: from the top ruler a horizontal one, from the left a vertical one. */
+function startGuide(axis: Guide["axis"], ev: PointerEvent) {
+  const e = engine.value;
+  const host = stage.value;
+  if (!e || !host) return;
+  ev.preventDefault();
+  const rect = host.getBoundingClientRect();
+  const onMove = (m: PointerEvent) => {
+    const [x, y] = screenToWorld(e.viewTransform, m.clientX - rect.left, m.clientY - rect.top);
+    e.previewGuide = { axis, pos: e.snapAxis(axis === "x" ? x : y) };
+    valueHint.value = `${axis === "x" ? "X" : "Y"} = ${formatMm(e.previewGuide.pos)} mm`;
+    paintRulers();
+  };
+  const onUp = (u: PointerEvent) => {
+    window.removeEventListener("pointermove", onMove);
+    const sx = u.clientX - rect.left;
+    const sy = u.clientY - rect.top;
+    const preview = e.previewGuide;
+    e.previewGuide = null;
+    valueHint.value = "";
+    // released back over a ruler or outside the canvas = cancelled
+    if (preview && sx > RULER_SIZE && sy > RULER_SIZE && sx < rect.width && sy < rect.height) e.addGuide(preview.axis, preview.pos);
+    paintRulers();
+  };
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp, { once: true });
+}
+
+function addGuideAt(axis: Guide["axis"]) {
+  const pos = Number(axis === "x" ? guideForm.x : guideForm.y);
+  if (Number.isFinite(pos)) engine.value?.addGuide(axis, pos);
+}
+
+function setGuidePos(index: number, ev: Event) {
+  const pos = Number((ev.target as HTMLInputElement).value);
+  if (Number.isFinite(pos)) engine.value?.moveGuide(index, pos);
+}
+
 // --------------------------------------------------------------- keyboard
 function isTyping(ev: KeyboardEvent) {
   const el = ev.target as HTMLElement | null;
   return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
 }
 
-const TOOL_KEYS: Record<string, ToolName> = { v: "select", n: "node", p: "pen", r: "rect", e: "ellipse", l: "line", g: "polygon", d: "dimension", h: "pan" };
+const TOOL_KEYS: Record<string, ToolName> = { v: "select", n: "node", p: "pen", r: "rect", e: "ellipse", l: "line", g: "polygon", d: "dimension", m: "measure", h: "pan" };
 
 function onKeyDown(ev: KeyboardEvent) {
   const e = engine.value;
-  if (!e || isTyping(ev) || planOpen.value) return;
+  if (!e || isTyping(ev) || planOpen.value || calib.open) return;
   const mod = ev.ctrlKey || ev.metaKey;
   const key = ev.key.toLowerCase();
 
@@ -543,14 +709,24 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
 
       <!-- options bar -->
       <div class="bg-white border-b border-slate-200 px-3 py-1.5 flex items-center gap-4 flex-wrap text-xs text-slate-600">
-        <label class="flex items-center gap-1"><input v-model="opts.snapToGrid" type="checkbox" /> {{ t("editor.snapGrid") }}</label>
-        <label class="flex items-center gap-1"><input v-model="opts.snapToNodes" type="checkbox" /> {{ t("editor.snapNodes") }}</label>
+        <label class="flex items-center gap-1"><input v-model="snapOpts.grid" type="checkbox" /> {{ t("editor.snapGrid") }}</label>
+        <label class="flex items-center gap-1"><input v-model="snapOpts.nodes" type="checkbox" /> {{ t("editor.snapNodes") }}</label>
         <label class="flex items-center gap-1">
           {{ t("editor.gridSize") }}
-          <select v-model.number="opts.gridSize" class="border border-slate-300 rounded px-1 py-0.5">
-            <option v-for="g in [0.1, 0.5, 1, 2, 5, 10, 25]" :key="g" :value="g">{{ g }}</option>
-          </select>
+          <input v-model.number="opts.gridSize" type="number" min="0.01" max="1000" step="any" list="grid-presets" class="w-16 border border-slate-300 rounded px-1 py-0.5" />
+          <datalist id="grid-presets"><option v-for="g in [0.1, 0.25, 0.5, 1, 2, 5, 10, 25]" :key="g" :value="g"></option></datalist>
         </label>
+        <label class="flex items-center gap-1"><input v-model="opts.showGrid" type="checkbox" /> {{ t("editor.showGrid") }}</label>
+        <details class="relative">
+          <summary class="cursor-pointer select-none text-slate-700">🧲 {{ t("editor.snapMenu") }}</summary>
+          <div class="absolute z-20 mt-1 w-72 bg-white border border-slate-200 rounded-lg shadow-lg p-3 space-y-1">
+            <label v-for="k in snapKinds" :key="k" class="flex items-center gap-2"><input v-model="snapOpts[k]" type="checkbox" /> {{ t(`snap.opt.${k}`) }}</label>
+            <label class="flex items-center gap-2 pt-1">{{ t("editor.snapRadius") }}
+              <input v-model.number="opts.snapRadius" type="number" min="2" max="40" class="w-14 border border-slate-300 rounded px-1 py-0.5" />
+            </label>
+            <p class="text-[11px] text-slate-400 pt-1">{{ t("snap.help") }}</p>
+          </div>
+        </details>
         <label v-if="tool === 'rect'" class="flex items-center gap-1">
           {{ t("editor.cornerRadius") }}
           <input v-model.number="opts.cornerRadius" type="number" min="0" step="0.5" class="w-16 border border-slate-300 rounded px-1 py-0.5" />
@@ -582,6 +758,9 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <canvas ref="gridCanvas" class="absolute inset-0 pointer-events-none"></canvas>
           <canvas ref="paperCanvas" class="absolute inset-0" style="touch-action: none"></canvas>
           <canvas ref="rulerCanvas" class="absolute inset-0 pointer-events-none"></canvas>
+          <!-- drag a guide out of a ruler -->
+          <div class="absolute top-0 right-0 cursor-row-resize" :style="{ left: `${RULER_SIZE}px`, height: `${RULER_SIZE}px` }" @pointerdown="startGuide('y', $event)"></div>
+          <div class="absolute left-0 bottom-0 cursor-col-resize" :style="{ top: `${RULER_SIZE}px`, width: `${RULER_SIZE}px` }" @pointerdown="startGuide('x', $event)"></div>
           <p v-if="!design && !loadError" class="absolute inset-0 flex items-center justify-center text-sm text-slate-500">{{ t("editor.loading") }}</p>
         </div>
 
@@ -589,7 +768,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         <aside class="w-80 bg-white border-l border-slate-200 flex flex-col min-h-0">
           <div class="flex border-b border-slate-200 text-sm">
             <button
-              v-for="id in ['object', 'layers', 'document'] as const"
+              v-for="id in ['object', 'layers', 'background', 'document'] as const"
               :key="id"
               class="flex-1 py-2"
               :class="tab === id ? 'border-b-2 border-indigo-600 text-indigo-600 font-medium' : 'text-slate-500'"
@@ -602,6 +781,16 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <div class="flex-1 overflow-y-auto p-3 space-y-4 text-sm">
             <!-- OBJECT TAB -->
             <template v-if="tab === 'object'">
+              <div v-if="tool === 'measure'" class="bg-sky-50 border border-sky-200 rounded-lg p-2 text-xs text-slate-700 space-y-0.5">
+                <p class="font-medium text-sky-800">{{ t("measure.title") }}</p>
+                <template v-if="measurement">
+                  <p>{{ t("measure.distance") }} : <b class="font-mono">{{ formatMm(measurement.distance) }} mm</b></p>
+                  <p class="font-mono">ΔX {{ formatMm(measurement.dx) }} · ΔY {{ formatMm(measurement.dy) }} mm</p>
+                  <p>{{ t("measure.angle") }} : <span class="font-mono">{{ measurement.angle }}°</span></p>
+                  <button class="mt-1 w-full px-2 py-1 rounded border border-sky-300 bg-white" @click="engine?.measurementToDimension()">{{ t("measure.toDimension") }}</button>
+                </template>
+                <p v-else class="text-slate-500">{{ t("measure.empty") }}</p>
+              </div>
               <p v-if="!sel.count" class="text-slate-500 text-xs">{{ t("editor.nothingSelected") }}</p>
 
               <template v-else>
@@ -758,6 +947,48 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
               <button class="w-full px-2 py-1 rounded border border-slate-300" @click="addLayer">+ {{ t("editor.addLayer") }}</button>
             </template>
 
+            <!-- BACKGROUND TAB -->
+            <template v-else-if="tab === 'background'">
+              <p class="text-xs font-medium text-slate-700">{{ t("bg.title") }}</p>
+              <p class="text-xs text-slate-500">{{ t("bg.intro") }}</p>
+              <template v-if="!bg">
+                <button class="w-full px-2 py-1.5 rounded-lg bg-indigo-600 text-white" @click="pickBackground">{{ t("bg.import") }}</button>
+              </template>
+              <template v-else>
+                <div class="flex items-center gap-3 text-xs">
+                  <label class="flex items-center gap-1"><input type="checkbox" :checked="bg.visible" @change="engine?.updateBackground({ visible: ($event.target as HTMLInputElement).checked })" /> {{ t("bg.visible") }}</label>
+                  <label class="flex items-center gap-1 flex-1">{{ t("bg.opacity") }}
+                    <input type="range" min="5" max="100" :value="Math.round(bg.opacity * 100)" class="flex-1" @input="engine?.updateBackground({ opacity: Number(($event.target as HTMLInputElement).value) / 100 })" />
+                  </label>
+                </div>
+                <button class="w-full px-2 py-1.5 rounded-lg border border-rose-300 text-rose-700 bg-rose-50" @click="engine?.setTool('calibrate')">📐 {{ t("bg.calibrate") }}</button>
+                <div class="rounded-lg p-2 text-xs space-y-1" :class="bg.calibrated ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'">
+                  <p>{{ bg.calibrated ? `✓ ${t("bg.calibrated")}` : `⚠ ${t("bg.notCalibrated")}` }}</p>
+                  <p v-if="bg.calibrated && bgResolution">{{ t("bg.resolution", { mm: formatMm(bgResolution) }) }}</p>
+                  <p v-if="bg.calibrated && bgResolution && bgResolution > 0.1" class="text-amber-700">{{ t("bg.resolutionWarn") }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-slate-500 mb-1">{{ t("bg.placement") }}</p>
+                  <div class="grid grid-cols-2 gap-2">
+                    <label class="text-xs text-slate-500">{{ t("bg.centerX") }} <input :value="bg.cx" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" @change="setBgField('cx', $event)" /></label>
+                    <label class="text-xs text-slate-500">{{ t("bg.centerY") }} <input :value="bg.cy" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" @change="setBgField('cy', $event)" /></label>
+                    <label class="text-xs text-slate-500">{{ t("bg.width") }} <input :value="bg.width_mm" type="number" step="any" min="0" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" @change="setBgField('width_mm', $event)" /></label>
+                    <label class="text-xs text-slate-500">{{ t("bg.height") }} <input :value="bg.height_mm" type="number" step="any" min="0" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" @change="setBgField('height_mm', $event)" /></label>
+                    <label class="text-xs text-slate-500 col-span-2">{{ t("bg.rotation") }} <input :value="bg.rotation_deg" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" @change="setBgField('rotation_deg', $event)" /></label>
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <button class="px-2 py-1 rounded border border-slate-300 text-xs" @click="pickBackground">{{ t("bg.replace") }}</button>
+                  <button class="px-2 py-1 rounded border border-red-300 text-red-600 text-xs" @click="removeBackground">{{ t("bg.remove") }}</button>
+                </div>
+              </template>
+              <div class="bg-slate-50 rounded-lg p-2 text-xs text-slate-600">
+                <p class="font-medium text-slate-700 mb-1">{{ t("bg.tipsTitle") }}</p>
+                <p>{{ t("bg.tips") }}</p>
+              </div>
+              <input ref="bgInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="onBackgroundFile" />
+            </template>
+
             <!-- DOCUMENT TAB -->
             <template v-else>
               <div>
@@ -792,6 +1023,23 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                 <p>{{ t("editor.docParts") }} : {{ design.part_count }}</p>
                 <p class="text-slate-400">{{ t("editor.docMetricsHint") }}</p>
               </div>
+              <div class="space-y-2 border-t border-slate-100 pt-3">
+                <p class="text-xs font-medium text-slate-700">{{ t("guides.title") }}</p>
+                <p class="text-[11px] text-slate-400">{{ t("guides.help") }}</p>
+                <p v-if="!guides.length" class="text-xs text-slate-500">{{ t("guides.none") }}</p>
+                <div v-for="(g, i) in guides" :key="i" class="flex items-center gap-1 text-xs">
+                  <span class="w-28 text-slate-500">{{ g.axis === "x" ? t("guides.vertical") : t("guides.horizontal") }}</span>
+                  <input :value="g.pos" type="number" step="any" class="flex-1 min-w-0 border border-slate-300 rounded px-1 py-0.5" @change="setGuidePos(i, $event)" />
+                  <button class="px-1 text-red-600" @click="engine?.removeGuide(i)">✕</button>
+                </div>
+                <div class="grid grid-cols-2 gap-1 text-xs">
+                  <input v-model.number="guideForm.x" type="number" step="any" class="border border-slate-300 rounded px-1 py-0.5" />
+                  <button class="px-1 py-0.5 rounded border border-slate-300" @click="addGuideAt('x')">{{ t("guides.addV") }}</button>
+                  <input v-model.number="guideForm.y" type="number" step="any" class="border border-slate-300 rounded px-1 py-0.5" />
+                  <button class="px-1 py-0.5 rounded border border-slate-300" @click="addGuideAt('y')">{{ t("guides.addH") }}</button>
+                </div>
+                <button v-if="guides.length" class="text-xs text-red-600" @click="engine?.clearGuides()">{{ t("guides.clear") }}</button>
+              </div>
               <div class="text-xs text-slate-500">
                 <p class="font-medium text-slate-700 mb-1">{{ t("editor.shortcuts") }}</p>
                 <p>{{ t("editor.shortcutsList") }}</p>
@@ -810,6 +1058,27 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         <span>{{ t("editor.zoom") }} : {{ zoomPct }} %</span>
       </div>
     </template>
+
+    <!-- calibration dialog -->
+    <div v-if="calib.open" class="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center p-4" @click.self="cancelCalibration">
+      <form class="bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="applyCalibration">
+        <h2 class="font-semibold text-slate-900">{{ t("calib.title") }}</h2>
+        <p class="text-xs text-slate-500">{{ t("calib.measured", { d: formatMm(Math.hypot(calib.b[0] - calib.a[0], calib.b[1] - calib.a[1])) }) }}</p>
+        <label class="block text-xs text-slate-500">{{ t("calib.real") }}
+          <input v-model.number="calib.real" type="number" min="0.01" step="any" required autofocus placeholder="ex. 100" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
+        </label>
+        <label class="block text-xs text-slate-500">{{ t("calib.straighten") }}
+          <select v-model="calib.straighten" class="w-full border border-slate-300 rounded px-2 py-1 text-sm">
+            <option v-for="o in ['none', 'horizontal', 'vertical']" :key="o" :value="o">{{ t(`calib.straighten.${o}`) }}</option>
+          </select>
+        </label>
+        <label class="flex items-center gap-2 text-xs text-slate-600"><input v-model="calib.origin" type="checkbox" /> {{ t("calib.origin") }}</label>
+        <div class="flex gap-2 justify-end">
+          <button type="button" class="px-3 py-1.5 rounded border border-slate-300" @click="cancelCalibration">{{ t("common.cancel") }}</button>
+          <button type="submit" class="px-3 py-1.5 rounded bg-indigo-600 text-white">{{ t("calib.apply") }}</button>
+        </div>
+      </form>
+    </div>
 
     <!-- plan modal -->
     <div v-if="planOpen" class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4" @click.self="planOpen = false">

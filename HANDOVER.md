@@ -281,6 +281,23 @@ used length). Deterministic, fast, not optimal. It is read-only: stock is still 
 confirmation. Order selection convention: `order_ids = null` → all draft/confirmed orders,
 `[]` → none. A design belongs to an order line when its `knife_model_id` and `material_id` match.
 
+**Reference image, guides, snapping (editor lot 1).**
+- The tracing photo lives in its own `designs.background` column (migration 003), *not* in
+  `document`: exports, nesting, metrics, the undo history and the dirty check never see it, and
+  list endpoints stay light. PATCH semantics: field omitted = unchanged, `null` = removed. Only
+  base64 JPEG / PNG / WebP data URLs are accepted (no SVG, no remote URL), ≤ 12 MB; the editor
+  keeps originals ≤ 4000 px untouched and re-encodes larger ones to JPEG. nginx allows 16 MB
+  request bodies on `/api/` (its 1 MB default would reject a save with a photo with a 413).
+- Calibration (`editor/background.ts`) scales about the first clicked point so the two points
+  end up exactly the typed distance apart, optionally straightening A→B with the smallest
+  rotation. The clicks are deliberately *not* snapped. What it cannot fix: perspective and lens
+  distortion of a photo, and the pixel size (shown as mm/pixel, flagged above 0.1 mm). Tracing a
+  photo is therefore an approximation; key dimensions should still be typed in.
+- Guides are part of the document (`guides`, omitted when empty) so they are saved and undoable;
+  geometry and exports ignore them. Snapping priority: node → intersection → midpoint → centre →
+  outline (off by default) → guides → grid, within a radius in screen pixels. A dragged node
+  never snaps onto its own path. The drawn grid is the snap grid (thinned 2×/5×/10× when dense).
+
 **Known limits / next steps.** No per-object fill/stroke styling, no groups, no text objects,
 DXF arcs are not preserved (polylines only), COUNT materials are not nestable, nesting does not
 use leftover offcuts, and the dimension tool places aligned dimensions only.

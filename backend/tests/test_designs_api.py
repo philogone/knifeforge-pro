@@ -243,3 +243,63 @@ def test_demo_data_controls_include_designs_and_backup_export(client, db):
 
     client.post("/api/admin/settings/mock-data/clear")
     assert client.get("/api/admin/designs").json() == []
+
+
+# --------------------------------------------------------------------------- background image
+PNG_1PX = (
+    "data:image/png;base64,"
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+)
+
+
+def background(**overrides):
+    values = dict(image=PNG_1PX, cx=90, cy=16, width_mm=200, height_mm=150, rotation_deg=-2.5, opacity=0.4, calibrated=True)
+    values.update(overrides)
+    return values
+
+
+def test_background_is_saved_returned_and_kept_out_of_lists_and_exports(client):
+    design = create_design(client)
+    svg_before = client.get(f"/api/admin/designs/{design['id']}/export.svg").text
+
+    response = client.patch(f"/api/admin/designs/{design['id']}", json={"background": background()})
+    assert response.status_code == 200, response.text
+    saved = response.json()["background"]
+    assert saved["width_mm"] == 200 and saved["rotation_deg"] == -2.5 and saved["calibrated"] is True
+    assert saved["locked"] is True and saved["visible"] is True  # defaults
+
+    assert "background" not in client.get("/api/admin/designs").json()[0]  # lists stay light
+    # never exported: the SVG is byte-for-byte what it was without a background
+    assert client.get(f"/api/admin/designs/{design['id']}/export.svg").text == svg_before
+    # geometry metrics untouched
+    assert client.get(f"/api/admin/designs/{design['id']}").json()["width_mm"] == 182
+
+
+def test_background_omitted_is_unchanged_and_null_removes_it(client):
+    design = create_design(client)
+    client.patch(f"/api/admin/designs/{design['id']}", json={"background": background()})
+    renamed = client.patch(f"/api/admin/designs/{design['id']}", json={"name": "Renommée"}).json()
+    assert renamed["background"]["width_mm"] == 200
+
+    cleared = client.patch(f"/api/admin/designs/{design['id']}", json={"background": None}).json()
+    assert cleared["background"] is None
+
+
+def test_background_rejects_non_raster_or_remote_images(client):
+    design = create_design(client)
+    for image in (
+        "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4=",
+        "https://example.com/photo-de-lame-tres-nette.jpg",
+        "data:image/png;base64,not base64 at all !!!!!!!!!!!!!!!!",
+    ):
+        response = client.patch(f"/api/admin/designs/{design['id']}", json={"background": background(image=image)})
+        assert response.status_code == 422, image
+    for bad in ({"width_mm": 0}, {"opacity": 0}, {"cx": float("1e9")}):
+        assert client.patch(f"/api/admin/designs/{design['id']}", json={"background": background(**bad)}).status_code == 422
+
+
+def test_duplicate_keeps_the_background(client):
+    design = create_design(client)
+    client.patch(f"/api/admin/designs/{design['id']}", json={"background": background()})
+    copy = client.post(f"/api/admin/designs/{design['id']}/duplicate").json()
+    assert copy["background"]["image"] == PNG_1PX

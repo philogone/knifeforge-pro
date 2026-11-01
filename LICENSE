@@ -1,0 +1,148 @@
+Commercial License / Licence commerciale
+Copyright (c) 2026 Philogone Quénette
+
+This source code is a commercial product. It is NOT open source and is not
+distributed under a permissive license (MIT, Apache, etc.).
+
+By purchasing a license to this codebase, the buyer ("Licensee") is granted a
+non-exclusive, non-transferable right to:
+
+  1. Use, modify, and deploy this codebase for one (1) end product per license
+     purchased (a single production deployment, e.g. one shop's internal
+     inventory/order management tool), unless a multi-use/extended license
+     was purchased.
+  2. Modify the source code freely for that end product, including rebranding
+     and adding features.
+
+The Licensee may NOT:
+
+  1. Resell, sublicense, or redistribute this source code, in original or
+     modified form, as a standalone product, template, or boilerplate.
+  2. Share the source code publicly (e.g. in a public Git repository) in a way
+     that allows third parties to obtain it without purchasing a license.
+  3. Claim original authorship of the underlying codebase/architecture.
+
+NATURE OF THE PRODUCT. This is a starter kit / boilerplate codebase, not a
+finished, audited, or production-certified product. It has not undergone a
+professional security audit or legal compliance review. The Licensee is
+solely responsible for reviewing, testing, securing, and adapting the code
+before deploying it with real inventory, order, or customer data, and for
+ensuring that their specific use complies with all laws and regulations
+applicable to them (including, where relevant, data protection laws such as
+the GDPR). In particular, stock levels, cutting/yield calculations, and
+order feasibility results produced by this software are planning aids based
+on figures the Licensee enters — the Licensee is responsible for verifying
+them against their actual physical inventory before relying on them for
+material purchasing, production, or accounting decisions.
+
+NO WARRANTY. The software is provided "as is" and "as available", without
+warranty of any kind, express or implied, including but not limited to the
+warranties of merchantability, fitness for a particular purpose, title, and
+non-infringement. The author does not warrant that the software will be
+error-free, uninterrupted, or fit for the Licensee's specific purpose.
+
+LIMITATION OF LIABILITY. To the maximum extent permitted by applicable law:
+(a) the author shall not be liable for any indirect, incidental, special,
+consequential, or punitive damages whatsoever, including but not limited to
+loss of profits, revenue, data, business opportunity, or wasted raw material,
+arising out of or related to this license or the use of the software, even
+if advised of the possibility of such damages; and (b) the author's total
+cumulative liability arising out of or related to this license shall not
+exceed the amount actually paid by the Licensee for the license giving rise
+to the claim. Nothing in this license excludes or limits liability that
+cannot be excluded or limited under applicable mandatory law.
+
+NO SUPPORT OR MAINTENANCE OBLIGATION. This license does not entitle the
+Licensee to updates, bug fixes, or support, unless separately agreed in
+writing.
+
+GOVERNING LAW. This license is governed by French law. Any dispute arising
+out of or in connection with this license shall be submitted to the
+exclusive jurisdiction of the courts of France, without prejudice to any
+mandatory consumer-protection rules that may grant the Licensee, where the
+Licensee is a consumer, the right to bring proceedings before the courts of
+their own place of residence.
+
+SEVERABILITY. If any provision of this license is held unenforceable, the
+remaining provisions remain in full force and effect, and the unenforceable
+provision shall be replaced by an enforceable provision that most closely
+reflects its original intent.
+
+For an extended license (multiple end products, resale rights, or a custom
+arrangement), contact the author.
+
+---
+
+Ce code source est un produit commercial. Il n'est PAS open source et n'est
+pas distribué sous une licence permissive (MIT, Apache, etc.).
+
+En achetant une licence pour ce code, l'acheteur (le « Licencié ») obtient un
+droit non exclusif et non transférable de :
+
+  1. Utiliser, modifier et déployer ce code pour un (1) produit final par
+     licence achetée (un seul déploiement en production, ex. l'outil de
+     gestion de stock/commandes interne d'un seul atelier), sauf licence
+     étendue/multi-usage achetée séparément.
+  2. Modifier librement le code source pour ce produit final, y compris le
+     rebranding et l'ajout de fonctionnalités.
+
+Le Licencié NE PEUT PAS :
+
+  1. Revendre, sous-licencier ou redistribuer ce code source, sous forme
+     originale ou modifiée, en tant que produit, template ou boilerplate
+     autonome.
+  2. Partager le code source publiquement (ex. dans un dépôt Git public) d'une
+     façon qui permettrait à des tiers de l'obtenir sans acheter de licence.
+  3. Revendiquer la paternité originale de l'architecture/du code sous-jacent.
+
+NATURE DU PRODUIT. Il s'agit d'un kit de démarrage / boilerplate, pas d'un
+produit fini, audité, ou certifié pour la production. Il n'a fait l'objet
+d'aucun audit de sécurité professionnel ni d'aucune revue de conformité
+juridique. Le Licencié est seul responsable de revoir, tester, sécuriser et
+adapter le code avant tout déploiement avec de vraies données de stock, de
+commandes ou de clients, et de s'assurer que son usage particulier respecte
+l'ensemble des lois et réglementations qui lui sont applicables (y compris,
+le cas échéant, les réglementations de protection des données comme le
+RGPD). En particulier, les niveaux de stock, les calculs de rendement de
+découpe et les résultats de faisabilité de commande produits par ce logiciel
+sont des aides à la planification basées sur les chiffres saisis par le
+Licencié — celui-ci est responsable de les vérifier par rapport à son
+inventaire physique réel avant de s'y fier pour des décisions d'achat de
+matière, de production ou de comptabilité.
+
+ABSENCE DE GARANTIE. Le logiciel est fourni « tel quel » et « selon
+disponibilité », sans garantie d'aucune sorte, expresse ou implicite, y
+compris, sans s'y limiter, les garanties de qualité marchande, d'adéquation à
+un usage particulier, de titularité et de non-contrefaçon. L'auteur ne
+garantit pas que le logiciel sera exempt d'erreurs, ininterrompu, ou adapté à
+l'usage particulier du Licencié.
+
+LIMITATION DE RESPONSABILITÉ. Dans toute la mesure permise par le droit
+applicable : (a) l'auteur ne pourra être tenu responsable d'aucun dommage
+indirect, accessoire, spécial, consécutif ou punitif, y compris, sans s'y
+limiter, la perte de profits, de revenus, de données, d'opportunités
+commerciales, ou de matière première gaspillée, découlant de cette licence
+ou de l'utilisation du logiciel, même si l'auteur a été informé de la
+possibilité de tels dommages ; et (b) la responsabilité cumulée totale de
+l'auteur découlant de cette licence ne pourra excéder le montant
+effectivement payé par le Licencié pour la licence à l'origine de la
+réclamation. Rien dans cette licence n'exclut ni ne limite une responsabilité
+qui ne peut être exclue ou limitée en vertu d'une règle impérative du droit
+applicable.
+
+AUCUNE OBLIGATION DE SUPPORT OU DE MAINTENANCE. Cette licence ne donne pas
+droit à des mises à jour, correctifs ou support, sauf accord écrit séparé.
+
+DROIT APPLICABLE. Cette licence est régie par le droit français. Tout litige
+né de cette licence ou en relation avec elle sera soumis à la compétence
+exclusive des tribunaux français, sans préjudice des règles impératives de
+protection des consommateurs qui pourraient permettre à un Licencié
+consommateur de saisir les tribunaux de son propre lieu de résidence.
+
+DIVISIBILITÉ. Si une clause de cette licence est jugée inapplicable, les
+autres clauses restent pleinement en vigueur, et la clause inapplicable sera
+remplacée par une clause valable reflétant au plus près son intention
+initiale.
+
+Pour une licence étendue (plusieurs produits finaux, droits de revente, ou un
+arrangement sur mesure), contactez l'auteur.

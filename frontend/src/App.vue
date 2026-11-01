@@ -25,6 +25,8 @@ function logout() {
         <router-link to="/treatments" class="text-sm text-slate-600 hover:text-slate-900" active-class="text-indigo-600 font-medium">{{ t("nav.recipes") }}</router-link>
         <router-link to="/orders" class="text-sm text-slate-600 hover:text-slate-900" active-class="text-indigo-600 font-medium">{{ t("nav.orders") }}</router-link>
         <router-link to="/production" class="text-sm text-slate-600 hover:text-slate-900" active-class="text-indigo-600 font-medium">{{ t("nav.production") }}</router-link>
+        <router-link to="/designs" class="text-sm text-slate-600 hover:text-slate-900" active-class="text-indigo-600 font-medium">{{ t("nav.designs") }}</router-link>
+        <router-link to="/nesting" class="text-sm text-slate-600 hover:text-slate-900" active-class="text-indigo-600 font-medium">{{ t("nav.nesting") }}</router-link>
         <router-link to="/settings" class="text-sm text-slate-600 hover:text-slate-900" active-class="text-indigo-600 font-medium">{{ t("nav.settings") }}</router-link>
       </div>
       <button class="text-sm text-slate-500 hover:text-slate-800" @click="logout">{{ t("nav.signOut") }}</button>

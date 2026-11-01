@@ -158,13 +158,49 @@ docker compose exec backend pytest
 
 ---
 
+## ✒️ KnifeForge Pro — éditeur vectoriel / vector editor
+
+**🇫🇷** Cette version ajoute un éditeur vectoriel intégré (type Inkscape, basé sur Paper.js) :
+
+- **Gabarits à l'échelle 1:1 en mm** (lames, plaquettes, gardes, mitres…), rattachés à un modèle de couteau et à une matière. Menu *Gabarits*.
+- Éditeur : plume Bézier, édition de nœuds, rectangle/ellipse/ligne/polygone, booléens (union, différence, intersection, exclusion), combiner/séparer, décalage (agrandir/réduire), alignement/répartition, miroir/rotation, calques typés (découpe, perçage, gravure, construction, cotation), cotes, import SVG, annuler/rétablir, grille jusqu'à 0,1 mm, saisie numérique exacte.
+- **Nesting réel sur stock** (menu *Nesting*) : vraies formes avec perçages, rotations, espacement et marge ; nombre de plaques/barres, taux d'utilisation, comparaison au stock ; lecture seule (ne décompte pas le stock).
+- **Exports** : SVG (courbes de Bézier vraies, 1 unité = 1 mm), DXF (R2010, polylignes, calques CUT/ENGRAVE/SHEET), plaques de nesting en SVG/DXF, **plans clients cotés** (A4/A3, échelle normalisée, cartouche).
+
+**Précision (exigence de conception : meilleur que 0,1 mm).**
+
+| Élément | Garantie |
+|---|---|
+| Coordonnées stockées | 0,0001 mm |
+| SVG exporté | 0,001 mm, courbes de Bézier non aplaties |
+| Aires, périmètres, DXF, nesting | courbes aplaties à ≤ 0,01 mm |
+| Espacement du nesting | **minimum garanti** (jamais en dessous de la valeur demandée ; excédent ≤ ~0,05 mm) |
+| Marge de bord | respectée au micron sur les polygones aplatis (≤ 0,01 mm d'écart sur courbes) |
+| Cercle/ellipse dessinés | approximation Bézier à 4 nœuds : écart radial ≤ 0,027 % du rayon (0,03 mm pour R = 100 mm) |
+
+Limites à connaître : un écran n'est pas un instrument de mesure (le zoom « 1:1 » suppose 96 dpi) — fiez-vous aux cotes et aux champs numériques ; imprimez les plans à **100 % (sans « ajuster à la page »)** pour qu'ils soient à l'échelle ; un SVG importé sans unité est lu à 96 dpi (vérifiez avec une cote) ; le DXF contient des polylignes (pas d'arcs) ; le trait de scie / l'offset laser ne sont pas compensés automatiquement (utilisez l'outil *Décalage*) ; le nesting est une heuristique rapide et déterministe, pas un optimum mathématique.
+
+**🇬🇧** This edition adds an integrated vector editor (Inkscape-style, built on Paper.js): real-scale mm patterns linked to knife models and materials, a full node/Bézier/boolean/offset toolset, true-shape nesting on stock, SVG/DXF export and dimensioned client plans. Precision target is better than 0.1 mm: coordinates are stored to 0.0001 mm, SVG keeps true Béziers (0.001 mm), areas/DXF/nesting use curves flattened to ≤ 0.01 mm, and nesting spacing is a hard minimum. Caveats: the screen is not a measuring tool (print plans at 100 %), imported unit-less SVG is read at 96 dpi, DXF carries polylines, saw kerf is not auto-compensated, and nesting is a fast deterministic heuristic.
+
+### Tests (Pro)
+
+```bash
+docker compose exec backend pytest          # 76 tests: geometry, nesting, exports, API, metrology
+cd frontend && npm test                     # 36 editor-engine tests (vitest)
+```
+
+Local dev without Docker: `cd frontend && npm run dev` proxies `/api` to `http://localhost:8000`
+(override with `VITE_PROXY_TARGET`).
+
 ## Structure
 
 ```
 knifeforge/
 ├── frontend/src/
 │   ├── pages/admin/           Login, materials, recipes, knife models (+detail), orders, production, settings
-│   ├── components/            CuttingBarsVisual.vue, SheetGridVisual.vue
+│   ├── components/            CuttingBarsVisual.vue, SheetGridVisual.vue, NestingSheetVisual.vue
+│   ├── editor/                Paper.js engine, tools, history, grid/rulers (+ vitest tests)
+│   ├── pages/admin/           … + DesignsPage, DesignEditorPage, NestingPage
 │   ├── i18n/                  Minimal FR/EN dictionaries + t() composable
 │   └── stores/app.store.ts    Pinia store — all API calls
 ├── backend/app/
@@ -175,6 +211,9 @@ knifeforge/
 │       ├── cutting_service.py   Cross-order cutting optimizer (FFD bin packing, LENGTH only)
 │       ├── order_service.py     Feasibility check + stock deduction/restock
 │       ├── production_service.py Backlog vs stock overview
+│       ├── geometry_service.py  Bézier flattening, parts/holes, metrics, offset (shapely)
+│       ├── nesting_service.py   True-shape 2D nesting (greedy bottom-left, guaranteed spacing)
+│       ├── export_service.py    SVG / DXF (ezdxf) / dimensioned client plans
 │       └── seed_service.py      Demo data (seeded through the real order service)
 ├── docker-compose.yml
 ├── .env.example

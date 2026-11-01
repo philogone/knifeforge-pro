@@ -1,13 +1,20 @@
 import { defineStore } from "pinia";
 
-import { apiFetch, setToken } from "@/composables/useApi";
+import { apiFetch, apiFetchBlob, setToken } from "@/composables/useApi";
+import type { DocNode } from "@/editor/types";
 import type {
   CandidateOrder,
   CostBreakdown,
   CuttingPlan,
+  Design,
+  DesignSummary,
+  DesignTemplate,
   FeasibilityResult,
   KnifeModel,
   Material,
+  NestingCandidates,
+  NestingRequest,
+  NestingResult,
   Order,
   ProductionOverview,
   SawBlade,
@@ -23,6 +30,7 @@ export const useAppStore = defineStore("app", {
     treatmentRecipes: [] as TreatmentRecipe[],
     knifeModels: [] as KnifeModel[],
     orders: [] as Order[],
+    designs: [] as DesignSummary[],
     loading: false,
   }),
   actions: {
@@ -147,6 +155,63 @@ export const useAppStore = defineStore("app", {
     async deleteOrder(id: number) {
       await apiFetch(`/admin/orders/${id}`, { method: "DELETE" });
       await this.fetchOrders();
+    },
+
+    async fetchDesigns(filter: { knife_model_id?: number; material_id?: number } = {}) {
+      const params = new URLSearchParams();
+      if (filter.knife_model_id) params.set("knife_model_id", String(filter.knife_model_id));
+      if (filter.material_id) params.set("material_id", String(filter.material_id));
+      const qs = params.toString();
+      const list = await apiFetch<DesignSummary[]>(`/admin/designs${qs ? `?${qs}` : ""}`);
+      if (!qs) this.designs = list;
+      return list;
+    },
+    async fetchDesign(id: number) {
+      return apiFetch<Design>(`/admin/designs/${id}`);
+    },
+    async fetchDesignTemplates() {
+      return apiFetch<DesignTemplate[]>("/admin/designs/templates");
+    },
+    async createDesign(payload: Record<string, unknown>) {
+      return apiFetch<Design>("/admin/designs", { method: "POST", body: JSON.stringify(payload) });
+    },
+    async updateDesign(id: number, payload: Record<string, unknown>) {
+      return apiFetch<Design>(`/admin/designs/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+    },
+    async duplicateDesign(id: number) {
+      const copy = await apiFetch<Design>(`/admin/designs/${id}/duplicate`, { method: "POST" });
+      await this.fetchDesigns();
+      return copy;
+    },
+    async deleteDesign(id: number) {
+      await apiFetch(`/admin/designs/${id}`, { method: "DELETE" });
+      await this.fetchDesigns();
+    },
+    async offsetContours(contours: DocNode[][], distance_mm: number, join: "round" | "mitre" | "bevel") {
+      const res = await apiFetch<{ contours: DocNode[][] }>("/admin/designs/geometry/offset", {
+        method: "POST",
+        body: JSON.stringify({ contours, distance_mm, join }),
+      });
+      return res.contours;
+    },
+    downloadDesignFile(id: number, kind: "export.svg" | "export.dxf") {
+      return apiFetchBlob(`/admin/designs/${id}/${kind}`);
+    },
+    designPlan(id: number, params: Record<string, string | number | undefined>, download = false) {
+      const qs = new URLSearchParams();
+      for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") qs.set(k, String(v));
+      if (download) qs.set("download", "true");
+      return apiFetchBlob(`/admin/designs/${id}/plan.svg?${qs.toString()}`);
+    },
+
+    async nestingCandidates(materialId: number) {
+      return apiFetch<NestingCandidates>(`/admin/nesting/candidates?material_id=${materialId}`);
+    },
+    async runNesting(request: NestingRequest) {
+      return apiFetch<NestingResult>("/admin/nesting/run", { method: "POST", body: JSON.stringify(request) });
+    },
+    exportNesting(request: NestingRequest, format: "svg" | "dxf", sheet_index: number) {
+      return apiFetchBlob("/admin/nesting/export", { method: "POST", body: JSON.stringify({ request, format, sheet_index }) });
     },
 
     async fetchProductionOverview() {

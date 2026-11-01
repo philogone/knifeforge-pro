@@ -218,3 +218,91 @@ export interface ProductionOverview {
   materials: MaterialDemand[];
   orders: OrderSummary[];
 }
+
+// --- Vector designs (patterns) & nesting -----------------------------------
+
+import type { DesignDocument } from "@/editor/types";
+
+export type DesignKind = "blade" | "handle_scale" | "guard" | "bolster" | "sheath" | "template" | "other";
+
+export interface DesignSummary {
+  id: number;
+  name: string;
+  kind: DesignKind;
+  notes: string | null;
+  knife_model_id: number | null;
+  knife_model_name: string | null;
+  material_id: number | null;
+  material_name: string | null;
+  width_mm: number;
+  height_mm: number;
+  area_mm2: number;
+  perimeter_mm: number;
+  part_count: number;
+  is_mock: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Design extends DesignSummary {
+  document: DesignDocument;
+}
+
+export interface DesignTemplate {
+  key: string;
+  name: string;
+  kind: DesignKind;
+  document: DesignDocument;
+}
+
+export interface NestingRequest {
+  material_id: number;
+  items: { design_id: number; quantity: number }[];
+  order_ids: number[] | null;
+  spacing_mm: number;
+  margin_mm: number;
+  rotations: number[] | null;
+}
+
+export interface NestingPlacement {
+  design_id: number;
+  design_name: string;
+  part_name: string;
+  instance: number;
+  order_id: number | null;
+  customer_name: string | null;
+  x: number;
+  y: number;
+  rotation_deg: number;
+  outline: number[][][];
+}
+
+export interface NestingSheet {
+  index: number;
+  used_area_mm2: number;
+  utilization_pct: number;
+  placements: NestingPlacement[];
+}
+
+export interface NestingResult {
+  material_id: number;
+  material_name: string;
+  sheet_length_mm: number;
+  sheet_width_mm: number;
+  spacing_mm: number;
+  margin_mm: number;
+  total_parts: number;
+  placed_parts: number;
+  sheets_needed: number;
+  utilization_pct: number;
+  waste_area_mm2: number;
+  stock_sheets_available: number;
+  stock_sufficient: boolean;
+  sheets: NestingSheet[];
+  unplaced: { design_id: number; design_name: string; part_name: string; reason: "too_large" | "sheet_limit" }[];
+}
+
+export interface NestingCandidates {
+  orders: { order_id: number; customer_name: string; status: string; part_count: number }[];
+  designs: { id: number; name: string; part_count: number; knife_model_name: string | null }[];
+}

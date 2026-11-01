@@ -14,9 +14,10 @@ from shapely.ops import unary_union
 
 from app.schemas.design import DesignDocument, Node, PathObject
 
-# Max distance between a flattened polyline and the true curve, in mm. 0.05 mm
-# is far below what a saw, laser or belt grinder can hold.
-DEFAULT_TOLERANCE_MM = 0.05
+# Max distance between a flattened polyline and the true curve, in mm. 0.01 mm
+# (a hundredth) is an order of magnitude below the 0.1 mm precision target and
+# far below what a saw, laser or belt grinder can hold.
+DEFAULT_TOLERANCE_MM = 0.01
 
 Point = tuple[float, float]
 
@@ -31,7 +32,7 @@ def _wang_segments(p0: Point, c1: Point, c2: Point, p1: Point, tolerance: float)
     m = max(math.hypot(ddx1, ddy1), math.hypot(ddx2, ddy2))
     if m == 0:
         return 1
-    return max(1, min(256, math.ceil(math.sqrt(0.75 * m / tolerance))))
+    return max(1, min(2048, math.ceil(math.sqrt(0.75 * m / tolerance))))
 
 
 def _segment_points(a: Node, b: Node, tolerance: float) -> list[Point]:

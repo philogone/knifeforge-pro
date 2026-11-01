@@ -19,7 +19,7 @@ def assert_valid_layout(sheets, sheet_l, sheet_w, spacing, margin):
     for sheet in sheets:
         for a, b in itertools.combinations(sheet.placements, 2):
             assert a.geometry.intersection(b.geometry).area < 1e-6
-            assert a.geometry.distance(b.geometry) >= spacing - 0.011
+            assert a.geometry.distance(b.geometry) >= spacing - 1e-6
         for p in sheet.placements:
             x0, y0, x1, y1 = p.geometry.bounds
             assert x0 >= margin - 1e-6 and y0 >= margin - 1e-6

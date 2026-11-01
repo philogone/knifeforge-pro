@@ -47,6 +47,24 @@ const routes = [
     meta: { requiresAdmin: true },
   },
   {
+    path: "/designs",
+    name: "designs",
+    component: () => import("@/pages/admin/DesignsPage.vue"),
+    meta: { requiresAdmin: true },
+  },
+  {
+    path: "/designs/:id",
+    name: "design-editor",
+    component: () => import("@/pages/admin/DesignEditorPage.vue"),
+    meta: { requiresAdmin: true },
+  },
+  {
+    path: "/nesting",
+    name: "nesting",
+    component: () => import("@/pages/admin/NestingPage.vue"),
+    meta: { requiresAdmin: true },
+  },
+  {
     path: "/settings",
     name: "settings",
     component: () => import("@/pages/admin/SettingsPage.vue"),

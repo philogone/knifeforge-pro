@@ -23,6 +23,10 @@ material actually is.
 
 ## Why AREA yield is simple grid packing, not real nesting
 
+> **KnifeForge Pro update:** real true-shape nesting now exists as a separate, read-only planner
+> (`nesting_service.py`, *Nesting* page). `compute_yield()` below is unchanged and still drives
+> order feasibility; the two are deliberately not merged (see the Pro section at the end).
+
 `compute_yield()` for an `area` material tries the blank in both orientations (as given, and
 rotated 90°) as a simple row/column grid — `floor(sheet_length / blank_length) *
 floor(sheet_width / blank_width)` — and keeps whichever orientation fits more whole pieces. It
@@ -247,6 +251,39 @@ sets and edits themselves (still shown as "current sale price" alongside the sug
 delta between them), because a maker's actual price also reflects market position, a specific
 customer relationship, or simply what they've always charged — none of which belongs in a cost
 formula.
+
+## KnifeForge Pro — vector designs, nesting and the precision contract
+
+**Design document.** A `Design` stores one JSON document (layers + Bézier paths + dimensions) in
+millimetres, y-down, Bézier handles stored *relative* to their anchor so moving a node never
+rewrites its handles. Width/height/area/perimeter/part_count are *derived on save* by shapely, so
+list views and nesting never trust client-sent numbers. Layer **role** is the contract:
+`cut` (nested, exported), `hole` (subtracted from overlapping cut parts), `engrave` (exported,
+never nested), `construction` (ignored), `dimension` (plan annotations); hidden layers are
+excluded everywhere; compound paths use even-odd.
+
+**Precision contract (non-negotiable requirement: better than 0.1 mm).**
+- Curves are flattened with Wang's formula at 0.01 mm tolerance (`DEFAULT_TOLERANCE_MM`). Chords are
+  *inscribed*, so flattened areas/perimeters are slightly small (area deficit ≤ perimeter × 0.01 mm).
+- Nesting spacing is a **hard minimum**: each part's guard is a buffer enlarged for (a) the chord
+  error (+0.01 mm), (b) Shapely's inscribed round joins (1/cos(π/64)) and (c) simplification
+  (+0.002 mm), so the real distance is never below the request; it over-delivers by ≤ ~0.05 mm.
+  Candidate positions use the same exact gap. Tests assert `distance ≥ spacing − 1e-6` on curved
+  parts (`tests/test_precision.py`).
+- SVG export keeps true Béziers, 3 decimals (1 µm). DXF carries flattened polylines at 0.01 mm.
+- The 4-node Bézier circle/ellipse has a ≤ 0.0273 % radial error — known, tested, documented.
+- Editor numeric fields are exact (e.g. 123.4 × 17.6 saves as exactly 123.4 × 17.6, area 2171.84).
+- Not promised: screen rendering (1:1 zoom assumes 96 dpi), printer scaling, saw/laser kerf.
+
+**Nesting** is greedy bottom-left with compaction, run for all requested rotations *and* for its
+axis-aligned subsets (0/180, 90/270), keeping the best (fewest unplaced, fewest sheets, shortest
+used length). Deterministic, fast, not optimal. It is read-only: stock is still deducted by order
+confirmation. Order selection convention: `order_ids = null` → all draft/confirmed orders,
+`[]` → none. A design belongs to an order line when its `knife_model_id` and `material_id` match.
+
+**Known limits / next steps.** No per-object fill/stroke styling, no groups, no text objects,
+DXF arcs are not preserved (polylines only), COUNT materials are not nestable, nesting does not
+use leftover offcuts, and the dimension tool places aligned dimensions only.
 
 ## What's deliberately NOT in this kit
 

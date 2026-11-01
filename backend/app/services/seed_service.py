@@ -265,8 +265,10 @@ def seed_mock_data(db: Session) -> int:
 
 
 def clear_mock_data(db: Session) -> int:
+    from app.models.design import Design
+
     removed = 0
-    for model in (Order, KnifeModel, TreatmentRecipe, Material, SawBlade):
+    for model in (Design, Order, KnifeModel, TreatmentRecipe, Material, SawBlade):
         rows = db.query(model).filter(model.is_mock.is_(True)).all()
         removed += len(rows)
         for row in rows:

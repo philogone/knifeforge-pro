@@ -232,3 +232,14 @@ def test_seed_creates_demo_designs_that_nest(db):
     from app.models.design import Design
 
     assert all(d.area_mm2 > 0 and d.part_count == 1 for d in db.query(Design).all())
+
+
+def test_demo_data_controls_include_designs_and_backup_export(client, db):
+    seed = client.post("/api/admin/settings/mock-data/seed").json()
+    assert seed["seeded"] > 0
+    assert len(client.get("/api/admin/designs").json()) == 3
+    backup = client.get("/api/admin/settings/export").json()
+    assert len(backup["designs"]) == 3 and backup["designs"][0]["document"]["layers"]
+
+    client.post("/api/admin/settings/mock-data/clear")
+    assert client.get("/api/admin/designs").json() == []

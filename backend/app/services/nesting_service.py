@@ -28,6 +28,7 @@ and refusing overlaps.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 from shapely import affinity
@@ -38,7 +39,7 @@ from app.models.design import Design
 from app.models.material import DimensionType, Material
 from app.models.order import Order, OrderStatus
 from app.schemas.design import DesignDocument
-from app.services.geometry_service import extract_parts, polygon_rings
+from app.services.geometry_service import DEFAULT_TOLERANCE_MM, extract_parts, polygon_rings
 from app.services.order_service import load_order_with_relations
 
 MAX_ITEMS = 500
@@ -247,6 +248,24 @@ def _normalise(geometry: BaseGeometry) -> BaseGeometry:
     return affinity.translate(geometry, -minx, -miny)
 
 
+_BUFFER_QUAD_SEGS = 16
+_SIMPLIFY_MM = 0.002
+
+
+def _guard_radius(distance: float) -> float:
+    return distance / math.cos(math.pi / (4 * _BUFFER_QUAD_SEGS)) + _SIMPLIFY_MM
+
+
+def _outer_buffer(shape: BaseGeometry, distance: float) -> BaseGeometry:
+    """Buffer that is guaranteed to contain the true offset curve: Shapely's
+    round joins are inscribed in the ideal circle, so the radius is enlarged by
+    1/cos(pi / (4 * quad_segs)) and by the simplification tolerance. The result
+    can only be *larger* than the exact offset (by a few hundredths of a mm),
+    never smaller, so the requested spacing is never under-delivered."""
+    radius = _guard_radius(distance)
+    return shape.buffer(radius, quad_segs=_BUFFER_QUAD_SEGS).simplify(_SIMPLIFY_MM, preserve_topology=True)
+
+
 def _make_variants(item: NestItem, rotations: tuple[float, ...], half_spacing: float) -> list[_Variant]:
     variants: list[_Variant] = []
     for angle in rotations:
@@ -260,7 +279,7 @@ def _make_variants(item: NestItem, rotations: tuple[float, ...], half_spacing: f
             for v in variants
         ):
             continue
-        guard = shape.buffer(half_spacing, quad_segs=3).simplify(0.05) if half_spacing > 0 else shape
+        guard = _outer_buffer(shape, half_spacing) if half_spacing > 0 else shape
         variants.append(_Variant(angle=angle % 360, shape=shape, guard=guard, width=w, height=h))
     return variants
 
@@ -287,7 +306,7 @@ def _slide(sheet: Sheet, variant: _Variant, x: float, y: float, axis: int, limit
     """Move toward smaller coordinate along ``axis`` (0 = x, 1 = y) as far as
     possible, never below ``limit``, using a shrinking step."""
     step = 32.0
-    while step >= 0.1:
+    while step >= 0.01:
         while True:
             pos = (x, y)[axis]
             target = max(limit, pos - step)
@@ -356,7 +375,7 @@ def _best_on_sheet(
     return best
 
 
-def pack(
+def _pack_once(
     items: list[NestItem],
     sheet_length: float,
     sheet_width: float,
@@ -366,8 +385,13 @@ def pack(
     max_sheets: int = 200,
 ) -> tuple[list[Sheet], list[Unplaced]]:
     spacing = max(spacing, 0.02)
-    half = max(spacing / 2 - 0.005, 0.0)
+    # + DEFAULT_TOLERANCE_MM: flattened outlines are inscribed in the true
+    # curves by up to that much, so each guard is grown to compensate.
+    half = spacing / 2 + DEFAULT_TOLERANCE_MM
     primary_axis = 0 if sheet_length >= sheet_width else 1
+
+    # distance between two flat edges whose guards just touch
+    gap = 2 * _guard_radius(half) + 1e-6
 
     sheets: list[Sheet] = []
     unplaced: list[Unplaced] = []
@@ -390,7 +414,7 @@ def pack(
 
         placed = False
         for sheet in sheets:
-            best = _best_on_sheet(sheet, variants, sheet_length, sheet_width, margin, spacing, primary_axis)
+            best = _best_on_sheet(sheet, variants, sheet_length, sheet_width, margin, gap, primary_axis)
             if best is not None:
                 _commit(sheet, item, *best)
                 placed = True
@@ -401,7 +425,7 @@ def pack(
             unplaced.append(Unplaced(item, "sheet_limit"))
             continue
         sheet = Sheet(index=len(sheets))
-        best = _best_on_sheet(sheet, variants, sheet_length, sheet_width, margin, spacing, primary_axis)
+        best = _best_on_sheet(sheet, variants, sheet_length, sheet_width, margin, gap, primary_axis)
         if best is None:  # cannot happen if fits_empty, but never loop/crash
             unplaced.append(Unplaced(item, "too_large"))
             continue
@@ -409,6 +433,40 @@ def pack(
         _commit(sheet, item, *best)
 
     return sheets, unplaced
+
+
+def pack(
+    items: list[NestItem],
+    sheet_length: float,
+    sheet_width: float,
+    spacing: float,
+    margin: float,
+    rotations: tuple[float, ...] = DEFAULT_ROTATIONS,
+    max_sheets: int = 200,
+) -> tuple[list[Sheet], list[Unplaced]]:
+    """Greedy bottom-left packing, run for the requested rotation set and for
+    its axis-aligned subsets (0/180 only, 90/270 only); the best layout wins
+    (fewest unplaced, then fewest sheets, then shortest used length). Mixing
+    orientations greedily can be worse than keeping all parts aligned, so the
+    subsets are cheap insurance. Deterministic."""
+    candidates = [tuple(rotations)]
+    flat = tuple(r for r in rotations if round(r) % 180 == 0)
+    upright = tuple(r for r in rotations if round(r) % 180 == 90)
+    for subset in (flat, upright):
+        if subset and subset != tuple(rotations):
+            candidates.append(subset)
+    primary = 0 if sheet_length >= sheet_width else 1
+    best = None
+    best_key = None
+    for rots in candidates:
+        sheets, unplaced = _pack_once(items, sheet_length, sheet_width, spacing, margin, rots, max_sheets)
+        last = sheets[-1].placements if sheets else []
+        extent = max((p.geometry.bounds[2 + primary] for p in last), default=0.0)
+        key = (len(unplaced), len(sheets), round(extent, 3))
+        if best_key is None or key < best_key:
+            best, best_key = (sheets, unplaced), key
+    assert best is not None
+    return best
 
 
 def _commit(sheet: Sheet, item: NestItem, variant: _Variant, x: float, y: float) -> None:

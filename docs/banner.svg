@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="340" viewBox="0 0 1280 340" role="img" aria-label="KnifeForge Pro">
+  <defs>
+    <pattern id="minor" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M12 0H0V12" fill="none" stroke="#1e3a8a" stroke-opacity="0.35" stroke-width="0.6"/>
+    </pattern>
+    <pattern id="major" width="60" height="60" patternUnits="userSpaceOnUse">
+      <rect width="60" height="60" fill="url(#minor)"/>
+      <path d="M60 0H0V60" fill="none" stroke="#3b82f6" stroke-opacity="0.35" stroke-width="1"/>
+    </pattern>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1226"/>
+      <stop offset="1" stop-color="#111c3d"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e0e7ff" stop-opacity="0.95"/>
+      <stop offset="0.55" stop-color="#a5b4fc" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#6366f1" stop-opacity="0.75"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10Z" fill="#93c5fd"/>
+    </marker>
+  </defs>
+
+  <rect width="1280" height="340" rx="18" fill="url(#bg)"/>
+  <rect width="1280" height="340" rx="18" fill="url(#major)"/>
+
+  <!-- Title -->
+  <text x="64" y="138" fill="#f8fafc" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="64" font-weight="700" letter-spacing="-1">KnifeForge <tspan fill="#818cf8">Pro</tspan></text>
+  <text x="66" y="184" fill="#cbd5e1" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22">L'atelier du coutelier, au dixième de millimètre.</text>
+  <text x="66" y="236" fill="#93c5fd" font-family="Consolas, Menlo, monospace" font-size="15">éditeur vectoriel · nesting sur stock · SVG / DXF · plans cotés</text>
+  <text x="66" y="266" fill="#64748b" font-family="Consolas, Menlo, monospace" font-size="15">tolérance de courbes 0,01 mm · espacement garanti</text>
+
+  <!-- Real Bushcraft profile from the demo data, 1 mm = 3 px -->
+  <g transform="translate(652 92) scale(3)">
+    <path d="M0 6.4L64 6.4L70 0L150.64 0C169.68 0 173.04 5.44 182 17.6C176.4 27.2 154 32 131.6 32L70 32L64 22.4L0 22.4L0 6.4Z"
+          fill="url(#steel)" stroke="#e0e7ff" stroke-width="0.35" fill-rule="evenodd"/>
+    <circle cx="15.4" cy="14.4" r="2.5" fill="#0b1226" stroke="#f87171" stroke-width="0.35"/>
+    <circle cx="43.4" cy="14.4" r="2.5" fill="#0b1226" stroke="#f87171" stroke-width="0.35"/>
+  </g>
+
+  <!-- Dimension lines -->
+  <g stroke="#93c5fd" stroke-width="1.2" fill="none">
+    <path d="M652 196V250M1198 158V250"/>
+    <path d="M658 242H1192" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <path d="M1198 92H1240M1198 188H1240"/>
+    <path d="M1232 98V182" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  </g>
+  <rect x="884" y="230" width="72" height="24" rx="4" fill="#0f1a3a"/>
+  <text x="920" y="248" fill="#e0e7ff" font-family="Consolas, Menlo, monospace" font-size="16" text-anchor="middle">182 mm</text>
+  <text x="1256" y="140" fill="#e0e7ff" font-family="Consolas, Menlo, monospace" font-size="16" text-anchor="middle" transform="rotate(-90 1256 140)">32 mm</text>
+
+  <text x="1212" y="312" fill="#475569" font-family="Consolas, Menlo, monospace" font-size="13" text-anchor="end">échelle 3 px / mm · profil « Bushcraft » des données de démo</text>
+</svg>

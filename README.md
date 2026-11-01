@@ -1,227 +1,348 @@
-# KnifeForge Manager
+<div align="center">
 
-A self-hosted, dockerized inventory and order management tool built for custom knifemakers and
-bladesmiths — dimensional raw material stock (steel bars, sheet handle scales, discrete
-hardware), a cutting/yield calculator, order feasibility checks with automatic stock deduction,
-and a treatment recipe book covering both thermal processes (quench & temper) and chemical /
-finishing processes (damascus pattern-reveal etching, bluing, browning, forced patina).
+<img src="docs/banner.svg" alt="KnifeForge Pro — l'atelier du coutelier, au dixième de millimètre" width="100%">
 
-**Stack:** FastAPI (Python) · Vue 3 + Tailwind CSS · PostgreSQL · Redis · Docker Compose
+<br>
 
-> This is a starter kit / boilerplate, not a running product — see [`LICENSE`](LICENSE) for what
-> that means for you as a buyer, and [`HANDOVER.md`](HANDOVER.md) for the domain model and the
-> product decisions behind it.
+**Gestion d'atelier auto-hébergée pour couteliers : stock, commandes, traitements,<br>
+et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à la cote.**
+
+<br>
+
+![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
+![Vue](https://img.shields.io/badge/Vue-3.5-42b883?logo=vuedotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![Paper.js](https://img.shields.io/badge/Paper.js-0.12-e4405f)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+<br>
+![Tests backend](https://img.shields.io/badge/tests%20backend-80%20passing-brightgreen)
+![Tests frontend](https://img.shields.io/badge/tests%20frontend-48%20passing-brightgreen)
+![Précision](https://img.shields.io/badge/courbes-%E2%89%A4%200%2C01%20mm-6366f1)
+![Licence](https://img.shields.io/badge/licence-commerciale-lightgrey)
+
+[Fonctionnalités](#fonctionnalites) ·
+[Captures](#captures) ·
+[Précision](#precision) ·
+[Démarrage](#demarrage) ·
+[Architecture](#architecture) ·
+[Tests](#tests) ·
+[English](#english)
+
+</div>
 
 ---
 
-## 🇫🇷 Français
+<a id="fonctionnalites"></a>
 
-### Démarrage en une commande
+## ✨ Fonctionnalités
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### ✒️ Éditeur vectoriel intégré
+Un mini-Inkscape dans le navigateur, **à l'échelle 1:1 en millimètres**.
+- Plume Bézier, édition de nœuds, rectangle, ellipse, ligne, polygone
+- Booléens (union, différence, intersection, exclusion), combiner / séparer
+- Décalage (agrandir / réduire), alignement, miroir, rotation
+- **Saisie numérique exacte** : tapez 123,4 × 17,6, vous obtenez 123,4 × 17,6
+- Calques typés : *découpe*, *perçage*, *gravure*, *construction*, *cotation*
+- Grille jusqu'à 0,1 mm, import SVG, annuler / rétablir
+
+</td>
+<td width="50%" valign="top">
+
+### 🧩 Nesting réel sur stock
+Placement des **vraies formes** (perçages compris) sur vos plaques et barres.
+- Rotations au choix (libres, 0/180° pour le sens du grain, aucune)
+- Espacement entre pièces **garanti au minimum**, marge de bord respectée
+- Nombre de plaques / barres, taux d'utilisation, chute, comparaison au stock
+- Reprend automatiquement les commandes en cours
+- Lecture seule : un plan de découpe, pas un mouvement de stock
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### 📐 Exports et plans clients
+- **SVG** avec de vraies courbes de Bézier, 1 unité = 1 mm
+- **DXF R2010** (polylignes, calques `CUT` / `ENGRAVE` / `SHEET`) pour la découpe laser, jet d'eau ou CNC
+- Plaques de nesting en SVG / DXF
+- **Plans clients cotés** A4 / A3, échelle normalisée, cartouche complet, prêts à imprimer
+
+</td>
+<td valign="top">
+
+### 🗂️ Gestion d'atelier
+- **Stock dimensionnel** : barres (mm), plaques (mm²), pièces (unités)
+- **Commandes** brouillon → confirmée → terminée, déstockage tout-ou-rien
+- **Recettes de traitement** thermiques et chimiques (trempe, revenu, attaque du damas, patine…)
+- Optimiseur de découpe multi-commandes, catalogue de scies (trait de scie)
+- Coût de revient, prix de vente suggéré, interface **FR / EN**
+
+</td>
+</tr>
+</table>
+
+<a id="captures"></a>
+
+## 📸 En images
+
+<table>
+<tr>
+<td colspan="2"><img src="docs/screenshots/editor.png" alt="Éditeur vectoriel : profil de lame coté, panneau de saisie numérique"><p align="center"><sub><b>L'éditeur</b> : profil de lame à l'échelle, poignées, cote de 112 mm et saisie numérique de la position et de la taille.</sub></p></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/nesting-sheet.png" alt="Nesting de plaquettes G10 sur une plaque"><p align="center"><sub><b>Nesting sur plaque</b> : 6 plaquettes G10 sur une plaque de 300 × 150 mm.</sub></p></td>
+<td width="50%"><img src="docs/screenshots/plan.png" alt="Plan client coté au format A4"><p align="center"><sub><b>Plan client</b> : A4 à l'échelle 1:1, cotes hors-tout et cartouche.</sub></p></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/designs.png" alt="Bibliothèque de gabarits"><p align="center"><sub><b>Gabarits</b> : rattachés à un modèle de couteau et à une matière.</sub></p></td>
+<td width="50%"><img src="docs/screenshots/nesting-bar.png" alt="Nesting de lames sur une barre d'acier"><p align="center"><sub><b>Nesting sur barre</b> : deux lames tête-bêche sur une barre de 1095.</sub></p></td>
+</tr>
+</table>
+
+<a id="precision"></a>
+
+## 🎯 Le contrat de précision
+
+> **Exigence de conception : une précision meilleure que 0,1 mm, de l'écran à la machine.**
+> Chaque garantie ci-dessous est vérifiée par des tests (`backend/tests/test_precision.py`).
+
+| Élément | Garantie |
+|---|---|
+| Coordonnées stockées | 0,0001 mm |
+| SVG exporté | 0,001 mm, courbes de Bézier **non aplaties** |
+| Aires, périmètres, DXF, nesting | courbes aplaties à **≤ 0,01 mm** (formule de Wang) |
+| Espacement du nesting | **minimum garanti** : jamais sous la valeur demandée, excédent ≤ ~0,05 mm |
+| Marge de bord | respectée au micron sur les polygones (≤ 0,01 mm d'écart sur les courbes) |
+| Cercle / ellipse dessinés | Bézier à 4 nœuds : écart radial ≤ 0,027 % du rayon (0,03 mm pour R = 100 mm) |
+| Saisie numérique | exacte : 123,4 × 17,6 s'enregistre en 123,4 × 17,6, aire 2171,84 mm² |
+
+<details>
+<summary><b>Ce qui n'est pas garanti, et pourquoi</b></summary>
+
+<br>
+
+- **L'écran n'est pas un instrument de mesure** : le zoom « 1:1 » suppose 96 dpi. Fiez-vous aux cotes et aux champs numériques.
+- **Imprimez les plans à 100 %**, sans « ajuster à la page », pour qu'ils soient à l'échelle.
+- Un **SVG importé sans unité** est lu à 96 dpi : vérifiez-le avec une cote.
+- Le **DXF contient des polylignes** (pas d'arcs), aplaties à 0,01 mm.
+- Le **trait de scie et l'offset laser** ne sont pas compensés automatiquement : utilisez l'outil *Décalage*.
+- Le **nesting est une heuristique** rapide et déterministe (bottom-left glouton avec compactage), pas un optimum mathématique.
+
+Le détail des choix techniques est dans [`HANDOVER.md`](HANDOVER.md#knifeforge-pro--vector-designs-nesting-and-the-precision-contract).
+
+</details>
+
+<a id="demarrage"></a>
+
+## 🚀 Démarrage rapide
+
+### Avec Docker (production)
 
 ```bash
 cp .env.example .env
-# Éditez .env : SECRET_KEY, POSTGRES_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD_HASH (voir plus bas).
+# Renseignez SECRET_KEY, POSTGRES_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD_HASH (voir ci-dessous)
 docker compose up -d --build
 ```
 
-L'admin est disponible sur `http://localhost:8080`.
+L'admin est disponible sur **http://localhost:8080**.
 
-### Générer le hash du mot de passe admin
+Générez le hash du mot de passe admin :
 
 ```bash
 docker compose run --rm backend python scripts/hash_password.py "VotreMotDePasseFort"
 ```
 
-Collez le résultat dans `ADMIN_PASSWORD_HASH` de votre `.env`, puis démarrez (ou redémarrez)
-la stack.
+> [!WARNING]
+> Un hash bcrypt contient des `$` (`$2b$12$…`). Docker Compose les interprète comme des variables
+> et les supprime silencieusement. **Doublez chaque `$`** dans `.env` :
+> `ADMIN_PASSWORD_HASH=$$2b$$12$$RRlpfX93...`
 
-> ⚠️ **Piège classique avec Docker Compose** : un hash bcrypt contient des `$` (ex.
-> `$2b$12$...`). Docker Compose interprète les `$` d'un fichier `.env` comme des références de
-> variable et les supprimerait silencieusement, corrompant le hash. **Doublez chaque `$` en
-> `$$`**, par exemple : `ADMIN_PASSWORD_HASH=$$2b$$12$$RRlpfX93...`.
+### En local, sans Docker (développement)
 
-### Le modèle métier
+<details>
+<summary>Backend FastAPI + SQLite, frontend Vite</summary>
 
-- **Matériaux** (`materials`) : stock dimensionnel. Trois façons de mesurer un stock selon le
-  type de matériau : `length` (barres/tiges, stock en mm), `area` (plaques, stock en mm²),
-  `count` (pièces discrètes — rivets, blocs de manche pré-taillés — stock en unités).
-- **Calculateur de découpe/rendement** : pour un matériau `length` ou `area`, indiquez la taille
-  de la pièce à découper (et la largeur pour `area`) et la quantité voulue — l'outil calcule
-  combien de pièces sortent d'une barre/plaque standard, la perte (kerf de scie inclus pour les
-  barres), et combien de barres/plaques acheter.
-- **Modèles de couteaux** (`knife_models`) : associent une liste de matériaux requis (avec leurs
-  dimensions de découpe) et une **séquence ordonnée** de recettes de traitement.
-- **Recettes de traitement** (`treatment_recipes`) : un seul format couvre le traitement
-  thermique (trempe, revenu) ET les traitements chimiques/finition (révélation acide du damas,
-  brunissement, ternissement/patine forcée) — chaque recette est une liste d'étapes ordonnées
-  avec température, durée et médium (huile de trempe, solution de perchlorure de fer, vinaigre...).
-- **Commandes** (`orders`) : `draft` → `confirmed` → `completed`, ou annulée à tout moment avant
-  `completed`. Confirmer une commande vérifie la faisabilité (stock suffisant pour **toutes** les
-  lignes) et déduit le stock en une seule transaction — tout ou rien, jamais de déduction
-  partielle. Annuler une commande `confirmed` **restitue** automatiquement le stock consommé.
-- **Catalogue scies/lames** (`saw_blades`) : le trait de scie dépend de l'outil, pas du matériau —
-  définissez vos scies/lames une fois (avec leur trait de coupe réel), puis sélectionnez-en une
-  sur un matériau pour préremplir son `kerf_mm` (reste modifiable).
-- **Optimiseur de découpe multi-commandes** : pour un matériau `length`, regroupe la demande de
-  **toutes** les commandes en brouillon (même avec des modèles de couteaux différents) et calcule
-  un plan de découpe optimisé (algorithme First-Fit-Decreasing) minimisant le nombre de barres et
-  la perte — avec un rendu visuel des barres.
-- **Production** : vue d'ensemble comparant chaque commande en brouillon au stock actuel, avec la
-  demande matière agrégée sur tout le carnet de commandes.
-- **Taxonomie des matériaux** : type de métal (inox, carbone, titane, mokume, laiton, cuivre,
-  maillechort), nuance d'acier, essence et qualité de bois, désignation de la pièce (plaquettes,
-  quillon, mitre...) — tous en texte libre avec suggestions, adaptables à votre propre catalogue.
-- **Interface bilingue FR/EN**, bascule dans Réglages, et export JSON complet de vos données à la
-  demande (sauvegarde manuelle).
-- **Coût de revient et prix de vente suggéré** : chaque matériau a un coût de revient au mm/mm²/pièce
-  (mis à jour automatiquement en coût moyen pondéré à chaque achat, port compris), chaque modèle de
-  couteau affiche son coût matière détaillé ligne par ligne, sa main d'œuvre (taux horaire réglable),
-  et un prix de vente suggéré selon une marge cible (réglage global, avec possibilité de marge
-  spécifique par modèle).
+<br>
 
-### Tests
+**Backend** (Python 3.12+ ; `psycopg2` n'est pas nécessaire avec SQLite) :
 
 ```bash
-docker compose exec backend pytest
+cd backend
+python -m venv .venv
+.venv/Scripts/activate            # Windows ; sous macOS/Linux : source .venv/bin/activate
+pip install -r requirements.txt   # sous Python 3.13, retirez psycopg2-binary de la liste
+python scripts/hash_password.py "MotDePasseDeTest"
 ```
 
----
+Créez `backend/.env` (jamais commité) :
 
-## 🇬🇧 English
+```ini
+SECRET_KEY=<64 caractères hexadécimaux aléatoires>
+DATABASE_URL=sqlite:///./dev.db
+ADMIN_EMAIL=admin@test.local
+ADMIN_PASSWORD_HASH='<hash généré ci-dessus, entre apostrophes>'
+FRONTEND_URL=http://localhost:5173
+```
 
-### One-command launch
+Créez les tables puis lancez le serveur (les données de démo se créent au démarrage) :
 
 ```bash
-cp .env.example .env
-# Edit .env: SECRET_KEY, POSTGRES_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD_HASH (see below).
-docker compose up -d --build
+python -c "import app.models; from app.database import Base, engine; Base.metadata.create_all(engine)"
+uvicorn app.main:app --port 8000
 ```
 
-The admin panel is available at `http://localhost:8080`.
-
-### Generating the admin password hash
+**Frontend** (le proxy `/api` vers le port 8000 est déjà configuré) :
 
 ```bash
-docker compose run --rm backend python scripts/hash_password.py "YourStrongPassword"
+cd frontend
+npm install
+npm run dev                       # http://localhost:5173
 ```
 
-Paste the result into `ADMIN_PASSWORD_HASH` in your `.env`, then start (or restart) the stack.
+</details>
 
-> ⚠️ **Classic Docker Compose gotcha**: a bcrypt hash contains `$` characters (e.g.
-> `$2b$12$...`). Docker Compose treats `$` in a `.env` file as a variable reference and will
-> silently strip it, corrupting the hash. **Double every `$` into `$$`**, e.g.
-> `ADMIN_PASSWORD_HASH=$$2b$$12$$RRlpfX93...`.
+<a id="architecture"></a>
 
-### The domain model
+## 🏗️ Architecture
 
-- **Materials** (`materials`): dimensional stock. Three ways to measure stock depending on the
-  material's shape: `length` (bars/rods, stock in mm), `area` (sheets, stock in mm²), `count`
-  (discrete units — rivets, pre-cut handle blocks — stock in whole units).
-- **Cutting/yield calculator**: for a `length` or `area` material, give the blank size you need
-  to cut (plus width for `area`) and the quantity needed — the tool computes how many blanks
-  come out of one standard bar/sheet, the waste (saw kerf included for bars), and how many
-  bars/sheets to buy.
-- **Knife models** (`knife_models`): tie together a list of required materials (with their cut
-  dimensions) and an **ordered sequence** of treatment recipes.
-- **Treatment recipes** (`treatment_recipes`): one format covers both thermal treatment (quench,
-  temper) AND chemical/finishing treatment (damascus acid-etch pattern reveal, bluing, browning,
-  forced patina) — each recipe is an ordered list of steps with temperature, duration, and medium
-  (quench oil, ferric chloride solution, vinegar, etc.).
-- **Orders** (`orders`): `draft` → `confirmed` → `completed`, or cancelled any time before
-  `completed`. Confirming an order checks feasibility (enough stock for **every** line) and
-  deducts stock in one transaction — all or nothing, never a partial deduction. Cancelling a
-  `confirmed` order automatically **restocks** what it had consumed.
-- **Saw/blade catalog** (`saw_blades`): kerf width belongs to the tool, not the material — define
-  your saws/blades once (with their real cutting width), then pick one on a material to pre-fill
-  its `kerf_mm` (still independently editable).
-- **Cross-order cutting optimizer**: for a `length` material, aggregates demand across **every**
-  draft order (even across different knife models) and computes an optimized cutting plan
-  (First-Fit-Decreasing bin packing) minimizing bars used and waste — rendered as a visual
-  diagram.
-- **Production**: an overview comparing every draft order against current stock, plus aggregate
-  material demand across the whole backlog.
-- **Material taxonomy**: metal type (stainless, carbon, titanium, mokume, brass, copper, nickel
-  silver), steel grade, wood species/grade, piece designation (scale pair, guard, mitre...) — all
-  free text with suggestions, so it adapts to your own catalog rather than fighting a fixed list.
-- **Bilingual FR/EN UI**, toggled from Settings, plus an on-demand full JSON export of your data
-  (manual backup).
-- **Landed cost and suggested sale price**: every material carries a cost per mm/mm²/unit,
-  automatically updated as a weighted average whenever you log a purchase (price + shipping).
-  Each knife model shows its full material cost breakdown, labor cost (configurable hourly rate),
-  and a suggested sale price at a target margin (shop-wide default, overridable per model).
-
-### Tests
-
-```bash
-docker compose exec backend pytest
+```mermaid
+flowchart LR
+  subgraph Navigateur
+    UI["Vue 3 + Tailwind<br/>pages admin"]
+    ED["Moteur d'édition<br/>Paper.js"]
+  end
+  subgraph Backend["FastAPI"]
+    API["Routers<br/>/api/admin/*"]
+    GEO["geometry_service<br/>Bézier → polygones 0,01 mm"]
+    NEST["nesting_service<br/>vraies formes, espacement garanti"]
+    EXP["export_service<br/>SVG · DXF · plans"]
+    ORD["order / cutting / yield"]
+  end
+  DB[("PostgreSQL<br/>ou SQLite en dev")]
+  UI <--> API
+  ED -- "document JSON (mm, y vers le bas)" --> API
+  API --> GEO --> NEST
+  GEO --> EXP
+  API --> ORD
+  API <--> DB
 ```
 
----
+Un **gabarit** est un document JSON (calques + chemins de Bézier + cotes) en millimètres. Les
+dimensions, aires et nombres de pièces sont **recalculés côté serveur** à chaque enregistrement
+(Shapely) : la liste et le nesting ne font jamais confiance aux valeurs envoyées par le client.
+Le **rôle du calque** fait contrat : `cut` est découpé et placé, `hole` est soustrait des pièces
+qu'il recouvre, `engrave` est exporté mais jamais placé, `construction` est ignoré, `dimension`
+alimente les plans.
 
-## ✒️ KnifeForge Pro — éditeur vectoriel / vector editor
+<details>
+<summary><b>Le modèle métier en détail</b></summary>
 
-**🇫🇷** Cette version ajoute un éditeur vectoriel intégré (type Inkscape, basé sur Paper.js) :
+<br>
 
-- **Gabarits à l'échelle 1:1 en mm** (lames, plaquettes, gardes, mitres…), rattachés à un modèle de couteau et à une matière. Menu *Gabarits*.
-- Éditeur : plume Bézier, édition de nœuds, rectangle/ellipse/ligne/polygone, booléens (union, différence, intersection, exclusion), combiner/séparer, décalage (agrandir/réduire), alignement/répartition, miroir/rotation, calques typés (découpe, perçage, gravure, construction, cotation), cotes, import SVG, annuler/rétablir, grille jusqu'à 0,1 mm, saisie numérique exacte.
-- **Nesting réel sur stock** (menu *Nesting*) : vraies formes avec perçages, rotations, espacement et marge ; nombre de plaques/barres, taux d'utilisation, comparaison au stock ; lecture seule (ne décompte pas le stock).
-- **Exports** : SVG (courbes de Bézier vraies, 1 unité = 1 mm), DXF (R2010, polylignes, calques CUT/ENGRAVE/SHEET), plaques de nesting en SVG/DXF, **plans clients cotés** (A4/A3, échelle normalisée, cartouche).
+- **Matériaux** : stock dimensionnel selon le type, `length` (barres/tiges, en mm), `area` (plaques, en mm²) ou `count` (pièces discrètes, en unités).
+- **Calculateur de rendement** : combien de pièces par barre ou plaque standard, la perte (trait de scie inclus pour les barres), combien en acheter.
+- **Modèles de couteaux** : liste de matériaux requis (avec leurs cotes de découpe) et **séquence ordonnée** de recettes de traitement.
+- **Recettes de traitement** : un seul format pour le thermique (trempe, revenu) et le chimique / finition (révélation du damas, bronzage, patine forcée), en étapes ordonnées avec température, durée et médium.
+- **Commandes** : `draft` → `confirmed` → `completed`, ou annulée avant `completed`. La confirmation vérifie le stock pour **toutes** les lignes et déstocke en une transaction, tout ou rien. Annuler une commande confirmée **restitue** le stock.
+- **Catalogue scies / lames** : le trait de scie dépend de l'outil, pas de la matière. Choisir une scie sur un matériau préremplit son `kerf_mm`.
+- **Optimiseur multi-commandes** : pour les barres, regroupe la demande de toutes les commandes en brouillon et calcule un plan de découpe First-Fit-Decreasing, avec rendu visuel.
+- **Production** : chaque commande en brouillon face au stock actuel, et la demande matière agrégée.
+- **Taxonomie** : type de métal, nuance d'acier, essence et qualité de bois, désignation de pièce, en texte libre avec suggestions.
+- **Coût de revient et prix suggéré** : coût moyen pondéré mis à jour à chaque achat (port compris), coût matière ligne par ligne, main d'œuvre, prix selon une marge cible.
+- **Bilingue FR / EN** et export JSON complet de vos données.
 
-**Précision (exigence de conception : meilleur que 0,1 mm).**
+</details>
 
-| Élément | Garantie |
-|---|---|
-| Coordonnées stockées | 0,0001 mm |
-| SVG exporté | 0,001 mm, courbes de Bézier non aplaties |
-| Aires, périmètres, DXF, nesting | courbes aplaties à ≤ 0,01 mm |
-| Espacement du nesting | **minimum garanti** (jamais en dessous de la valeur demandée ; excédent ≤ ~0,05 mm) |
-| Marge de bord | respectée au micron sur les polygones aplatis (≤ 0,01 mm d'écart sur courbes) |
-| Cercle/ellipse dessinés | approximation Bézier à 4 nœuds : écart radial ≤ 0,027 % du rayon (0,03 mm pour R = 100 mm) |
+<details>
+<summary><b>Arborescence</b></summary>
 
-Limites à connaître : un écran n'est pas un instrument de mesure (le zoom « 1:1 » suppose 96 dpi) — fiez-vous aux cotes et aux champs numériques ; imprimez les plans à **100 % (sans « ajuster à la page »)** pour qu'ils soient à l'échelle ; un SVG importé sans unité est lu à 96 dpi (vérifiez avec une cote) ; le DXF contient des polylignes (pas d'arcs) ; le trait de scie / l'offset laser ne sont pas compensés automatiquement (utilisez l'outil *Décalage*) ; le nesting est une heuristique rapide et déterministe, pas un optimum mathématique.
-
-**🇬🇧** This edition adds an integrated vector editor (Inkscape-style, built on Paper.js): real-scale mm patterns linked to knife models and materials, a full node/Bézier/boolean/offset toolset, true-shape nesting on stock, SVG/DXF export and dimensioned client plans. Precision target is better than 0.1 mm: coordinates are stored to 0.0001 mm, SVG keeps true Béziers (0.001 mm), areas/DXF/nesting use curves flattened to ≤ 0.01 mm, and nesting spacing is a hard minimum. Caveats: the screen is not a measuring tool (print plans at 100 %), imported unit-less SVG is read at 96 dpi, DXF carries polylines, saw kerf is not auto-compensated, and nesting is a fast deterministic heuristic.
-
-### Tests (Pro)
-
-```bash
-docker compose exec backend pytest          # 76 tests: geometry, nesting, exports, API, metrology
-cd frontend && npm test                     # 36 editor-engine tests (vitest)
-```
-
-Local dev without Docker: `cd frontend && npm run dev` proxies `/api` to `http://localhost:8000`
-(override with `VITE_PROXY_TARGET`).
-
-## Structure
+<br>
 
 ```
-knifeforge/
-├── frontend/src/
-│   ├── pages/admin/           Login, materials, recipes, knife models (+detail), orders, production, settings
-│   ├── components/            CuttingBarsVisual.vue, SheetGridVisual.vue, NestingSheetVisual.vue
-│   ├── editor/                Paper.js engine, tools, history, grid/rulers (+ vitest tests)
-│   ├── pages/admin/           … + DesignsPage, DesignEditorPage, NestingPage
-│   ├── i18n/                  Minimal FR/EN dictionaries + t() composable
-│   └── stores/app.store.ts    Pinia store — all API calls
+knifeforge-pro/
 ├── backend/app/
-│   ├── models/                 material, saw_blade, treatment, knife_model, order
-│   ├── routers/                 auth, materials, saw_blades, treatments, knife_models, orders, production, settings
+│   ├── models/          material, saw_blade, treatment, knife_model, order, design
+│   ├── routers/         auth, materials, saw_blades, treatments, knife_models,
+│   │                    orders, production, designs, nesting, settings
 │   └── services/
-│       ├── yield_service.py     Cutting/yield math (single blank size, one material)
-│       ├── cutting_service.py   Cross-order cutting optimizer (FFD bin packing, LENGTH only)
-│       ├── order_service.py     Feasibility check + stock deduction/restock
-│       ├── production_service.py Backlog vs stock overview
-│       ├── geometry_service.py  Bézier flattening, parts/holes, metrics, offset (shapely)
-│       ├── nesting_service.py   True-shape 2D nesting (greedy bottom-left, guaranteed spacing)
-│       ├── export_service.py    SVG / DXF (ezdxf) / dimensioned client plans
-│       └── seed_service.py      Demo data (seeded through the real order service)
+│       ├── geometry_service.py   Aplatissement Bézier, pièces/perçages, métriques, offset
+│       ├── nesting_service.py    Nesting vraies formes, espacement garanti
+│       ├── export_service.py     SVG / DXF (ezdxf) / plans clients cotés
+│       ├── cutting_service.py    Optimiseur de découpe multi-commandes (FFD)
+│       ├── yield_service.py      Calcul de rendement
+│       ├── order_service.py      Faisabilité, déstockage / restockage
+│       └── seed_service.py       Données de démo (via les vrais services)
+├── frontend/src/
+│   ├── editor/          Moteur Paper.js, outils, historique, grille et règles (+ tests)
+│   ├── pages/admin/     Matériaux, modèles, recettes, commandes, production,
+│   │                    gabarits, éditeur, nesting, réglages
+│   ├── components/      Rendus des barres, plaques et nesting
+│   ├── composables/     Client API, état « modifié »
+│   └── i18n/            Dictionnaires FR / EN
+├── docs/                Bannière et captures du README
 ├── docker-compose.yml
-├── .env.example
-├── HANDOVER.md
+├── HANDOVER.md          Les décisions de conception, et pourquoi
 └── README.md
 ```
 
-## Licence / License
+</details>
 
-See [`LICENSE`](LICENSE) — commercial license, one end product per purchase, source
-redistribution prohibited.
+<a id="tests"></a>
+
+## 🧪 Tests
+
+```bash
+cd backend && pytest              # 80 tests : géométrie, nesting, exports, API, métrologie
+cd frontend && npm test           # 48 tests : moteur d'édition, client API, formats
+cd frontend && npx vue-tsc --noEmit && npm run build
+```
+
+Avec Docker : `docker compose exec backend pytest`.
+
+Les tests de géométrie comparent à des **valeurs calculées indépendamment** (aire d'un cercle,
+distances exactes) avec une tolérance explicite inférieure à 0,1 mm, jamais à un instantané de
+la sortie actuelle.
+
+## 🗺️ Limites connues et suite
+
+- Pas de style par objet (remplissage / trait), pas de groupes, pas d'objets texte
+- DXF en polylignes uniquement (les arcs ne sont pas conservés)
+- Les matériaux comptés à l'unité ne sont pas « nestables »
+- Le nesting n'utilise pas les chutes existantes
+- L'outil de cotation ne place que des cotes alignées
+- Volontairement hors périmètre : traçabilité lot / numéro de série, frais généraux, fournisseurs et factures, vitrine publique
+
+<a id="english"></a>
+
+## 🇬🇧 In English
+
+**KnifeForge Pro** is a self-hosted shop manager for custom knifemakers: dimensional raw-material
+stock (bars in mm, sheets in mm², counted parts), orders with all-or-nothing stock deduction,
+heat-treatment and finishing recipes, costing, plus an **integrated vector editor** (Paper.js)
+for real-scale millimetre patterns, **true-shape nesting** on sheets and bars, **SVG / DXF export**
+and **dimensioned client plans**.
+
+The precision target is **better than 0.1 mm**: coordinates are stored to 0.0001 mm, SVG keeps
+true Béziers (0.001 mm), areas / DXF / nesting flatten curves to ≤ 0.01 mm, and nesting spacing
+is a hard minimum. Caveats: the screen is not a measuring tool (print plans at 100 %), unit-less
+imported SVG is read at 96 dpi, DXF carries polylines, saw kerf is not auto-compensated, and
+nesting is a fast deterministic heuristic.
+
+Quick start: `cp .env.example .env`, fill in the secrets (double every `$` of the bcrypt hash),
+then `docker compose up -d --build` and open http://localhost:8080. Design rationale lives in
+[`HANDOVER.md`](HANDOVER.md).
+
+## 📄 Licence
+
+Logiciel **commercial**, non open source. Voir [`LICENSE`](LICENSE).
+Commercial software, not open source. See [`LICENSE`](LICENSE).
+
+<div align="center">
+<sub>Fait pour l'atelier, avec un pied à coulisse à portée de main. 🔪</sub>
+</div>

@@ -274,3 +274,56 @@ def clear_mock_data(db: Session) -> int:
         db.flush()
     db.commit()
     return removed
+
+
+def seed_mock_designs(db: Session) -> int:
+    """Demo vector patterns for the mock knife models. Separate from
+    seed_mock_data so existing demo databases pick the designs up too."""
+    from app.models.design import Design, DesignKind
+    from app.schemas.design import DesignDocument
+    from app.services import design_templates as tpl
+    from app.services.geometry_service import compute_metrics
+
+    if db.query(Design).filter(Design.is_mock.is_(True)).first() is not None:
+        return 0
+
+    def material(prefix: str):
+        return db.query(Material).filter(Material.is_mock.is_(True), Material.name.like(f"{prefix}%")).first()
+
+    def model(prefix: str):
+        return db.query(KnifeModel).filter(KnifeModel.is_mock.is_(True), KnifeModel.name.like(f"{prefix}%")).first()
+
+    steel, damascus, g10 = material("1095"), material("Damascus"), material("G10")
+    bushcraft, folder = model("Bushcraft"), model("Damascus")
+    if steel is None or bushcraft is None:
+        return 0
+
+    specs = [
+        ("Bushcraft — profil de lame", DesignKind.BLADE, bushcraft, steel, tpl.drop_point_blade()),
+        ("Pliant — lame damas", DesignKind.BLADE, folder, damascus, tpl.drop_point_blade(75, 35, 26, 12)),
+        ("Pliant — plaquettes G10", DesignKind.HANDLE_SCALE, folder, g10, tpl.handle_scale(110, 25)),
+    ]
+    created = 0
+    for name, kind, knife_model, mat, doc in specs:
+        if knife_model is None or mat is None:
+            continue
+        document = DesignDocument.model_validate(doc)
+        metrics = compute_metrics(document)
+        db.add(
+            Design(
+                name=name,
+                kind=kind,
+                knife_model_id=knife_model.id,
+                material_id=mat.id,
+                document=document.model_dump(mode="json"),
+                width_mm=metrics.width_mm,
+                height_mm=metrics.height_mm,
+                area_mm2=metrics.area_mm2,
+                perimeter_mm=metrics.perimeter_mm,
+                part_count=metrics.part_count,
+                is_mock=True,
+            )
+        )
+        created += 1
+    db.commit()
+    return created

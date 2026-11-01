@@ -6,8 +6,19 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import SessionLocal
-from app.routers import auth, knife_models, materials, orders, production, saw_blades, settings, treatments
-from app.services.seed_service import seed_mock_data
+from app.routers import (
+    auth,
+    designs,
+    knife_models,
+    materials,
+    nesting,
+    orders,
+    production,
+    saw_blades,
+    settings,
+    treatments,
+)
+from app.services.seed_service import seed_mock_data, seed_mock_designs
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("knifeforge")
@@ -22,6 +33,9 @@ async def lifespan(app: FastAPI):
             created = seed_mock_data(db)
             if created:
                 logger.info("Seeded %s mock material(s)", created)
+            designs_created = seed_mock_designs(db)
+            if designs_created:
+                logger.info("Seeded %s mock design(s)", designs_created)
         finally:
             db.close()
     yield
@@ -44,6 +58,8 @@ app.include_router(treatments.router)
 app.include_router(knife_models.router)
 app.include_router(orders.router)
 app.include_router(production.router)
+app.include_router(designs.router)
+app.include_router(nesting.router)
 app.include_router(settings.router)
 
 

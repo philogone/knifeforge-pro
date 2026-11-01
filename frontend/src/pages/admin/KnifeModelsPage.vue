@@ -86,7 +86,7 @@ async function submit() {
       Object.assign(form, emptyForm());
     }
   } catch (err) {
-    formError.value = err instanceof ApiError ? String(err.detail) : "Failed";
+    formError.value = err instanceof ApiError ? err.message : "Failed";
   }
 }
 
@@ -94,7 +94,7 @@ async function remove(id: number) {
   try {
     await store.deleteKnifeModel(id);
   } catch (err) {
-    alert(err instanceof ApiError ? String(err.detail) : "Failed to delete knife model");
+    alert(err instanceof ApiError ? err.message : "Failed to delete knife model");
   }
 }
 </script>

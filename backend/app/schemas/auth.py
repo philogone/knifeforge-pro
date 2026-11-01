@@ -1,8 +1,10 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    # Plain string, not EmailStr: the address is only compared to ADMIN_EMAIL, and EmailStr rejects
+    # reserved domains (admin@shop.local, admin@test.local) that are legitimate for a self-hosted admin.
+    email: str
     password: str
 
 

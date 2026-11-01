@@ -57,7 +57,7 @@ onMounted(async () => {
     templates.value = tpls;
     await load();
   } catch (err) {
-    error.value = err instanceof ApiError ? String(err.detail) : "Failed";
+    error.value = err instanceof ApiError ? err.message : "Failed";
   } finally {
     loading.value = false;
   }
@@ -89,7 +89,7 @@ async function create() {
     });
     router.push(`/designs/${created.id}`);
   } catch (err) {
-    error.value = err instanceof ApiError ? String(err.detail) : "Failed";
+    error.value = err instanceof ApiError ? err.message : "Failed";
   }
 }
 
@@ -109,7 +109,7 @@ async function download(d: DesignSummary, kind: "export.svg" | "export.dxf") {
     const blob = await store.downloadDesignFile(d.id, kind);
     saveBlob(blob, `${d.name.replace(/[^\w.-]+/g, "_")}.${kind.split(".")[1]}`);
   } catch (err) {
-    alert(t("designs.exportFailed", { error: err instanceof ApiError ? String(err.detail) : "?" }));
+    alert(t("designs.exportFailed", { error: err instanceof ApiError ? err.message : "?" }));
   }
 }
 

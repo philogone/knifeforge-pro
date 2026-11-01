@@ -37,7 +37,7 @@ async function submit() {
     form.notes = "";
     form.lines = [];
   } catch (err) {
-    formError.value = err instanceof ApiError ? String(err.detail) : "Failed to create order";
+    formError.value = err instanceof ApiError ? err.message : "Failed to create order";
   }
 }
 

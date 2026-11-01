@@ -12,11 +12,29 @@ export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+/** Human-readable text for a FastAPI error `detail` (string, 422 validation list, or object). */
+export function formatApiDetail(detail: unknown): string {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (item && typeof item === "object" && "msg" in item) {
+          const loc = Array.isArray(item.loc) ? item.loc.filter((part: unknown) => part !== "body").join(".") : "";
+          return loc ? `${loc}: ${item.msg}` : String(item.msg);
+        }
+        return formatApiDetail(item);
+      })
+      .join("; ");
+  }
+  if (detail && typeof detail === "object" && "message" in detail && typeof detail.message === "string") return detail.message;
+  return JSON.stringify(detail);
+}
+
 export class ApiError extends Error {
   status: number;
   detail: unknown;
   constructor(status: number, detail: unknown) {
-    super(typeof detail === "string" ? detail : JSON.stringify(detail));
+    super(formatApiDetail(detail));
     this.status = status;
     this.detail = detail;
   }
@@ -29,7 +47,8 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 
   const response = await fetch(`/api${path}`, { ...options, headers });
 
-  if (response.status === 401) {
+  // A 401 on the login call itself means bad credentials: let the login form show it.
+  if (response.status === 401 && path !== "/auth/login") {
     clearToken();
     window.location.href = "/login";
     throw new ApiError(401, "Not authenticated");

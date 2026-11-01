@@ -22,7 +22,7 @@ async function submit() {
     await store.login(email.value, password.value);
     router.push("/");
   } catch (err) {
-    error.value = err instanceof ApiError ? String(err.detail) : t("login.failed");
+    error.value = err instanceof ApiError ? err.message : t("login.failed");
   } finally {
     loading.value = false;
   }

@@ -89,7 +89,7 @@ async function submit() {
       Object.assign(form, emptyForm());
     }
   } catch (err) {
-    formError.value = err instanceof ApiError ? String(err.detail) : "Failed";
+    formError.value = err instanceof ApiError ? err.message : "Failed";
   }
 }
 
@@ -97,7 +97,7 @@ async function removeMaterial(id: number) {
   try {
     await store.deleteMaterial(id);
   } catch (err) {
-    alert(err instanceof ApiError ? String(err.detail) : "Failed to delete material");
+    alert(err instanceof ApiError ? err.message : "Failed to delete material");
   }
 }
 
@@ -117,7 +117,7 @@ async function submitRestock(id: number) {
     await store.restockMaterial(id, restockForm.quantity_delta, restockForm.purchase_price, restockForm.shipping_cost);
     restockOpenFor.value = null;
   } catch (err) {
-    restockError.value = err instanceof ApiError ? String(err.detail) : "Failed";
+    restockError.value = err instanceof ApiError ? err.message : "Failed";
   }
 }
 
@@ -148,7 +148,7 @@ async function runYieldCalc() {
   try {
     yieldResult.value = await store.yieldCalc(yieldForm.materialId, yieldForm.blank_length_mm, yieldForm.blank_width_mm, yieldForm.quantity_needed);
   } catch (err) {
-    yieldError.value = err instanceof ApiError ? String(err.detail) : "Calculation failed";
+    yieldError.value = err instanceof ApiError ? err.message : "Calculation failed";
   }
 }
 
@@ -200,7 +200,7 @@ async function runOptimizer(materialId: number) {
   try {
     cutPlan.value = await store.cuttingOptimizer(materialId, Array.from(selectedOrderIds.value));
   } catch (err) {
-    cutError.value = err instanceof ApiError ? String(err.detail) : "Optimization failed";
+    cutError.value = err instanceof ApiError ? err.message : "Optimization failed";
   }
 }
 const cutBarsForVisual = computed(() => {

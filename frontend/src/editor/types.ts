@@ -10,7 +10,7 @@ export interface DocNode {
   oy: number;
 }
 
-export type LayerRole = "cut" | "hole" | "engrave" | "construction" | "dimension";
+export type LayerRole = "cut" | "hole" | "engrave" | "grind" | "construction" | "dimension";
 
 export interface DocLayer {
   id: string;
@@ -56,7 +56,7 @@ export interface DesignDocument {
   guides?: Guide[];
 }
 
-export type ToolName = "select" | "node" | "pen" | "rect" | "ellipse" | "line" | "polygon" | "arc" | "dimension" | "measure" | "calibrate" | "pan";
+export type ToolName = "select" | "node" | "pen" | "rect" | "ellipse" | "line" | "polygon" | "arc" | "dimension" | "measure" | "calibrate" | "perspective" | "pan";
 
 export interface Bounds {
   x: number;

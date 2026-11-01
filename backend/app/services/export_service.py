@@ -25,6 +25,7 @@ from app.services.nesting_service import NestingResult
 CUT_COLOR = "#e11d48"
 ENGRAVE_COLOR = "#2563eb"
 INK = "#0f172a"
+GRIND_DASH = "4 1 0.8 1"  # dash-dot, sheet mm
 
 
 def _num(value: float) -> str:
@@ -312,6 +313,20 @@ def plan_svg(
             f'<path d="{_object_d(obj, -minx, -miny, s)}" transform="translate({_num(ox)} {_num(oy)})" '
             f'fill="none" stroke="{color}" stroke-width="{width}"{fill}/>'
         )
+    # Grind lines: drawn over the part, dash-dot (the drawing convention), never part of its size.
+    # The dash pattern is in sheet mm so it reads the same at any scale.
+    grind_lines = 0
+    for obj in doc.objects:
+        if not isinstance(obj, PathObject):
+            continue
+        role, visible = roles[obj.layer]
+        if not visible or role != "grind":
+            continue
+        grind_lines += 1
+        shapes.append(
+            f'<path d="{_object_d(obj, -minx, -miny, s)}" transform="translate({_num(ox)} {_num(oy)})" '
+            f'fill="none" stroke="{INK}" stroke-width="0.3" stroke-dasharray="{GRIND_DASH}" data-layer="grind"/>'
+        )
 
     dims: list[str] = []
     # User-placed dimensions on dimension layers. Track how far their lines reach below / right of
@@ -356,9 +371,17 @@ def plan_svg(
         f'<rect x="{_num(tb_x)}" y="{_num(tb_y)}" width="{_num(tb_w)}" height="{_num(TITLE_BLOCK_H)}" fill="none" stroke="{INK}" stroke-width="0.5"/>',
         f'<text x="{_num(tb_x + 3)}" y="{_num(tb_y + 7)}" font-size="6" font-weight="bold" fill="{INK}" font-family="sans-serif">{escape(title)}</text>',
     ]
-    if notes:
+    if grind_lines:
+        # legend: a short dash-dot sample, then its meaning, top right of the title block
+        lx = tb_x + tb_w - 3
         tb.append(
-            f'<text x="{_num(tb_x + tb_w - 3)}" y="{_num(tb_y + 7)}" font-size="3.2" text-anchor="end" fill="{INK}" font-family="sans-serif">{escape(notes[:120])}</text>'
+            f'<text x="{_num(lx)}" y="{_num(tb_y + 4.2)}" font-size="2.6" text-anchor="end" fill="{INK}" font-family="sans-serif">Ligne d’émouture</text>'
+            f'<line x1="{_num(lx - 44)}" y1="{_num(tb_y + 3.3)}" x2="{_num(lx - 32)}" y2="{_num(tb_y + 3.3)}" stroke="{INK}" stroke-width="0.3" stroke-dasharray="{GRIND_DASH}"/>'
+        )
+    if notes:
+        notes_y = tb_y + 8.6 if grind_lines else tb_y + 7
+        tb.append(
+            f'<text x="{_num(tb_x + tb_w - 3)}" y="{_num(notes_y)}" font-size="3.2" text-anchor="end" fill="{INK}" font-family="sans-serif">{escape(notes[:120])}</text>'
         )
     row_h = (TITLE_BLOCK_H - 11) / 2
     for i, (label, value) in enumerate(fields):

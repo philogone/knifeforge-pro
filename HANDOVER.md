@@ -313,6 +313,22 @@ confirmation. Order selection convention: `order_ids = null` → all draft/confi
   Outline fonts suit laser engraving; for a cutter, a single-stroke font is better.
 - Open paths are no longer filled on screen: they are lines, and are never cut or nested.
 
+**Photo, library and grind lines (editor lot 3).**
+- Perspective correction (`editor/perspective.ts`): the four clicked corners of a known rectangle
+  give the homography (Hartley-normalised 8×8 solve); the photo is resampled (bilinear) so the
+  rectangle is exactly W × H mm, then stored as WebP (transparent surround; JPEG on white if no
+  WebP encoder or > 11.5 MB) and marked calibrated. Output resolution = the sharpest side of the
+  rectangle on the photo, capped at 4000 px; the area is the photo clipped to 1.5 × the
+  rectangle's longest side (≥ 100 mm) around it. Corner order may go either way round: the
+  result is never mirrored, and side 1→2 keeps its direction rounded to a quarter turn. Only the
+  rectangle's plane is corrected (parts must lie flat in it; thickness causes parallax) and lens
+  distortion is not. The pre-correction photo can be restored until the page is left.
+- Shape library (`editor/shapes.ts`): parametric parts on exact Bézier nodes (corners and holes
+  use the ≤ 0.027 % arc), inserted on the layer of each part's role in one undo step; "my
+  templates" inserts the cut / hole / engrave / grind paths of another design.
+- Layer role `grind`: dash-dot on screen and on the client plan (with a legend in the title
+  block), never cut, exported (SVG / DXF), nested, nor counted in a part's size.
+
 **Known limits / next steps.** No per-object fill/stroke styling, no groups, no text objects,
 DXF arcs are not preserved (polylines only), COUNT materials are not nestable, nesting does not
 use leftover offcuts, and the dimension tool places aligned dimensions only.

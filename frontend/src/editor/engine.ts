@@ -1,6 +1,8 @@
 import paper from "paper";
 
-import { calibrate, type BackgroundState, type Straighten } from "./background";
+import { calibrate, MAX_IMAGE_PX, type BackgroundState, type Straighten } from "./background";
+import type { ShapePart } from "./shapes";
+import { docToPixel, planRectify, rectangleTargets, rectifiedPlacement, rectifyImage, type RectifyPlan } from "./perspective";
 import { chamferCorner, circleNodes, filletCorner, holeCentres, type Axis, type CornerError, type HolePattern } from "./drafting";
 import { MAX_GRID_MM, MAX_ZOOM, MIN_GRID_MM, MIN_ZOOM, PX_PER_MM_CSS, ROLE_STYLE, UI_COLOR, defaultLayers } from "./constants";
 import { History } from "./history";
@@ -39,6 +41,8 @@ export interface EngineEvents {
   background: [];
   /** the calibration tool picked two points on the reference image */
   calibrate: [[number, number], [number, number]];
+  /** the perspective tool picked the four corners of a rectangle on the reference image */
+  perspective: [[number, number][]];
   /** the measure tool's current reading (null when cleared) */
   measure: [Measurement | null];
   /** guides changed (added, moved, removed, or restored by undo) */
@@ -651,13 +655,20 @@ export class EditorEngine {
   }
 
   addLayer(name: string, role: LayerRole): DocLayer {
+    const meta = this.createLayer(name, role);
+    this.activeLayerId = meta.id;
+    this.emit("layers");
+    this.commit();
+    return meta;
+  }
+
+  /** New layer, without making it active nor committing (the caller does). */
+  private createLayer(name: string, role: LayerRole): DocLayer {
     const meta: DocLayer = { id: newId("l"), name: name.slice(0, 100) || "Layer", role, visible: true, locked: false };
     this.layers.push(meta);
     this.ensurePaperLayer(meta);
     this.syncLayerOrder();
-    this.activeLayerId = meta.id;
     this.emit("layers");
-    this.commit();
     return meta;
   }
 
@@ -1459,6 +1470,27 @@ export class EditorEngine {
     return added;
   }
 
+  /**
+   * Insert library parts (already placed, in mm), each on the first layer with its role. A missing
+   * grind layer is created ("Émouture"); other roles fall back to the active layer. One undo step.
+   */
+  insertParts(parts: ShapePart[]): number {
+    const added: paper.Item[] = [];
+    for (const part of parts) {
+      const contours = part.contours.filter((c) => c.length >= 2);
+      if (!contours.length) continue;
+      let layerId = this.layerWithRole(part.role);
+      if (!layerId && part.role === "grind") layerId = this.createLayer("Émouture", "grind").id;
+      const paths = contours.map((c) => this.contourToPath(c, part.closed));
+      const item: paper.Item = paths.length === 1 ? paths[0] : new paper.CompoundPath({ children: paths, fillRule: "evenodd", insert: false });
+      added.push(this.addItem(item, { layerId: layerId ?? this.activeLayerId, name: part.name || null }));
+    }
+    if (!added.length) return 0;
+    this.selectItems(added);
+    this.commit();
+    return added.length;
+  }
+
   /** First layer with this role, if any. */
   layerWithRole(role: LayerRole): string | undefined {
     return this.layers.find((l) => l.role === role)?.id;
@@ -1625,6 +1657,25 @@ export class EditorEngine {
   calibrateBackground(a: [number, number], b: [number, number], realMm: number, straighten: Straighten, moveAToOrigin: boolean): void {
     if (!this.bg) return;
     this.updateBackground({ ...calibrate(this.bg, a, b, realMm, straighten, moveAToOrigin), calibrated: true });
+  }
+
+  /**
+   * Correct the photo's perspective: the four picked corners (document mm, click order) are those
+   * of a `width` × `height` mm rectangle lying in the photo's plane. The photo is resampled and
+   * replaced, calibrated, corner 1 staying where it was (or moved to 0;0). Null when the four
+   * points cannot be the corners of a rectangle (crossed or aligned) or the image is not loaded.
+   */
+  async rectifyBackground(corners: [number, number][], width: number, height: number, moveToOrigin: boolean): Promise<RectifyPlan | null> {
+    const bg = this.bg;
+    if (!bg?.pixelWidth || !bg.pixelHeight || !(width > 0) || !(height > 0)) return null;
+    const pixels = corners.map((c) => docToPixel(bg, bg.pixelWidth!, bg.pixelHeight!, c));
+    const plan = planRectify(pixels, rectangleTargets(corners, width, height), bg.pixelWidth, bg.pixelHeight, { maxPx: MAX_IMAGE_PX });
+    if (!plan) return null;
+    const image = await rectifyImage(bg.image, plan);
+    if (this.bg !== bg) return null; // replaced meanwhile
+    const placement = rectifiedPlacement(plan, moveToOrigin ? [0, 0] : corners[0]);
+    this.setBackground({ ...bg, image, ...placement, calibrated: true, pixelWidth: undefined, pixelHeight: undefined });
+    return plan;
   }
 
   private applyBackground(): void {

@@ -17,8 +17,8 @@ et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à 
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 <br>
-![Tests backend](https://img.shields.io/badge/tests%20backend-84%20passing-brightgreen)
-![Tests frontend](https://img.shields.io/badge/tests%20frontend-97%20passing-brightgreen)
+![Tests backend](https://img.shields.io/badge/tests%20backend-86%20passing-brightgreen)
+![Tests frontend](https://img.shields.io/badge/tests%20frontend-118%20passing-brightgreen)
 ![Précision](https://img.shields.io/badge/courbes-%E2%89%A4%200%2C01%20mm-6366f1)
 ![Licence](https://img.shields.io/badge/licence-commerciale-lightgrey)
 
@@ -51,8 +51,9 @@ Un mini-Inkscape dans le navigateur, **à l'échelle 1:1 en millimètres**.
 - Booléens (union, différence, intersection, exclusion), combiner / séparer
 - Décalage (agrandir / réduire), alignement, miroir, rotation
 - **Saisie numérique exacte** : tapez 123,4 × 17,6, vous obtenez 123,4 × 17,6
-- Calques typés : *découpe*, *perçage*, *gravure*, *construction*, *cotation*
-- **Décalque d'une photo** : image de fond JPEG / PNG / WebP calibrée en deux clics sur une distance connue, redressée, jamais exportée
+- **Bibliothèque de formes** paramétriques (plaquette, gardes, rondelle, fente de soie, lames drop-point et wharncliffe) et réutilisation de vos propres gabarits
+- Calques typés : *découpe*, *perçage*, *gravure*, *émouture* (trait mixte sur le plan client, jamais découpée), *construction*, *cotation*
+- **Décalque d'une photo** : image de fond JPEG / PNG / WebP calibrée en deux clics sur une distance connue, ou **redressée en perspective** sur les 4 coins d'une feuille A4 (ou de tout rectangle connu), jamais exportée
 - **Outil mesure** (distance, ΔX, ΔY, angle), transformable en cote
 - **Magnétisme complet** : nœuds, intersections, milieux, centres de perçages, contours, guides, grille ; angle bloqué par pas de 15° (Maj)
 - Grille au pas libre (0,01 à 1000 mm), guides tirés depuis les règles, import SVG, annuler / rétablir
@@ -304,8 +305,8 @@ knifeforge-pro/
 ## 🧪 Tests
 
 ```bash
-cd backend && pytest              # 84 tests : géométrie, nesting, exports, API, métrologie
-cd frontend && npm test           # 97 tests : moteur d'édition, calibration, magnétisme, congés, texte, client API
+cd backend && pytest              # 86 tests : géométrie, nesting, exports, API, métrologie
+cd frontend && npm test           # 118 tests : moteur d'édition, calibration, perspective, magnétisme, congés, texte, formes, client API
 cd frontend && npx vue-tsc --noEmit && npm run build
 ```
 

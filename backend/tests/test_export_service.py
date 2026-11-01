@@ -99,3 +99,23 @@ def test_plan_overall_dimensions_do_not_overlap_user_dimensions():
     for group in (horizontal, vertical):
         for a, b in zip(group, group[1:]):
             assert b - a >= 5.0  # room for the 3.5 mm label between parallel dimension lines
+
+
+def test_plan_draws_grind_lines_dash_dot_with_a_legend_but_never_cuts_them():
+    blade = blade_doc()
+    assert any(o.layer == "grind" for o in blade.objects)
+    root = ET.fromstring(plan_svg(blade, title="x"))
+    grind = [p for p in root.iter("{http://www.w3.org/2000/svg}path") if p.attrib.get("data-layer") == "grind"]
+    assert len(grind) == 1 and grind[0].attrib["stroke-dasharray"] and grind[0].attrib["fill"] == "none"
+    assert "émouture" in ET.tostring(root, encoding="unicode")
+    # cut exports and the part itself ignore it
+    assert "grind" not in design_to_svg(blade)
+    dxf = ezdxf.read(io.StringIO(design_to_dxf(blade).decode("utf-8")))
+    assert {e.dxf.layer for e in dxf.modelspace()} <= {"CUT", "ENGRAVE"}
+    without = blade.model_copy(update={"objects": [o for o in blade.objects if o.layer != "grind"]})
+    assert [p.area for p in extract_parts(blade)] == [p.area for p in extract_parts(without)]
+
+
+def test_plan_has_no_grind_legend_without_grind_lines():
+    svg = plan_svg(doc([]).model_copy(update={"objects": blade_doc().objects[:1]}), title="x")
+    assert "émouture" not in svg and 'data-layer="grind"' not in svg

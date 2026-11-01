@@ -1159,6 +1159,80 @@ class CalibrateTool extends BaseTool {
 
 
 // ---------------------------------------------------------------------------
+// Perspective: the four corners of a known rectangle on the reference photo
+// ---------------------------------------------------------------------------
+
+class PerspectiveTool extends BaseTool {
+  cursor = "crosshair";
+  hint = "hint.perspective";
+  private points: paper.Point[] = [];
+
+  // raw points, like the calibration tool: snapping would move the click off the photo's corner
+  down(p: paper.Point): void {
+    if (!this.e.background) {
+      this.e.hint("hint.noBackground");
+      return;
+    }
+    if (this.points.some((q) => q.getDistance(p) < this.e.px(4))) return;
+    this.points.push(p.clone());
+    this.draw();
+    if (this.points.length === 4) {
+      const pts = this.points.map((q) => [q.x, q.y] as [number, number]);
+      this.points = [];
+      this.e.hintValue("");
+      this.e.emit("perspective", pts);
+    }
+  }
+
+  move(p: paper.Point): void {
+    if (this.points.length) this.draw(p);
+  }
+
+  key(key: string): boolean {
+    if (key === "Escape" && this.points.length) {
+      this.cancel();
+      return true;
+    }
+    if (key === "Backspace" && this.points.length) {
+      this.points.pop();
+      this.draw();
+      return true;
+    }
+    return false;
+  }
+
+  cancel(): void {
+    this.points = [];
+    this.e.clearUi("persp");
+    this.e.hintValue("");
+  }
+
+  private draw(hover?: paper.Point): void {
+    const e = this.e;
+    e.clearUi("persp");
+    const pts = hover && this.points.length < 4 ? [...this.points, hover] : this.points;
+    if (pts.length > 1) {
+      const outline = new paper.Path({ segments: pts, closed: pts.length === 4, insert: false });
+      outline.strokeColor = new paper.Color("#e11d48");
+      outline.strokeWidth = 1;
+      outline.strokeScaling = false;
+      outline.dashArray = [5, 3];
+      e.addUi(outline, "persp");
+    }
+    this.points.forEach((pt, i) => {
+      const dot = new paper.Path.Circle({ center: pt, radius: e.px(4), insert: false });
+      dot.strokeColor = new paper.Color("#e11d48");
+      dot.strokeWidth = 1.5;
+      dot.strokeScaling = false;
+      e.addUi(dot, "persp");
+      e.addUi(e.screenText(pt.add([e.px(7), -e.px(7)]), String(i + 1), 12, "#e11d48"), "persp");
+    });
+    e.hintValue(`${this.points.length} / 4`);
+  }
+}
+
+
+// ---------------------------------------------------------------------------
 // Arc through 3 points: start, end, then a point on the arc
 // ---------------------------------------------------------------------------
 
@@ -1251,6 +1325,8 @@ export function createTool(name: ToolName, engine: EditorEngine): ToolHandler {
       return new ArcTool(engine);
     case "calibrate":
       return new CalibrateTool(engine);
+    case "perspective":
+      return new PerspectiveTool(engine);
     case "pan":
       return new PanTool(engine);
   }

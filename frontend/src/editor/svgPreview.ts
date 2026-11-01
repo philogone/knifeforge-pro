@@ -16,15 +16,21 @@ export function contourPath(nodes: DocNode[], closed: boolean): string {
   return d;
 }
 
-/** Small SVG thumbnail of a design (cut / hole / engrave layers only). */
+/** Small SVG thumbnail of a design (cut / hole / engrave layers, plus grind lines over them). */
 export function documentToSvg(doc: DesignDocument, size = 160): string {
   const layers = new Map(doc.layers.map((l) => [l.id, l]));
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   const parts: string[] = [];
+  const grind: string[] = [];
   for (const obj of doc.objects) {
     if (obj.type !== "path") continue;
     const layer = layers.get(obj.layer);
     if (!layer || !layer.visible) continue;
+    if (layer.role === "grind") {
+      // drawn on the part, never part of its size
+      grind.push(`<path d="${obj.contours.map((c) => contourPath(c, obj.closed)).join("")}" fill="none" stroke="#0f766e" stroke-dasharray="6 2 1 2" vector-effect="non-scaling-stroke" stroke-width="1"/>`);
+      continue;
+    }
     if (layer.role !== "cut" && layer.role !== "hole" && layer.role !== "engrave") continue;
     for (const c of obj.contours) {
       for (const n of c) {
@@ -46,5 +52,5 @@ export function documentToSvg(doc: DesignDocument, size = 160): string {
   if (!parts.length || !isFinite(minX)) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}"></svg>`;
   const pad = Math.max(maxX - minX, maxY - minY) * 0.06 + 1;
   const vb = `${fmt(minX - pad)} ${fmt(minY - pad)} ${fmt(maxX - minX + 2 * pad)} ${fmt(maxY - minY + 2 * pad)}`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" preserveAspectRatio="xMidYMid meet">${parts.join("")}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" preserveAspectRatio="xMidYMid meet">${parts.join("")}${grind.join("")}</svg>`;
 }

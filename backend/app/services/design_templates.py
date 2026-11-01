@@ -12,6 +12,7 @@ LAYERS: list[dict[str, Any]] = [
     {"id": "cut", "name": "Découpe", "role": "cut", "visible": True, "locked": False},
     {"id": "holes", "name": "Perçages", "role": "hole", "visible": True, "locked": False},
     {"id": "engrave", "name": "Gravure", "role": "engrave", "visible": True, "locked": False},
+    {"id": "grind", "name": "Émouture", "role": "grind", "visible": True, "locked": False},
     {"id": "construction", "name": "Construction", "role": "construction", "visible": True, "locked": False},
     {"id": "dimensions", "name": "Cotes", "role": "dimension", "visible": True, "locked": False},
 ]
@@ -86,6 +87,14 @@ def drop_point_blade(
         node(0, ty + tang_width),
     ]
     objects = [_path("blade", "cut", "Lame", [outline])]
+    # grind line: plunge curving up from the edge near the ricasso, then running out at the tip
+    grind = [
+        node(t + 3, h),
+        node(t + 10, h * 0.5, -3, h * 0.3, 0, 0),
+        node(t + l * 0.62, h * 0.5),
+        node(t + l, h * 0.55, -l * 0.15, -h * 0.02, 0, 0),
+    ]
+    objects.append(_path("grind", "grind", "Émouture", [grind], closed=False))
     for i in range(pin_holes):
         cx = t * (0.22 + 0.4 * i / max(1, pin_holes - 1)) if pin_holes > 1 else t * 0.4
         objects.append(_path(f"pin{i + 1}", "holes", f"Perçage {i + 1}", [circle_nodes(cx, ty + tang_width / 2, 2.5)]))

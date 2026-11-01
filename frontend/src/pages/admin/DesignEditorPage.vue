@@ -7,6 +7,8 @@ import { useSnapshotDirty } from "@/composables/useSnapshotDirty";
 import { initialPlacement, loadImageFile, mmPerPixel, type BackgroundState, type Straighten } from "@/editor/background";
 import { ROLE_STYLE } from "@/editor/constants";
 import { STANDARD_HOLES_MM, type Axis } from "@/editor/drafting";
+import { SHAPES, documentParts, normalizeParams, partsBounds, placeParts, type ShapePart } from "@/editor/shapes";
+import { documentToSvg } from "@/editor/svgPreview";
 import { BUNDLED_FONTS, loadFont, missingGlyphs, textContours } from "@/editor/text";
 import { EditorEngine, formatMm } from "@/editor/engine";
 import type { AlignKind, BooleanOp, CornerReport, Measurement, SnapKind, SnapOptions } from "@/editor/engine";
@@ -14,14 +16,14 @@ import type { DocLayer, Guide, LayerRole, SelectionInfo, ToolName } from "@/edit
 import { RULER_SIZE, drawGrid, drawRulers, screenToWorld } from "@/editor/view";
 import { useI18n } from "@/i18n";
 import { useAppStore } from "@/stores/app.store";
-import type { Design, DesignKind } from "@/types";
+import type { Design, DesignKind, DesignSummary } from "@/types";
 
 const { t } = useI18n();
 const store = useAppStore();
 const route = useRoute();
 
 const kinds: DesignKind[] = ["blade", "handle_scale", "guard", "bolster", "sheath", "template", "other"];
-const roles: LayerRole[] = ["cut", "hole", "engrave", "construction", "dimension"];
+const roles: LayerRole[] = ["cut", "hole", "engrave", "grind", "construction", "dimension"];
 const tools: { name: ToolName; icon: string }[] = [
   { name: "select", icon: "↖" },
   { name: "node", icon: "◇" },
@@ -97,6 +99,29 @@ const holes = reactive({ open: false, diameter: 4.76, x: 0, y: 0, count: 2, pitc
 const textForm = reactive({ open: false, busy: false, text: "", capHeight: 5, letterSpacing: 0, x: 0, y: 0, weight: "regular" as "regular" | "bold" | "custom", customName: "", error: "" });
 let customFont: ArrayBuffer | null = null;
 const calib = reactive({ open: false, a: [0, 0] as [number, number], b: [0, 0] as [number, number], real: "" as number | "", straighten: "horizontal" as Straighten, origin: false });
+// ---- lot 3: perspective correction
+const PERSPECTIVE_PRESETS: { key: string; w: number; h: number }[] = [
+  { key: "a4", w: 297, h: 210 },
+  { key: "a3", w: 420, h: 297 },
+  { key: "letter", w: 279.4, h: 215.9 },
+  { key: "card", w: 85.6, h: 53.98 },
+];
+const persp = reactive({ open: false, busy: false, corners: [] as [number, number][], preset: "", width: "" as number | "", height: "" as number | "", origin: false, error: "" });
+/** the photo as it was before the last perspective correction, to undo it (not saved) */
+const bgBeforeRectify = shallowRef<BackgroundState | null>(null);
+// ---- lot 3: shape library
+const library = reactive({
+  open: false,
+  source: "shapes" as "shapes" | "designs",
+  shape: SHAPES[0].key,
+  params: {} as Record<string, Record<string, number | "">>,
+  designId: 0,
+  designs: [] as DesignSummary[],
+  loading: false,
+  x: 0 as number | "",
+  y: 0 as number | "",
+});
+const designParts = shallowRef<Map<number, ShapePart[]>>(new Map());
 const lockRatio = ref(true);
 const rotateBy = ref(0);
 const offsetForm = reactive({ distance: 1, join: "round" as "round" | "mitre" | "bevel", keep: false });
@@ -231,6 +256,12 @@ function attachEngine(doc: Design) {
       // uncalibrated image as calibrated
       calib.real = "";
       calib.open = true;
+    }),
+    e.on("perspective", (corners) => {
+      persp.corners = corners;
+      persp.error = "";
+      if (persp.preset) setPerspectivePreset(persp.preset); // the sides may have been clicked the other way round
+      persp.open = true;
     }),
     e.on("layers", refreshState),
     e.on("hint", (key) => {
@@ -397,6 +428,7 @@ async function onBackgroundFile(ev: Event) {
     // a first guess: 60 % of the visible width, centred in the view; calibration fixes the scale
     const placement = initialPlacement(img.width, img.height, [v.centerX, v.centerY], (v.width / v.zoom) * 0.6);
     e.setBackground({ image: img.dataUrl, ...placement, opacity: 0.5, visible: true, locked: true, calibrated: false });
+    bgBeforeRectify.value = null;
     tab.value = "background";
     e.setTool("calibrate");
     setStatus(t("bg.imported"));
@@ -408,7 +440,8 @@ async function onBackgroundFile(ev: Event) {
 function removeBackground() {
   if (!window.confirm(t("bg.removeConfirm"))) return;
   engine.value?.setBackground(null);
-  if (tool.value === "calibrate") engine.value?.setTool("select");
+  bgBeforeRectify.value = null;
+  if (tool.value === "calibrate" || tool.value === "perspective") engine.value?.setTool("select");
 }
 
 function setBgField(field: "cx" | "cy" | "width_mm" | "height_mm" | "rotation_deg", ev: Event) {
@@ -442,6 +475,55 @@ function applyCalibration() {
 function cancelCalibration() {
   calib.open = false;
   engine.value?.clearUi("calib");
+}
+
+function setPerspectivePreset(key: string) {
+  const preset = PERSPECTIVE_PRESETS.find((p) => p.key === key);
+  if (!preset) return;
+  // the longer side along the longer clicked side 1→2 / 2→3
+  const [a, b, c] = persp.corners;
+  const first = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const second = Math.hypot(c[0] - b[0], c[1] - b[1]);
+  [persp.width, persp.height] = first >= second ? [preset.w, preset.h] : [preset.h, preset.w];
+}
+
+async function applyPerspective() {
+  const e = engine.value;
+  const w = Number(persp.width);
+  const h = Number(persp.height);
+  const before = e?.background;
+  if (!e || !before || !(w > 0) || !(h > 0) || persp.busy) return;
+  persp.busy = true;
+  persp.error = "";
+  try {
+    const plan = await e.rectifyBackground(persp.corners, w, h, persp.origin);
+    if (!plan) {
+      persp.error = t("persp.invalid");
+      return;
+    }
+    bgBeforeRectify.value = before;
+    persp.open = false;
+    e.clearUi("persp");
+    e.setTool("select");
+    e.zoomToFit();
+    setStatus(t("persp.done", { w: formatMm(w), h: formatMm(h), mm: formatMm(plan.sourceMmPerPx) }));
+  } catch (err) {
+    persp.error = t(err instanceof Error && err.message === "tooLarge" ? "persp.tooLarge" : "bg.loadFailed");
+  } finally {
+    persp.busy = false;
+  }
+}
+
+function cancelPerspective() {
+  persp.open = false;
+  engine.value?.clearUi("persp");
+}
+
+function undoPerspective() {
+  const e = engine.value;
+  if (!e || !bgBeforeRectify.value) return;
+  e.setBackground(bgBeforeRectify.value);
+  bgBeforeRectify.value = null;
 }
 
 // ------------------------------------------------------------ drawing aids
@@ -508,6 +590,81 @@ function addHoles() {
   if (n) {
     holes.open = false;
     setStatus(t("holes.done", { n }));
+  }
+}
+
+// ------------------------------------------------------------ shape library
+const currentShape = computed(() => SHAPES.find((d) => d.key === library.shape) ?? SHAPES[0]);
+
+function shapeValues(key: string) {
+  const def = SHAPES.find((d) => d.key === key)!;
+  if (!library.params[key]) library.params[key] = Object.fromEntries(def.params.map((p) => [p.key, p.value]));
+  return library.params[key];
+}
+
+/** Parts of the current choice, drawn from (0, 0); empty while a design is loading. */
+const libraryParts = computed<ShapePart[]>(() => {
+  if (library.source === "shapes") return currentShape.value.build(normalizeParams(currentShape.value, shapeValues(library.shape)));
+  return designParts.value.get(library.designId) ?? [];
+});
+
+const librarySize = computed(() => {
+  const b = partsBounds(libraryParts.value);
+  return b ? { w: b.maxX - b.minX, h: b.maxY - b.minY } : null;
+});
+
+const libraryPreview = computed(() => {
+  const roles: LayerRole[] = ["cut", "hole", "engrave", "grind"];
+  const doc = {
+    version: 1 as const,
+    unit: "mm" as const,
+    layers: roles.map((role) => ({ id: role, name: role, role, visible: true, locked: false })),
+    objects: libraryParts.value.map((part, i) => ({ id: `p${i}`, type: "path" as const, layer: part.role, name: part.name, closed: part.closed, contours: part.contours })),
+  };
+  return documentToSvg(doc, 240);
+});
+
+/** Put the part's centre at the centre of the view (or of the selection); the fields show its top-left corner. */
+function centreLibraryPlacement() {
+  const size = librarySize.value;
+  const [cx, cy] = defaultPoint();
+  if (size) [library.x, library.y] = [Math.round((cx - size.w / 2) * 100) / 100, Math.round((cy - size.h / 2) * 100) / 100];
+}
+
+async function openLibrary() {
+  library.open = true;
+  centreLibraryPlacement();
+  if (!library.designs.length) {
+    try {
+      library.designs = (await store.fetchDesigns()).filter((d) => d.id !== designId.value);
+    } catch {
+      library.designs = [];
+    }
+  }
+}
+
+async function pickLibraryDesign(id: number) {
+  library.designId = id;
+  if (designParts.value.has(id)) return centreLibraryPlacement();
+  library.loading = true;
+  try {
+    const d = await store.fetchDesign(id);
+    designParts.value = new Map(designParts.value).set(id, documentParts(d.document));
+    centreLibraryPlacement();
+  } catch (err) {
+    setStatus(err instanceof ApiError ? err.message : String(err), true);
+  } finally {
+    library.loading = false;
+  }
+}
+
+function insertLibrary() {
+  const e = engine.value;
+  if (!e || !libraryParts.value.length) return;
+  const n = e.insertParts(placeParts(libraryParts.value, Number(library.x) || 0, Number(library.y) || 0));
+  if (n) {
+    library.open = false;
+    setStatus(t("library.done", { n }));
   }
 }
 
@@ -613,7 +770,7 @@ const TOOL_KEYS: Record<string, ToolName> = { v: "select", n: "node", p: "pen", 
 
 function onKeyDown(ev: KeyboardEvent) {
   const e = engine.value;
-  if (!e || isTyping(ev) || planOpen.value || calib.open || holes.open || textForm.open) return;
+  if (!e || isTyping(ev) || planOpen.value || calib.open || persp.open || holes.open || textForm.open || library.open) return;
   const mod = ev.ctrlKey || ev.metaKey;
   const key = ev.key.toLowerCase();
 
@@ -915,6 +1072,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
             {{ tl.icon }}
           </button>
           <div class="w-7 border-t border-slate-200 my-1"></div>
+          <button class="w-9 h-9 rounded-lg text-lg text-slate-600 hover:bg-slate-100" :title="t('library.title')" @click="openLibrary">❖</button>
           <button class="w-9 h-9 rounded-lg text-lg text-slate-600 hover:bg-slate-100" :title="t('holes.title')" @click="openHoles">⦾</button>
           <button class="w-9 h-9 rounded-lg text-lg font-serif text-slate-600 hover:bg-slate-100" :title="t('text.title')" @click="openText">T</button>
         </div>
@@ -1138,6 +1296,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                   </label>
                 </div>
                 <button class="w-full px-2 py-1.5 rounded-lg border border-rose-300 text-rose-700 bg-rose-50" @click="engine?.setTool('calibrate')">📐 {{ t("bg.calibrate") }}</button>
+                <button class="w-full px-2 py-1.5 rounded-lg border border-rose-300 text-rose-700 bg-white" :title="t('persp.help')" @click="engine?.setTool('perspective')">⬚ {{ t("bg.perspective") }}</button>
+                <button v-if="bgBeforeRectify" class="w-full px-2 py-1 rounded border border-slate-300 text-xs" @click="undoPerspective">↶ {{ t("persp.undo") }}</button>
                 <div class="rounded-lg p-2 text-xs space-y-1" :class="bg.calibrated ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'">
                   <p>{{ bg.calibrated ? `✓ ${t("bg.calibrated")}` : `⚠ ${t("bg.notCalibrated")}` }}</p>
                   <p v-if="bg.calibrated && bgResolution">{{ t("bg.resolution", { mm: formatMm(bgResolution) }) }}</p>
@@ -1235,6 +1395,50 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
       </div>
     </template>
 
+    <!-- shape library dialog -->
+    <div v-if="library.open" class="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center p-4" @click.self="library.open = false">
+      <form class="bg-white rounded-xl shadow-xl w-full max-w-2xl p-4 space-y-3 text-sm" @submit.prevent="insertLibrary">
+        <div class="flex items-center gap-3">
+          <h2 class="font-semibold text-slate-900 flex-1">{{ t("library.title") }}</h2>
+          <div class="flex rounded-lg border border-slate-300 overflow-hidden text-xs">
+            <button v-for="src in (['shapes', 'designs'] as const)" :key="src" type="button" class="px-2 py-1" :class="library.source === src ? 'bg-indigo-600 text-white' : 'text-slate-600'" @click="library.source = src; centreLibraryPlacement()">{{ t(`library.${src}`) }}</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-[11rem_1fr] gap-3">
+          <div class="space-y-1 max-h-80 overflow-y-auto">
+            <template v-if="library.source === 'shapes'">
+              <button v-for="d in SHAPES" :key="d.key" type="button" class="w-full text-left px-2 py-1 rounded" :class="library.shape === d.key ? 'bg-indigo-50 text-indigo-700 font-medium' : 'hover:bg-slate-50'" @click="library.shape = d.key; centreLibraryPlacement()">{{ t(d.label) }}</button>
+            </template>
+            <template v-else>
+              <p v-if="!library.designs.length" class="text-xs text-slate-400">{{ t("library.noDesigns") }}</p>
+              <button v-for="d in library.designs" :key="d.id" type="button" class="w-full text-left px-2 py-1 rounded" :class="library.designId === d.id ? 'bg-indigo-50 text-indigo-700 font-medium' : 'hover:bg-slate-50'" @click="pickLibraryDesign(d.id)">
+                {{ d.name }}<span class="block text-[11px] text-slate-400">{{ t(`designs.kind.${d.kind}`) }} · {{ formatMm(d.width_mm) }} × {{ formatMm(d.height_mm) }} mm</span>
+              </button>
+            </template>
+          </div>
+          <div class="space-y-2">
+            <div class="h-40 rounded-lg bg-slate-50 border border-slate-200 p-2 [&>svg]:w-full [&>svg]:h-full" v-html="libraryPreview"></div>
+            <p v-if="librarySize" class="text-xs text-slate-500">{{ t("library.size", { w: formatMm(librarySize.w), h: formatMm(librarySize.h) }) }}</p>
+            <p v-else-if="library.source === 'designs'" class="text-xs text-slate-400">{{ library.loading ? t("library.loading") : t("library.pick") }}</p>
+            <div v-if="library.source === 'shapes'" class="grid grid-cols-2 gap-2">
+              <label v-for="p in currentShape.params" :key="p.key" class="text-xs text-slate-500">{{ t(p.label) }}
+                <input v-model.number="shapeValues(currentShape.key)[p.key]" type="number" :min="p.min" :max="p.max" :step="p.integer ? 1 : 'any'" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
+              </label>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="text-xs text-slate-500">{{ t("library.x") }}<input v-model.number="library.x" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
+              <label class="text-xs text-slate-500">{{ t("library.y") }}<input v-model.number="library.y" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
+            </div>
+            <p class="text-[11px] text-slate-400">{{ t("library.help") }}</p>
+          </div>
+        </div>
+        <div class="flex gap-2 justify-end">
+          <button type="button" class="px-3 py-1.5 rounded border border-slate-300" @click="library.open = false">{{ t("common.cancel") }}</button>
+          <button type="submit" class="px-3 py-1.5 rounded bg-indigo-600 text-white disabled:opacity-50" :disabled="!libraryParts.length">{{ t("library.insert") }}</button>
+        </div>
+      </form>
+    </div>
+
     <!-- holes dialog -->
     <div v-if="holes.open" class="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center p-4" @click.self="holes.open = false">
       <form class="bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="addHoles">
@@ -1289,6 +1493,36 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         <div class="flex gap-2 justify-end">
           <button type="button" class="px-3 py-1.5 rounded border border-slate-300" @click="textForm.open = false">{{ t("common.cancel") }}</button>
           <button type="submit" class="px-3 py-1.5 rounded bg-indigo-600 text-white" :disabled="textForm.busy">{{ t("text.add") }}</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- perspective dialog -->
+    <div v-if="persp.open" class="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center p-4" @click.self="cancelPerspective">
+      <form class="bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="applyPerspective">
+        <h2 class="font-semibold text-slate-900">{{ t("persp.title") }}</h2>
+        <p class="text-xs text-slate-500">{{ t("persp.intro") }}</p>
+        <label class="block text-xs text-slate-500">{{ t("persp.preset") }}
+          <select v-model="persp.preset" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" @change="setPerspectivePreset(persp.preset)">
+            <option value="">{{ t("persp.preset.custom") }}</option>
+            <option v-for="p in PERSPECTIVE_PRESETS" :key="p.key" :value="p.key">{{ t(`persp.preset.${p.key}`) }}</option>
+          </select>
+        </label>
+        <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
+          <label class="text-xs text-slate-500">{{ t("persp.side12") }}
+            <input v-model.number="persp.width" type="number" min="0.01" step="any" required class="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
+          </label>
+          <button type="button" class="px-2 py-1 rounded border border-slate-300" :title="t('persp.swap')" @click="[persp.width, persp.height] = [persp.height, persp.width]">⇄</button>
+          <label class="text-xs text-slate-500">{{ t("persp.side23") }}
+            <input v-model.number="persp.height" type="number" min="0.01" step="any" required class="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
+          </label>
+        </div>
+        <label class="flex items-center gap-2 text-xs text-slate-600"><input v-model="persp.origin" type="checkbox" /> {{ t("persp.origin") }}</label>
+        <p class="text-xs text-amber-700 bg-amber-50 rounded p-2">{{ t("persp.warning") }}</p>
+        <p v-if="persp.error" class="text-xs text-red-600">{{ persp.error }}</p>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="px-3 py-1.5 rounded border border-slate-300" @click="cancelPerspective">{{ t("common.cancel") }}</button>
+          <button type="submit" class="px-3 py-1.5 rounded bg-indigo-600 text-white disabled:opacity-50" :disabled="persp.busy">{{ persp.busy ? t("persp.busy") : t("persp.apply") }}</button>
         </div>
       </form>
     </div>

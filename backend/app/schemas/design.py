@@ -37,9 +37,10 @@ class Layer(BaseModel):
     # cut: outlines that get cut out (nested, exported as CUT)
     # hole: closed shapes subtracted from the cut parts they overlap (pin holes…)
     # engrave: marks/decoration — exported but never nested
+    # grind: grind / plunge lines — drawn on client plans only, never cut, exported or nested
     # construction: guides — ignored by every export
     # dimension: annotations — drawn on client plans
-    role: Literal["cut", "hole", "engrave", "construction", "dimension"] = "cut"
+    role: Literal["cut", "hole", "engrave", "grind", "construction", "dimension"] = "cut"
     visible: bool = True
     locked: bool = False
 

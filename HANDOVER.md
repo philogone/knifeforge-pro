@@ -298,6 +298,21 @@ confirmation. Order selection convention: `order_ids = null` → all draft/confi
   outline (off by default) → guides → grid, within a radius in screen pixels. A dragged node
   never snaps onto its own path. The drawn grid is the snap grid (thinned 2×/5×/10× when dense).
 
+**Drafting aids (editor lot 2)** — pure geometry in `editor/drafting.ts` and `editor/text.ts`.
+- Fillet / chamfer apply only to corner nodes between two *straight* edges (an exact tangent arc
+  between curves is a different problem; such corners are reported, never approximated). The arc
+  is Bézier pieces of ≤ 90° (radial error ≤ 0.027 % of r) with its ends pinned on the tangent
+  points. When both ends of an edge are treated, each may use at most half of it.
+- Arc through 3 points uses the same arc construction; aligned points give a straight segment.
+- Symmetry (pen): a half outline whose two ends touch the axis (within 9 px) becomes one closed
+  contour, ends pinned on the axis; otherwise the mirror is added as a separate path.
+- Text → outlines through opentype.js (lazy-loaded chunk) with the bundled Inter (WOFF, latin
+  subset incl. French accents) or the user's TTF/OTF/WOFF (WOFF2 unsupported). Size = capital
+  height in mm (OS/2 `sCapHeight`); quadratic glyph segments become exact cubics. One compound
+  path per text, even-odd: fine for normal fonts, wrong only if a font has overlapping contours.
+  Outline fonts suit laser engraving; for a cutter, a single-stroke font is better.
+- Open paths are no longer filled on screen: they are lines, and are never cut or nested.
+
 **Known limits / next steps.** No per-object fill/stroke styling, no groups, no text objects,
 DXF arcs are not preserved (polylines only), COUNT materials are not nestable, nesting does not
 use leftover offcuts, and the dimension tool places aligned dimensions only.

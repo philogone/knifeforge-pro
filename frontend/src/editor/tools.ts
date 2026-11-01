@@ -1,8 +1,9 @@
 import paper from "paper";
 
 import { UI_COLOR } from "./constants";
+import { arcThrough, circleThrough, mirrorNode, symmetricComplete } from "./drafting";
 import { formatMm, type EditorEngine, type Mods } from "./engine";
-import type { ToolName } from "./types";
+import type { DocNode, ToolName } from "./types";
 import { RULER_SIZE } from "./view";
 
 export interface ToolHandler {
@@ -18,6 +19,18 @@ export interface ToolHandler {
   key(key: string): boolean;
   cancel(): void;
   drawOverlay(): void;
+  /** typed length (mm) and angle (degrees, counter-clockwise, y up); true when used */
+  numeric?(length: number, angle: number): boolean;
+}
+
+function nodesOf(path: paper.Path): DocNode[] {
+  return path.segments.map((sg) => ({ x: sg.point.x, y: sg.point.y, ix: sg.handleIn.x, iy: sg.handleIn.y, ox: sg.handleOut.x, oy: sg.handleOut.y }));
+}
+
+/** Point `length` away from `from` in the direction `angle` (degrees, counter-clockwise, y up). */
+function polar(from: paper.Point, length: number, angle: number): paper.Point {
+  const rad = (angle * Math.PI) / 180;
+  return new paper.Point(Math.round((from.x + length * Math.cos(rad)) * 10000) / 10000, Math.round((from.y - length * Math.sin(rad)) * 10000) / 10000);
 }
 
 abstract class BaseTool implements ToolHandler {
@@ -659,6 +672,7 @@ class PenTool extends BaseTool {
       this.e.addUi(this.path, "pen");
       this.path.add(pt);
       this.dragging = true;
+      this.e.emit("drawing", true);
       return;
     }
     if (this.path.segments.length >= 2 && this.path.firstSegment.point.getDistance(p) < this.e.px(9)) {
@@ -718,6 +732,7 @@ class PenTool extends BaseTool {
   }
 
   cancel(): void {
+    const was = !!this.path;
     this.path?.remove();
     this.path = null;
     this.rubber?.remove();
@@ -725,6 +740,30 @@ class PenTool extends BaseTool {
     this.dragging = false;
     this.e.clearUi("pen");
     this.e.clearUi("rubber");
+    this.e.clearUi("mirror");
+    if (was) this.e.emit("drawing", false);
+  }
+
+  /** Next node at a typed distance and angle from the last one. */
+  numeric(length: number, angle: number): boolean {
+    if (!this.path || !this.path.segments.length || !(length > 0)) return false;
+    this.path.add(polar(this.path.lastSegment.point, length, angle));
+    this.drawMirror();
+    return true;
+  }
+
+  /** Live mirror image of what is drawn so far (symmetry mode). */
+  private drawMirror(extra?: paper.Point): void {
+    this.e.clearUi("mirror");
+    const ax = this.e.symmetry;
+    if (!ax || !this.path) return;
+    const nodes = nodesOf(this.path);
+    if (extra) nodes.push({ x: extra.x, y: extra.y, ix: 0, iy: 0, ox: 0, oy: 0 });
+    if (nodes.length < 2) return;
+    const ghost = this.e.contourToPath(nodes.map((n) => mirrorNode(n, ax)), false);
+    this.uiStroke(ghost, true);
+    ghost.strokeColor = new paper.Color("#c026d3");
+    this.e.addUi(ghost, "mirror");
   }
 
   private drawRubber(p: paper.Point, m: Mods = { shift: false, alt: false, ctrl: false }): void {
@@ -736,7 +775,9 @@ class PenTool extends BaseTool {
     rubber.add(new paper.Segment(last.point, undefined, last.handleOut));
     const end = this.e.snap(p, [], { from: last.point, constrain: m.shift });
     rubber.add(end);
-    this.e.hintValue(`${formatMm(end.getDistance(last.point))} mm`);
+    const v = end.subtract(last.point);
+    this.e.hintValue(`${formatMm(v.length)} mm · ${Math.round(-v.angle * 10) / 10}°`);
+    this.drawMirror(end);
     this.uiStroke(rubber, true);
     this.rubber = rubber;
     this.e.addUi(rubber, "rubber");
@@ -752,7 +793,27 @@ class PenTool extends BaseTool {
       path?.remove();
       return;
     }
+    this.e.clearUi("mirror");
+    this.e.emit("drawing", false);
     path.data = {};
+    const ax = this.e.symmetry;
+    if (ax && !path.closed) {
+      // a half outline: closed with its mirror when both ends touch the axis, else mirrored apart
+      const done = symmetricComplete(nodesOf(path), ax, this.e.px(9));
+      path.remove();
+      this.e.clearUi("pen");
+      const items: paper.Item[] = [];
+      if ("closed" in done) {
+        items.push(this.e.addItem(this.e.contourToPath(done.closed, true)));
+      } else {
+        items.push(this.e.addItem(this.e.contourToPath(nodesOf(path), false)));
+        items.push(this.e.addItem(this.e.contourToPath(done.mirror, false)));
+        if (this.e.roleOf(items[0]) === "cut") this.e.hint("hint.openCutPath");
+      }
+      this.e.selectItems(items);
+      this.e.commit();
+      return;
+    }
     this.e.addItem(path, { select: false });
     if (!path.closed && this.e.roleOf(path) === "cut") this.e.hint("hint.openCutPath");
     this.e.clearUi("pen");
@@ -1097,6 +1158,73 @@ class CalibrateTool extends BaseTool {
 }
 
 
+// ---------------------------------------------------------------------------
+// Arc through 3 points: start, end, then a point on the arc
+// ---------------------------------------------------------------------------
+
+class ArcTool extends BaseTool {
+  cursor = "crosshair";
+  hint = "hint.arc";
+  private start: paper.Point | null = null;
+  private end: paper.Point | null = null;
+
+  down(p: paper.Point, m: Mods): void {
+    if (!this.start) {
+      if (!this.activeLayerUsable()) return;
+      this.start = this.e.snap(p);
+      return;
+    }
+    if (!this.end) {
+      const end = this.e.snap(p, [], { from: this.start, constrain: m.shift });
+      if (end.getDistance(this.start) < 1e-6) return;
+      this.end = end;
+      this.e.hint("hint.arcThrough");
+      return;
+    }
+    const through = this.e.snap(p);
+    const nodes = arcThrough([this.start.x, this.start.y], [through.x, through.y], [this.end.x, this.end.y]);
+    this.cancel();
+    this.e.addContours([nodes], { closed: false });
+    this.e.hint(this.hint);
+  }
+
+  move(p: paper.Point, m: Mods): void {
+    this.e.clearUi("arc");
+    if (!this.start) {
+      this.e.snap(p);
+      return;
+    }
+    let preview: paper.Path;
+    if (!this.end) {
+      preview = new paper.Path.Line({ from: this.start, to: this.e.snap(p, [], { from: this.start, constrain: m.shift }), insert: false });
+    } else {
+      const through = this.e.snap(p);
+      const nodes = arcThrough([this.start.x, this.start.y], [through.x, through.y], [this.end.x, this.end.y]);
+      preview = this.e.contourToPath(nodes, false);
+      const circle = circleThrough([this.start.x, this.start.y], [through.x, through.y], [this.end.x, this.end.y]);
+      this.e.hintValue(circle ? `R ${formatMm(circle.r)} mm` : "");
+    }
+    this.uiStroke(preview, true);
+    this.e.addUi(preview, "arc");
+  }
+
+  key(key: string): boolean {
+    if (key === "Escape" && this.start) {
+      this.cancel();
+      return true;
+    }
+    return false;
+  }
+
+  cancel(): void {
+    this.start = null;
+    this.end = null;
+    this.e.clearUi("arc");
+    this.e.clearUi("snap");
+    this.e.hintValue("");
+  }
+}
+
 class PanTool extends BaseTool {
   cursor = "grab";
   hint = "hint.pan";
@@ -1119,6 +1247,8 @@ export function createTool(name: ToolName, engine: EditorEngine): ToolHandler {
       return new DimensionTool(engine);
     case "measure":
       return new MeasureTool(engine);
+    case "arc":
+      return new ArcTool(engine);
     case "calibrate":
       return new CalibrateTool(engine);
     case "pan":

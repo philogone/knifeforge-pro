@@ -1,6 +1,7 @@
 import paper from "paper";
 
 import { calibrate, type BackgroundState, type Straighten } from "./background";
+import { chamferCorner, circleNodes, filletCorner, holeCentres, type Axis, type CornerError, type HolePattern } from "./drafting";
 import { MAX_GRID_MM, MAX_ZOOM, MIN_GRID_MM, MIN_ZOOM, PX_PER_MM_CSS, ROLE_STYLE, UI_COLOR, defaultLayers } from "./constants";
 import { History } from "./history";
 import { createTool, type ToolHandler } from "./tools";
@@ -42,6 +43,14 @@ export interface EngineEvents {
   measure: [Measurement | null];
   /** guides changed (added, moved, removed, or restored by undo) */
   guides: [];
+  /** a click-by-click tool (pen) started or finished a path: numeric entry is possible meanwhile */
+  drawing: [boolean];
+}
+
+export interface CornerReport {
+  done: number;
+  /** corners left as they were, by reason */
+  skipped: Partial<Record<CornerError | "curvedEdge", number>>;
 }
 
 export interface Measurement {
@@ -121,6 +130,8 @@ export class EditorEngine {
   guides: Guide[] = [];
   /** guide being dragged out of a ruler (drawn, not yet part of the document) */
   previewGuide: Guide | null = null;
+  /** mirror axis used by the pen: a half outline is completed by its mirror image */
+  symmetry: Axis | null = null;
 
   get snapToGrid(): boolean {
     return this.snapOptions.grid;
@@ -742,7 +753,9 @@ export class EditorEngine {
     item.strokeWidth = style.width;
     item.strokeScaling = false;
     item.dashArray = style.dash ?? [];
-    item.fillColor = style.fill ? new paper.Color(style.fill) : null;
+    // an open path is a line, not a shape: filling it would make it look like a part that gets cut
+    const open = item instanceof paper.Path && !item.closed;
+    item.fillColor = style.fill && !open ? new paper.Color(style.fill) : null;
     if (item instanceof paper.CompoundPath) item.fillRule = "evenodd";
   }
 
@@ -825,7 +838,7 @@ export class EditorEngine {
     }));
   }
 
-  private contourToPath(nodes: DocNode[], closed: boolean): paper.Path {
+  contourToPath(nodes: DocNode[], closed: boolean): paper.Path {
     const path = new paper.Path({ insert: false });
     for (const n of nodes) {
       path.add(new paper.Segment(new paper.Point(n.x, n.y), new paper.Point(n.ix, n.iy), new paper.Point(n.ox, n.oy)));
@@ -1356,7 +1369,10 @@ export class EditorEngine {
   }
 
   toggleClosed(): void {
-    for (const path of this.nodeTargets) path.closed = !path.closed;
+    for (const path of this.nodeTargets) {
+      path.closed = !path.closed;
+      this.styleItem(path.parent instanceof paper.CompoundPath ? path.parent : path);
+    }
     this.commit();
   }
 
@@ -1377,6 +1393,94 @@ export class EditorEngine {
     for (const path of this.nodeTargets) path.flatten(tolerance);
     this.selectedSegments = [];
     this.commit();
+  }
+
+  /**
+   * Round (fillet) or cut (chamfer) every selected corner node whose two edges are straight.
+   * `size` is the radius, or the chamfer length on each edge. When both ends of an edge are
+   * treated, each may use at most half of it. Corners that cannot take the size are left as
+   * they are and reported.
+   */
+  roundCorners(kind: "fillet" | "chamfer", size: number): CornerReport {
+    const report: CornerReport = { done: 0, skipped: {} };
+    const skip = (why: CornerError | "curvedEdge") => (report.skipped[why] = (report.skipped[why] ?? 0) + 1);
+    const straight = (h: paper.Point) => h.length < 1e-9;
+    const picked = new Set(this.selectedSegments);
+    const jobs: { seg: paper.Segment; nodes: DocNode[] }[] = [];
+    for (const seg of this.selectedSegments) {
+      const path = seg.path;
+      const prev = seg.previous;
+      const next = seg.next;
+      if (!path || !prev || !next) {
+        skip("notCorner"); // open path end: there is no corner
+        continue;
+      }
+      if (!straight(seg.handleIn) || !straight(seg.handleOut) || !straight(prev.handleOut) || !straight(next.handleIn)) {
+        skip("curvedEdge");
+        continue;
+      }
+      const P = (pt: paper.Point): [number, number] => [pt.x, pt.y];
+      const lenPrev = seg.point.getDistance(prev.point) / (picked.has(prev) ? 2 : 1);
+      const lenNext = seg.point.getDistance(next.point) / (picked.has(next) ? 2 : 1);
+      const result =
+        kind === "fillet"
+          ? filletCorner(P(prev.point), P(seg.point), P(next.point), size, lenPrev, lenNext)
+          : chamferCorner(P(prev.point), P(seg.point), P(next.point), size, lenPrev, lenNext);
+      if (!result.ok) skip(result.error);
+      else jobs.push({ seg, nodes: result.nodes });
+    }
+    // computed first from the original geometry, then applied (indices shift as nodes are added)
+    for (const { seg, nodes } of jobs) {
+      const path = seg.path;
+      const index = seg.index;
+      path.removeSegment(index);
+      path.insertSegments(
+        index,
+        nodes.map((n) => new paper.Segment(new paper.Point(n.x, n.y), new paper.Point(n.ix, n.iy), new paper.Point(n.ox, n.oy))),
+      );
+      report.done += 1;
+    }
+    this.selectedSegments = [];
+    if (report.done) this.commit();
+    else this.refreshOverlay();
+    this.emitSelection();
+    return report;
+  }
+
+  /** Add open or closed contours as one new object (compound when several), selected. */
+  addContours(contours: DocNode[][], options: { closed: boolean; layerId?: string; name?: string | null }): paper.Item | null {
+    const usable = contours.filter((c) => c.length >= 2);
+    if (!usable.length) return null;
+    const paths = usable.map((c) => this.contourToPath(c, options.closed));
+    const item: paper.Item = paths.length === 1 ? paths[0] : new paper.CompoundPath({ children: paths, fillRule: "evenodd", insert: false });
+    const added = this.addItem(item, { layerId: options.layerId, name: options.name ?? null });
+    this.selectItems([added]);
+    this.commit();
+    return added;
+  }
+
+  /** First layer with this role, if any. */
+  layerWithRole(role: LayerRole): string | undefined {
+    return this.layers.find((l) => l.role === role)?.id;
+  }
+
+  /** A row of round holes, on the first "hole" layer (or the active one). One undo step. */
+  addHoles(pattern: HolePattern): number {
+    const r = pattern.diameter / 2;
+    if (!(r > 0) || !Number.isFinite(r)) return 0;
+    const layerId = this.layerWithRole("hole") ?? this.activeLayerId;
+    const added: paper.Item[] = [];
+    for (const [cx, cy] of holeCentres(pattern)) {
+      added.push(this.addItem(this.contourToPath(circleNodes(cx, cy, r), true), { layerId, name: `Ø ${formatMm(pattern.diameter)}` }));
+    }
+    this.selectItems(added);
+    this.commit();
+    return added.length;
+  }
+
+  /** Let the active tool take a typed length / angle (pen: next point). */
+  toolNumeric(length: number, angle: number): boolean {
+    return this.handler.numeric?.(length, angle) ?? false;
   }
 
   setSingleNodePosition(x: number, y: number): void {

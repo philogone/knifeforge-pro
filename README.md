@@ -18,7 +18,7 @@ et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à 
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 <br>
 ![Tests backend](https://img.shields.io/badge/tests%20backend-84%20passing-brightgreen)
-![Tests frontend](https://img.shields.io/badge/tests%20frontend-74%20passing-brightgreen)
+![Tests frontend](https://img.shields.io/badge/tests%20frontend-97%20passing-brightgreen)
 ![Précision](https://img.shields.io/badge/courbes-%E2%89%A4%200%2C01%20mm-6366f1)
 ![Licence](https://img.shields.io/badge/licence-commerciale-lightgrey)
 
@@ -44,7 +44,10 @@ et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à 
 
 ### ✒️ Éditeur vectoriel intégré
 Un mini-Inkscape dans le navigateur, **à l'échelle 1:1 en millimètres**.
-- Plume Bézier, édition de nœuds, rectangle, ellipse, ligne, polygone
+- Plume Bézier, édition de nœuds, rectangle, ellipse, ligne, polygone, **arc par 3 points**
+- **Congé et chanfrein** sur les angles, au rayon saisi (arc tangent exact)
+- **Longueur et angle tapés au clavier** pendant le tracé, **symétrie en direct** (on dessine une moitié de garde ou de plaquette)
+- **Réseau de perçages** aux diamètres usuels (métriques et en pouces), **texte converti en contours** pour le poinçon ou une gravure
 - Booléens (union, différence, intersection, exclusion), combiner / séparer
 - Décalage (agrandir / réduire), alignement, miroir, rotation
 - **Saisie numérique exacte** : tapez 123,4 × 17,6, vous obtenez 123,4 × 17,6
@@ -302,7 +305,7 @@ knifeforge-pro/
 
 ```bash
 cd backend && pytest              # 84 tests : géométrie, nesting, exports, API, métrologie
-cd frontend && npm test           # 74 tests : moteur d'édition, calibration, magnétisme, client API
+cd frontend && npm test           # 97 tests : moteur d'édition, calibration, magnétisme, congés, texte, client API
 cd frontend && npx vue-tsc --noEmit && npm run build
 ```
 

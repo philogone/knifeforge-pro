@@ -56,7 +56,7 @@ export interface DesignDocument {
   guides?: Guide[];
 }
 
-export type ToolName = "select" | "node" | "pen" | "rect" | "ellipse" | "line" | "polygon" | "dimension" | "measure" | "calibrate" | "pan";
+export type ToolName = "select" | "node" | "pen" | "rect" | "ellipse" | "line" | "polygon" | "arc" | "dimension" | "measure" | "calibrate" | "pan";
 
 export interface Bounds {
   x: number;

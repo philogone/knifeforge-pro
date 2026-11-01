@@ -6,8 +6,10 @@ import { ApiError, saveBlob } from "@/composables/useApi";
 import { useSnapshotDirty } from "@/composables/useSnapshotDirty";
 import { initialPlacement, loadImageFile, mmPerPixel, type BackgroundState, type Straighten } from "@/editor/background";
 import { ROLE_STYLE } from "@/editor/constants";
+import { STANDARD_HOLES_MM, type Axis } from "@/editor/drafting";
+import { BUNDLED_FONTS, loadFont, missingGlyphs, textContours } from "@/editor/text";
 import { EditorEngine, formatMm } from "@/editor/engine";
-import type { AlignKind, BooleanOp, Measurement, SnapKind, SnapOptions } from "@/editor/engine";
+import type { AlignKind, BooleanOp, CornerReport, Measurement, SnapKind, SnapOptions } from "@/editor/engine";
 import type { DocLayer, Guide, LayerRole, SelectionInfo, ToolName } from "@/editor/types";
 import { RULER_SIZE, drawGrid, drawRulers, screenToWorld } from "@/editor/view";
 import { useI18n } from "@/i18n";
@@ -28,6 +30,7 @@ const tools: { name: ToolName; icon: string }[] = [
   { name: "ellipse", icon: "◯" },
   { name: "line", icon: "∕" },
   { name: "polygon", icon: "⬡" },
+  { name: "arc", icon: "◠" },
   { name: "dimension", icon: "↔" },
   { name: "measure", icon: "📏" },
   { name: "pan", icon: "✋" },
@@ -84,6 +87,15 @@ const { dirty: bgDirty, markClean: markBgClean } = useSnapshotDirty(() => {
   return { ...b, image: `${b.image.length}:${b.image.slice(-48)}`, pixelWidth: undefined, pixelHeight: undefined };
 });
 const bgResolution = computed(() => (bg.value?.pixelWidth ? mmPerPixel(bg.value, bg.value.pixelWidth) : null));
+// ---- lot 2: drawing aids
+const drawing = ref(false);
+const numeric = reactive({ length: "" as number | "", angle: 0 as number | "" });
+const lengthInput = ref<HTMLInputElement | null>(null);
+const symmetry = reactive({ axis: "" as "" | Axis["axis"], pos: 0 });
+const cornerSize = ref(3);
+const holes = reactive({ open: false, diameter: 4.76, x: 0, y: 0, count: 2, pitch: 20, angle: 0 });
+const textForm = reactive({ open: false, busy: false, text: "", capHeight: 5, letterSpacing: 0, x: 0, y: 0, weight: "regular" as "regular" | "bold" | "custom", customName: "", error: "" });
+let customFont: ArrayBuffer | null = null;
 const calib = reactive({ open: false, a: [0, 0] as [number, number], b: [0, 0] as [number, number], real: "" as number | "", straighten: "horizontal" as Straighten, origin: false });
 const lockRatio = ref(true);
 const rotateBy = ref(0);
@@ -121,7 +133,7 @@ function paintRulers() {
   if (!ctx) return;
   const dpr = window.devicePixelRatio || 1;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawRulers(ctx, e.viewTransform, e.cursor, e.guides, e.previewGuide);
+  drawRulers(ctx, e.viewTransform, e.cursor, e.guides, e.previewGuide, tool.value === "pen" ? e.symmetry : null);
 }
 
 function sizeCanvases() {
@@ -207,6 +219,10 @@ function attachEngine(doc: Design) {
       paintRulers();
     }),
     e.on("measure", (m) => (measurement.value = m)),
+    e.on("drawing", (on) => {
+      drawing.value = on;
+      if (!on) numeric.length = "";
+    }),
     e.on("background", () => (bg.value = e.background)),
     e.on("calibrate", (a, b) => {
       calib.a = a;
@@ -428,6 +444,116 @@ function cancelCalibration() {
   engine.value?.clearUi("calib");
 }
 
+// ------------------------------------------------------------ drawing aids
+watch([() => symmetry.axis, () => symmetry.pos, tool], () => {
+  const e = engine.value;
+  if (!e) return;
+  const pos = Number(symmetry.pos);
+  e.symmetry = symmetry.axis && Number.isFinite(pos) ? { axis: symmetry.axis, pos } : null;
+  paintRulers();
+});
+
+/** Enter in the length field: place the typed node, or finish the path when the field is empty. */
+function applyNumeric() {
+  const e = engine.value;
+  if (!e) return;
+  if (numeric.length === "") {
+    e.toolKey("Enter");
+    (document.activeElement as HTMLElement | null)?.blur();
+    return;
+  }
+  const length = Number(numeric.length);
+  if (length > 0 && e.toolNumeric(length, Number(numeric.angle) || 0)) numeric.length = "";
+}
+
+function cancelNumeric() {
+  engine.value?.toolKey("Escape");
+  (document.activeElement as HTMLElement | null)?.blur();
+}
+
+function cornerMessage(r: CornerReport): string {
+  const parts: string[] = [];
+  if (r.done) parts.push(t("corner.done", { n: r.done }));
+  for (const [why, n] of Object.entries(r.skipped)) parts.push(t(`corner.skip.${why}`, { n: n ?? 0 }));
+  return parts.join(" · ") || t("corner.none");
+}
+
+function roundCorners(kind: "fillet" | "chamfer") {
+  const e = engine.value;
+  if (!e) return;
+  if (!e.selectedSegments.length) return setStatus(t("corner.none"), true);
+  const report = e.roundCorners(kind, Number(cornerSize.value));
+  setStatus(cornerMessage(report), !report.done);
+}
+
+/** Dialogs open at a sensible spot: the selection's centre, else the middle of the view. */
+function defaultPoint(): [number, number] {
+  const e = engine.value;
+  if (!e) return [0, 0];
+  const b = sel.value.bounds;
+  if (b) return [Math.round((b.x + b.w / 2) * 100) / 100, Math.round((b.y + b.h / 2) * 100) / 100];
+  const v = e.viewTransform;
+  return [Math.round(v.centerX), Math.round(v.centerY)];
+}
+
+function openHoles() {
+  [holes.x, holes.y] = defaultPoint();
+  holes.open = true;
+}
+
+function addHoles() {
+  const e = engine.value;
+  if (!e) return;
+  const n = e.addHoles({ x: Number(holes.x), y: Number(holes.y), diameter: Number(holes.diameter), count: Number(holes.count), pitch: Number(holes.pitch), angle: Number(holes.angle) || 0 });
+  if (n) {
+    holes.open = false;
+    setStatus(t("holes.done", { n }));
+  }
+}
+
+function openText() {
+  [textForm.x, textForm.y] = defaultPoint();
+  textForm.error = "";
+  textForm.open = true;
+}
+
+async function onFontFile(ev: Event) {
+  const input = ev.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file) return;
+  if (/\.woff2$/i.test(file.name)) {
+    textForm.error = t("text.woff2");
+    return;
+  }
+  customFont = await file.arrayBuffer();
+  textForm.customName = file.name;
+  textForm.weight = "custom";
+}
+
+async function addText() {
+  const e = engine.value;
+  const text = textForm.text.trim();
+  if (!e || !text || !(Number(textForm.capHeight) > 0)) return;
+  textForm.busy = true;
+  textForm.error = "";
+  try {
+    const font = await loadFont(textForm.weight === "custom" && customFont ? customFont : await BUNDLED_FONTS[textForm.weight === "bold" ? "bold" : "regular"]());
+    const missing = missingGlyphs(font, text);
+    if (missing.length) {
+      textForm.error = t("text.missing", { chars: missing.join(" ") });
+      return;
+    }
+    const contours = textContours(font, text, { x: Number(textForm.x), y: Number(textForm.y), capHeight: Number(textForm.capHeight), letterSpacing: Number(textForm.letterSpacing) || 0 });
+    const layerId = e.layerWithRole("engrave") ?? e.activeLayerId;
+    if (e.addContours(contours, { closed: true, layerId, name: text.slice(0, 100) })) textForm.open = false;
+  } catch {
+    textForm.error = t("text.fontFailed");
+  } finally {
+    textForm.busy = false;
+  }
+}
+
 // ----------------------------------------------------------------- guides
 /** Drag a new guide out of a ruler: from the top ruler a horizontal one, from the left a vertical one. */
 function startGuide(axis: Guide["axis"], ev: PointerEvent) {
@@ -468,16 +594,26 @@ function setGuidePos(index: number, ev: Event) {
 }
 
 // --------------------------------------------------------------- keyboard
+/**
+ * Paper.js cancels the canvas mousedown, so the browser keeps the focus in the last edited field
+ * (grid step, symmetry axis, typed length…) and shortcuts — Enter to finish a path, tool keys —
+ * would type into that field. A click in the drawing gives the keyboard back to the editor.
+ */
+function releaseFieldFocus() {
+  const el = document.activeElement as HTMLElement | null;
+  if (el && el !== document.body && el.closest("input, select, textarea")) el.blur();
+}
+
 function isTyping(ev: KeyboardEvent) {
   const el = ev.target as HTMLElement | null;
   return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
 }
 
-const TOOL_KEYS: Record<string, ToolName> = { v: "select", n: "node", p: "pen", r: "rect", e: "ellipse", l: "line", g: "polygon", d: "dimension", m: "measure", h: "pan" };
+const TOOL_KEYS: Record<string, ToolName> = { v: "select", n: "node", p: "pen", r: "rect", e: "ellipse", l: "line", g: "polygon", a: "arc", d: "dimension", m: "measure", h: "pan" };
 
 function onKeyDown(ev: KeyboardEvent) {
   const e = engine.value;
-  if (!e || isTyping(ev) || planOpen.value || calib.open) return;
+  if (!e || isTyping(ev) || planOpen.value || calib.open || holes.open || textForm.open) return;
   const mod = ev.ctrlKey || ev.metaKey;
   const key = ev.key.toLowerCase();
 
@@ -500,6 +636,14 @@ function onKeyDown(ev: KeyboardEvent) {
     if (key === "d") return handled(() => e.duplicateSelection());
     if (key === "a") return handled(() => e.selectAll());
     if (key === "k") return handled(() => (ev.shiftKey ? e.breakApart() : e.combine()));
+    return;
+  }
+  // while a pen path is open, typing a number goes to the length field (then Enter places the node)
+  if (drawing.value && tool.value === "pen" && /^[0-9.,]$/.test(ev.key)) {
+    ev.preventDefault();
+    numeric.length = "";
+    lengthInput.value?.focus();
+    if (lengthInput.value) lengthInput.value.value = ev.key === "," ? "0." : ev.key;
     return;
   }
   // an active tool (pen, dimension…) gets first refusal on Enter / Escape / Backspace
@@ -731,6 +875,25 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           {{ t("editor.cornerRadius") }}
           <input v-model.number="opts.cornerRadius" type="number" min="0" step="0.5" class="w-16 border border-slate-300 rounded px-1 py-0.5" />
         </label>
+        <template v-if="tool === 'pen'">
+          <label class="flex items-center gap-1">{{ t("sym.label") }}
+            <select v-model="symmetry.axis" class="border border-slate-300 rounded px-1 py-0.5">
+              <option value="">{{ t("sym.none") }}</option>
+              <option value="x">{{ t("sym.vertical") }}</option>
+              <option value="y">{{ t("sym.horizontal") }}</option>
+            </select>
+          </label>
+          <label v-if="symmetry.axis" class="flex items-center gap-1">{{ symmetry.axis === "x" ? "X =" : "Y =" }}
+            <input v-model.number="symmetry.pos" type="number" step="any" class="w-16 border border-slate-300 rounded px-1 py-0.5" />
+          </label>
+          <span v-if="drawing" class="flex items-center gap-1 bg-indigo-50 border border-indigo-200 rounded px-2 py-0.5">
+            {{ t("num.length") }}
+            <input ref="lengthInput" v-model.number="numeric.length" type="number" min="0" step="any" class="w-16 border border-slate-300 rounded px-1" @keydown.enter.prevent="applyNumeric" @keydown.esc.prevent="cancelNumeric" />
+            {{ t("num.angle") }}
+            <input v-model.number="numeric.angle" type="number" step="any" class="w-14 border border-slate-300 rounded px-1" @keydown.enter.prevent="applyNumeric" />
+            <button class="px-1.5 rounded bg-indigo-600 text-white" @click="applyNumeric">↵</button>
+          </span>
+        </template>
         <label v-if="tool === 'polygon'" class="flex items-center gap-1">
           {{ t("editor.polygonSides") }}
           <input v-model.number="opts.polygonSides" type="number" min="3" max="64" class="w-16 border border-slate-300 rounded px-1 py-0.5" />
@@ -751,12 +914,15 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           >
             {{ tl.icon }}
           </button>
+          <div class="w-7 border-t border-slate-200 my-1"></div>
+          <button class="w-9 h-9 rounded-lg text-lg text-slate-600 hover:bg-slate-100" :title="t('holes.title')" @click="openHoles">⦾</button>
+          <button class="w-9 h-9 rounded-lg text-lg font-serif text-slate-600 hover:bg-slate-100" :title="t('text.title')" @click="openText">T</button>
         </div>
 
         <!-- canvas stack -->
         <div ref="stage" class="flex-1 relative overflow-hidden min-w-0">
           <canvas ref="gridCanvas" class="absolute inset-0 pointer-events-none"></canvas>
-          <canvas ref="paperCanvas" class="absolute inset-0" style="touch-action: none"></canvas>
+          <canvas ref="paperCanvas" class="absolute inset-0" style="touch-action: none" @pointerdown="releaseFieldFocus"></canvas>
           <canvas ref="rulerCanvas" class="absolute inset-0 pointer-events-none"></canvas>
           <!-- drag a guide out of a ruler -->
           <div class="absolute top-0 right-0 cursor-row-resize" :style="{ left: `${RULER_SIZE}px`, height: `${RULER_SIZE}px` }" @pointerdown="startGuide('y', $event)"></div>
@@ -912,6 +1078,16 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                   <button class="px-1 py-1 rounded border border-slate-300 text-xs" @click="engine?.simplifyPaths()">{{ t("editor.nodeSimplify") }}</button>
                   <button class="px-1 py-1 rounded border border-slate-300 text-xs" @click="engine?.flattenPaths()">{{ t("editor.nodeFlatten") }}</button>
                 </div>
+                <div class="space-y-1">
+                  <p class="text-xs font-medium text-slate-700">{{ t("corner.title") }}</p>
+                  <div class="flex items-center gap-1">
+                    <input v-model.number="cornerSize" type="number" min="0" step="any" class="w-16 border border-slate-300 rounded px-1 py-0.5 text-sm" />
+                    <span class="text-xs text-slate-500">mm</span>
+                    <button class="flex-1 px-1 py-1 rounded border border-slate-300 text-xs" @click="roundCorners('fillet')">◜ {{ t("corner.fillet") }}</button>
+                    <button class="flex-1 px-1 py-1 rounded border border-slate-300 text-xs" @click="roundCorners('chamfer')">◸ {{ t("corner.chamfer") }}</button>
+                  </div>
+                  <p class="text-[11px] text-slate-400">{{ t("corner.help") }}</p>
+                </div>
               </div>
             </template>
 
@@ -1058,6 +1234,64 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         <span>{{ t("editor.zoom") }} : {{ zoomPct }} %</span>
       </div>
     </template>
+
+    <!-- holes dialog -->
+    <div v-if="holes.open" class="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center p-4" @click.self="holes.open = false">
+      <form class="bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="addHoles">
+        <h2 class="font-semibold text-slate-900">{{ t("holes.title") }}</h2>
+        <label class="block text-xs text-slate-500">{{ t("holes.diameter") }}
+          <input v-model.number="holes.diameter" type="number" min="0.1" step="any" list="hole-sizes" required class="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
+          <datalist id="hole-sizes"><option v-for="h in STANDARD_HOLES_MM" :key="h.d" :value="h.d">{{ h.label }}</option></datalist>
+        </label>
+        <div class="flex flex-wrap gap-1">
+          <button v-for="h in STANDARD_HOLES_MM" :key="h.d" type="button" class="px-1.5 py-0.5 rounded border text-xs" :class="holes.diameter === h.d ? 'border-indigo-500 bg-indigo-50' : 'border-slate-300'" @click="holes.diameter = h.d">{{ h.label }}</button>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="text-xs text-slate-500">{{ t("holes.x") }}<input v-model.number="holes.x" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
+          <label class="text-xs text-slate-500">{{ t("holes.y") }}<input v-model.number="holes.y" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
+          <label class="text-xs text-slate-500">{{ t("holes.count") }}<input v-model.number="holes.count" type="number" min="1" max="200" step="1" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
+          <label class="text-xs text-slate-500">{{ t("holes.pitch") }}<input v-model.number="holes.pitch" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
+          <label class="text-xs text-slate-500 col-span-2">{{ t("holes.angle") }}<input v-model.number="holes.angle" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
+        </div>
+        <p class="text-[11px] text-slate-400">{{ t("holes.help") }}</p>
+        <div class="flex gap-2 justify-end">
+          <button type="button" class="px-3 py-1.5 rounded border border-slate-300" @click="holes.open = false">{{ t("common.cancel") }}</button>
+          <button type="submit" class="px-3 py-1.5 rounded bg-indigo-600 text-white">{{ t("holes.add") }}</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- text dialog -->
+    <div v-if="textForm.open" class="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center p-4" @click.self="textForm.open = false">
+      <form class="bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="addText">
+        <h2 class="font-semibold text-slate-900">{{ t("text.title") }}</h2>
+        <label class="block text-xs text-slate-500">{{ t("text.text") }}
+          <input v-model="textForm.text" maxlength="100" required autofocus class="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
+        </label>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="text-xs text-slate-500">{{ t("text.capHeight") }}<input v-model.number="textForm.capHeight" type="number" min="0.5" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
+          <label class="text-xs text-slate-500">{{ t("text.spacing") }}<input v-model.number="textForm.letterSpacing" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
+          <label class="text-xs text-slate-500">{{ t("text.x") }}<input v-model.number="textForm.x" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
+          <label class="text-xs text-slate-500">{{ t("text.y") }}<input v-model.number="textForm.y" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
+        </div>
+        <label class="block text-xs text-slate-500">{{ t("text.font") }}
+          <select v-model="textForm.weight" class="w-full border border-slate-300 rounded px-2 py-1 text-sm">
+            <option value="regular">Inter</option>
+            <option value="bold">Inter {{ t("text.bold") }}</option>
+            <option v-if="textForm.customName" value="custom">{{ textForm.customName }}</option>
+          </select>
+        </label>
+        <label class="block text-xs text-indigo-700 cursor-pointer">+ {{ t("text.ownFont") }}
+          <input type="file" accept=".ttf,.otf,.woff,font/ttf,font/otf,font/woff" class="hidden" @change="onFontFile" />
+        </label>
+        <p class="text-[11px] text-slate-400">{{ t("text.help") }}</p>
+        <p v-if="textForm.error" class="text-xs text-red-600">{{ textForm.error }}</p>
+        <div class="flex gap-2 justify-end">
+          <button type="button" class="px-3 py-1.5 rounded border border-slate-300" @click="textForm.open = false">{{ t("common.cancel") }}</button>
+          <button type="submit" class="px-3 py-1.5 rounded bg-indigo-600 text-white" :disabled="textForm.busy">{{ t("text.add") }}</button>
+        </div>
+      </form>
+    </div>
 
     <!-- calibration dialog -->
     <div v-if="calib.open" class="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center p-4" @click.self="cancelCalibration">

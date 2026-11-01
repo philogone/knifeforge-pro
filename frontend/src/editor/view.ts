@@ -114,6 +114,7 @@ export function drawRulers(
   cursor: [number, number] | null,
   guides: RulerGuide[] = [],
   preview: RulerGuide | null = null,
+  mirrorAxis: RulerGuide | null = null,
 ): void {
   ctx.clearRect(0, 0, v.width, v.height);
   // guides live on this top canvas so they stay visible over shapes and over a reference photo
@@ -136,6 +137,23 @@ export function drawRulers(
   };
   for (const g of guides) guideLine(g, false);
   if (preview) guideLine(preview, true);
+  if (mirrorAxis) {
+    // magenta, dash-dot: the symmetry axis, distinct from guides
+    ctx.beginPath();
+    ctx.strokeStyle = "rgba(192,38,211,0.85)";
+    ctx.setLineDash([10, 3, 2, 3]);
+    if (mirrorAxis.axis === "x") {
+      const sx = Math.round(worldToScreen(v, mirrorAxis.pos, 0)[0]) + 0.5;
+      ctx.moveTo(sx, 0);
+      ctx.lineTo(sx, v.height);
+    } else {
+      const sy = Math.round(worldToScreen(v, 0, mirrorAxis.pos)[1]) + 0.5;
+      ctx.moveTo(0, sy);
+      ctx.lineTo(v.width, sy);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
 
   ctx.fillStyle = "rgba(248,250,252,0.96)";
   ctx.fillRect(0, 0, v.width, RULER_SIZE);

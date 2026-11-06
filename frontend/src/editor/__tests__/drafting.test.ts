@@ -218,6 +218,28 @@ describe("engine: drawing aids", () => {
     expect((engine.docItems()[0] as paper.Path).curves[2].isStraight()).toBe(true);
   });
 
+  it("node tool: bending a segment never changes its neighbours, even through a smooth node", () => {
+    // blade-like outline whose tip (first node) is smooth: the spine leaves it, the edge comes back
+    const nodes = [
+      { x: 70, y: 50, ix: 6, iy: 8, ox: -6, oy: -8 },
+      { x: 150, y: 40, ix: -30, iy: 0, ox: 0, oy: 0 },
+      { x: 150, y: 60, ix: 0, iy: 0, ox: 0, oy: 0 },
+    ];
+    engine.loadDocument(doc([{ id: "b", type: "path", layer: "cut", name: null, closed: true, contours: [nodes] }]));
+    engine.setTool("node");
+    const path = () => engine.docItems()[0] as paper.Path;
+    const spine = () => path().curves[0].points.map((q) => [q.x, q.y]);
+    const before = spine();
+    expect(engine.isSmooth(path().segments[0])).toBe(true);
+    const h = engine.activeHandler;
+    const grab = path().curves[2].getPointAtTime(0.5);
+    h.down(grab, mods);
+    h.drag(grab.add([0, 5]), mods);
+    h.up(grab.add([0, 5]), mods);
+    expect(spine()).toEqual(before);
+    expect(path().curves[1].isStraight()).toBe(true);
+  });
+
   it("the pen takes typed lengths and angles", () => {
     engine.setTool("pen");
     const h = engine.activeHandler;

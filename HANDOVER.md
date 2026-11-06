@@ -314,7 +314,9 @@ confirmation. Order selection convention: `order_ids = null` → all draft/confi
 - Open paths are no longer filled on screen: they are lines, and are never cut or nested.
 - Node tool: dragging a segment away from its nodes bends it (`dragCurvePoint`): the grabbed
   point follows the pointer exactly, ends fixed, only the two inner handles move (Inkscape's
-  weighting); smooth ends stay smooth. The grab time is clamped to [0.05, 0.95].
+  weighting). Unlike Inkscape, neighbouring segments are never touched: a smooth end may become
+  a corner (the user's choice: bending the edge must not move the spine). The grab time is
+  clamped to [0.05, 0.95].
 
 **Photo, library and grind lines (editor lot 3).**
 - Perspective correction (`editor/perspective.ts`): the four clicked corners of a known rectangle

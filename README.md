@@ -18,7 +18,7 @@ et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à 
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 <br>
 ![Tests backend](https://img.shields.io/badge/tests%20backend-86%20passing-brightgreen)
-![Tests frontend](https://img.shields.io/badge/tests%20frontend-122%20passing-brightgreen)
+![Tests frontend](https://img.shields.io/badge/tests%20frontend-123%20passing-brightgreen)
 ![Précision](https://img.shields.io/badge/courbes-%E2%89%A4%200%2C01%20mm-6366f1)
 ![Licence](https://img.shields.io/badge/licence-commerciale-lightgrey)
 
@@ -306,7 +306,7 @@ knifeforge-pro/
 
 ```bash
 cd backend && pytest              # 86 tests : géométrie, nesting, exports, API, métrologie
-cd frontend && npm test           # 122 tests : moteur d'édition, calibration, perspective, magnétisme, congés, texte, formes, client API
+cd frontend && npm test           # 123 tests : moteur d'édition, calibration, perspective, magnétisme, congés, texte, formes, client API
 cd frontend && npx vue-tsc --noEmit && npm run build
 ```
 

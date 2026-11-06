@@ -428,7 +428,7 @@ class NodeTool extends BaseTool {
   hint = "hint.node";
   private mode: "none" | "nodes" | "handle" | "band" | "curve" = "none";
   /** segment being bent by dragging its middle: its two nodes, the grabbed time and the start state */
-  private curve: { a: paper.Segment; b: paper.Segment; t: number; out0: paper.Point; in0: paper.Point; smoothA: number; smoothB: number } | null = null;
+  private curve: { a: paper.Segment; b: paper.Segment; t: number; out0: paper.Point; in0: paper.Point } | null = null;
   private hit: NodeHit | null = null;
   private start = new paper.Point(0, 0);
   private last = new paper.Point(0, 0);
@@ -470,8 +470,9 @@ class NodeTool extends BaseTool {
       if (!this.e.nodeTargets.includes(path) && top) this.e.selectItems(m.shift ? [...this.e.selection, top] : [top]);
       if (this.e.nodeTargets.includes(path)) {
         const { a, b, t } = onCurve;
-        // a smooth end keeps its other handle aligned (its length is kept)
-        this.curve = { a, b, t, out0: a.handleOut.clone(), in0: b.handleIn.clone(), smoothA: this.e.isSmooth(a) ? a.handleIn.length : 0, smoothB: this.e.isSmooth(b) ? b.handleOut.length : 0 };
+        // only this segment's two inner handles move: the neighbouring segments are never touched,
+        // so a smooth end may become a corner (Inkscape would rotate the other handle instead)
+        this.curve = { a, b, t, out0: a.handleOut.clone(), in0: b.handleIn.clone() };
         if (!m.shift) this.e.selectedSegments = [];
         this.mode = "curve";
         this.e.refreshOverlay();
@@ -521,14 +522,12 @@ class NodeTool extends BaseTool {
       this.changed = true;
     } else if (this.mode === "curve" && this.curve) {
       if (!this.changed && p.subtract(this.start).length < this.e.px(2)) return;
-      const { a, b, t, out0, in0, smoothA, smoothB } = this.curve;
+      const { a, b, t, out0, in0 } = this.curve;
       const P = (q: paper.Point): [number, number] => [q.x, q.y];
       const delta = p.subtract(this.start);
       const [c1, c2] = dragCurvePoint(P(a.point), P(a.point.add(out0)), P(b.point.add(in0)), P(b.point), t, [delta.x, delta.y]);
       a.handleOut = new paper.Point(c1[0], c1[1]).subtract(a.point);
       b.handleIn = new paper.Point(c2[0], c2[1]).subtract(b.point);
-      if (smoothA && a.handleOut.length > 1e-9) a.handleIn = a.handleOut.normalize(-smoothA);
-      if (smoothB && b.handleIn.length > 1e-9) b.handleOut = b.handleIn.normalize(-smoothB);
       this.changed = true;
       this.e.canvas.style.cursor = "grabbing";
     } else if (this.mode === "band") {

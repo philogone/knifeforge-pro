@@ -578,7 +578,7 @@ export const en: Record<string, string> = {
   "plan.failed": "Plan failed: {error}",
   "plan.needSave": "The plan is generated from the saved version.",
   "hint.select": "Click to select, drag to move. Handles: resize; round dot: rotate. Double-click: edit nodes.",
-  "hint.node": "Click a node to select it, drag it or its handles. Double-click a curve: add a node; a node: smooth/corner.",
+  "hint.node": "Click a node to select it, drag it or its handles. Drag the middle of a line to bend it. Double-click a curve: add a node; a node: smooth/corner.",
   "hint.pen": "Click = corner point, click-drag = curve. Click the first point to close, Enter to finish, Esc to cancel.",
   "hint.rect": "Drag to draw a rectangle (Shift: square, Alt: from center).",
   "hint.ellipse": "Drag to draw an ellipse (Shift: circle, Alt: from center).",

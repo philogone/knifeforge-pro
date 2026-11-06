@@ -206,3 +206,26 @@ export function holeCentres(p: HolePattern): Vec[] {
   const dir: Vec = [Math.cos(rad), -Math.sin(rad)]; // y down on screen, y up for the user
   return Array.from({ length: n }, (_, i) => [round4(p.x + dir[0] * p.pitch * i), round4(p.y + dir[1] * p.pitch * i)] as Vec);
 }
+
+// ------------------------------------------------------------ curve dragging
+/**
+ * Bend a cubic segment by dragging one of its points: the point at parameter `t` moves by exactly
+ * `delta`, the ends stay put and only the two inner control points move (the same weighting as
+ * Inkscape: near an end, mostly that end's handle). A straight segment (handles on its ends)
+ * becomes a curve. `t` is kept within [0.05, 0.95]: right next to a node the handle would have
+ * to grow without bound. Returns the new inner control points (absolute).
+ */
+export function dragCurvePoint(p0: Vec, p1: Vec, p2: Vec, p3: Vec, t: number, delta: Vec): [Vec, Vec] {
+  void p0;
+  void p3;
+  const u = Math.max(0.05, Math.min(0.95, t));
+  let w: number;
+  if (u <= 1 / 6) w = 0;
+  else if (u <= 0.5) w = Math.pow((6 * u - 1) / 2, 3) / 2;
+  else if (u <= 5 / 6) w = (1 - Math.pow((6 * (1 - u) - 1) / 2, 3)) / 2 + 0.5;
+  else w = 1;
+  // B(u) moves by 3u(1−u)²·d1 + 3u²(1−u)·d2 = (1−w)·delta + w·delta = delta
+  const d1 = mul(delta, (1 - w) / (3 * u * (1 - u) * (1 - u)));
+  const d2 = mul(delta, w / (3 * u * u * (1 - u)));
+  return [add(p1, d1), add(p2, d2)];
+}

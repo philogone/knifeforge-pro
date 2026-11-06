@@ -578,7 +578,7 @@ export const fr: Record<string, string> = {
   "plan.failed": "Plan impossible : {error}",
   "plan.needSave": "Le plan est généré à partir de la version enregistrée.",
   "hint.select": "Cliquez pour sélectionner, glissez pour déplacer. Poignées : taille ; point rond : rotation. Double-clic : éditer les nœuds.",
-  "hint.node": "Cliquez un nœud pour le sélectionner, glissez-le ou ses poignées. Double-clic sur une courbe : ajouter un nœud ; sur un nœud : lisse/angle.",
+  "hint.node": "Cliquez un nœud pour le sélectionner, glissez-le ou ses poignées. Tirez le milieu d'un trait pour le courber. Double-clic sur une courbe : ajouter un nœud ; sur un nœud : lisse/angle.",
   "hint.pen": "Clic = point d'angle, clic-glissé = courbe. Cliquez le premier point pour fermer, Entrée pour terminer, Échap pour annuler.",
   "hint.rect": "Glissez pour tracer un rectangle (Maj : carré, Alt : depuis le centre).",
   "hint.ellipse": "Glissez pour tracer une ellipse (Maj : cercle, Alt : depuis le centre).",

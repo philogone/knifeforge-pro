@@ -1,7 +1,7 @@
 import paper from "paper";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { arcThrough, chamferCorner, circleNodes, circleThrough, filletCorner, holeCentres, symmetricComplete, type Vec } from "../drafting";
+import { arcThrough, chamferCorner, circleNodes, circleThrough, dragCurvePoint, filletCorner, holeCentres, symmetricComplete, type Vec } from "../drafting";
 import { EditorEngine } from "../engine";
 import type { DesignDocument, DocNode, PathObject } from "../types";
 
@@ -198,6 +198,26 @@ describe("engine: corners", () => {
 });
 
 describe("engine: drawing aids", () => {
+  it("node tool: dragging the middle of a straight edge bends it, in one undo step", () => {
+    const tri = [[70, 50], [150, 40], [150, 60]].map(([x, y]) => ({ x, y, ix: 0, iy: 0, ox: 0, oy: 0 }));
+    engine.loadDocument(doc([{ id: "t", type: "path", layer: "cut", name: null, closed: true, contours: [tri] }]));
+    engine.setTool("node");
+    const h = engine.activeHandler;
+    // grab the bottom edge (150,60) → (70,50) at its middle and pull it 6 mm down
+    h.down(P(110, 55), mods);
+    h.drag(P(110, 58), mods);
+    h.drag(P(110, 61), mods);
+    h.up(P(110, 61), mods);
+    const edge = (engine.docItems()[0] as paper.Path).curves[2];
+    expect(edge.isStraight()).toBe(false);
+    const mid = edge.getPointAtTime(0.5);
+    expect(mid.x).toBeCloseTo(110, 6);
+    expect(mid.y).toBeCloseTo(61, 6);
+    expect([edge.point1.x, edge.point1.y, edge.point2.x, edge.point2.y]).toEqual([150, 60, 70, 50]);
+    engine.undo();
+    expect((engine.docItems()[0] as paper.Path).curves[2].isStraight()).toBe(true);
+  });
+
   it("the pen takes typed lengths and angles", () => {
     engine.setTool("pen");
     const h = engine.activeHandler;
@@ -267,5 +287,38 @@ describe("engine: drawing aids", () => {
     expect(b.center.x).toBeCloseTo(40, 9);
     engine.undo();
     expect(engine.exportDocument().objects.length).toBe(0);
+  });
+});
+
+describe("bending a segment by dragging it", () => {
+  const at = (p0: Vec, p1: Vec, p2: Vec, p3: Vec, t: number): Vec => {
+    const u = 1 - t;
+    return [0, 1].map((k) => u * u * u * p0[k] + 3 * u * u * t * p1[k] + 3 * u * t * t * p2[k] + t * t * t * p3[k]) as Vec;
+  };
+
+  it("moves the grabbed point by exactly the drag, ends fixed, wherever it is grabbed", () => {
+    const p0: Vec = [70, 50];
+    const p3: Vec = [150, 60];
+    for (const t of [0.1, 0.25, 0.5, 0.7, 0.9]) {
+      const before = at(p0, p0, p3, p3, t); // a straight line: handles on the ends
+      const [c1, c2] = dragCurvePoint(p0, p0, p3, p3, t, [3, 8]);
+      const after = at(p0, c1, c2, p3, t);
+      expect(after[0] - before[0]).toBeCloseTo(3, 9);
+      expect(after[1] - before[1]).toBeCloseTo(8, 9);
+    }
+  });
+
+  it("is symmetric when grabbed in the middle, and leans on the near handle otherwise", () => {
+    const [a, b] = dragCurvePoint([0, 0], [0, 0], [100, 0], [100, 0], 0.5, [0, 10]);
+    expect(a[1]).toBeCloseTo(b[1], 9);
+    expect(a[1]).toBeCloseTo(40 / 3, 9); // 3·¼·½·(d1 + d2) = 10
+    const [c, d] = dragCurvePoint([0, 0], [0, 0], [100, 0], [100, 0], 0.15, [0, 10]);
+    expect(d[1]).toBe(0); // grabbed near the start: only the start handle moves
+    expect(c[1]).toBeGreaterThan(10);
+  });
+
+  it("keeps the handles bounded right next to a node", () => {
+    const [a] = dragCurvePoint([0, 0], [0, 0], [100, 0], [100, 0], 0.0001, [0, 1]);
+    expect(Math.abs(a[1])).toBeLessThan(10);
   });
 });

@@ -1,7 +1,7 @@
 import paper from "paper";
 
 import { UI_COLOR } from "./constants";
-import { arcThrough, circleThrough, mirrorNode, symmetricComplete } from "./drafting";
+import { arcThrough, circleThrough, dragCurvePoint, mirrorNode, symmetricComplete } from "./drafting";
 import { formatMm, type EditorEngine, type Mods } from "./engine";
 import type { DocNode, ToolName } from "./types";
 import { RULER_SIZE } from "./view";
@@ -426,7 +426,9 @@ type NodeHit = { kind: "node" | "handleIn" | "handleOut"; seg: paper.Segment };
 class NodeTool extends BaseTool {
   cursor = "default";
   hint = "hint.node";
-  private mode: "none" | "nodes" | "handle" | "band" = "none";
+  private mode: "none" | "nodes" | "handle" | "band" | "curve" = "none";
+  /** segment being bent by dragging its middle: its two nodes, the grabbed time and the start state */
+  private curve: { a: paper.Segment; b: paper.Segment; t: number; out0: paper.Point; in0: paper.Point; smoothA: number; smoothB: number } | null = null;
   private hit: NodeHit | null = null;
   private start = new paper.Point(0, 0);
   private last = new paper.Point(0, 0);
@@ -459,6 +461,23 @@ class NodeTool extends BaseTool {
       this.e.refreshOverlay();
       this.e.emitSelection();
       return;
+    }
+    // press on a segment of an edited path (or of any path, which it then edits): bend it
+    const onCurve = this.hitCurve(p);
+    if (onCurve) {
+      const path = onCurve.path;
+      const top = this.topItem(path);
+      if (!this.e.nodeTargets.includes(path) && top) this.e.selectItems(m.shift ? [...this.e.selection, top] : [top]);
+      if (this.e.nodeTargets.includes(path)) {
+        const { a, b, t } = onCurve;
+        // a smooth end keeps its other handle aligned (its length is kept)
+        this.curve = { a, b, t, out0: a.handleOut.clone(), in0: b.handleIn.clone(), smoothA: this.e.isSmooth(a) ? a.handleIn.length : 0, smoothB: this.e.isSmooth(b) ? b.handleOut.length : 0 };
+        if (!m.shift) this.e.selectedSegments = [];
+        this.mode = "curve";
+        this.e.refreshOverlay();
+        this.e.emitSelection();
+        return;
+      }
     }
     const item = this.hitItem(p);
     if (item && item.data?.kind !== "dim") {
@@ -500,6 +519,18 @@ class NodeTool extends BaseTool {
         if (this.wasSmooth && !m.alt && vec.length > 1e-9) seg.handleOut = vec.normalize(-this.oppLength);
       }
       this.changed = true;
+    } else if (this.mode === "curve" && this.curve) {
+      if (!this.changed && p.subtract(this.start).length < this.e.px(2)) return;
+      const { a, b, t, out0, in0, smoothA, smoothB } = this.curve;
+      const P = (q: paper.Point): [number, number] => [q.x, q.y];
+      const delta = p.subtract(this.start);
+      const [c1, c2] = dragCurvePoint(P(a.point), P(a.point.add(out0)), P(b.point.add(in0)), P(b.point), t, [delta.x, delta.y]);
+      a.handleOut = new paper.Point(c1[0], c1[1]).subtract(a.point);
+      b.handleIn = new paper.Point(c2[0], c2[1]).subtract(b.point);
+      if (smoothA && a.handleOut.length > 1e-9) a.handleIn = a.handleOut.normalize(-smoothA);
+      if (smoothB && b.handleIn.length > 1e-9) b.handleOut = b.handleIn.normalize(-smoothB);
+      this.changed = true;
+      this.e.canvas.style.cursor = "grabbing";
     } else if (this.mode === "band") {
       this.band?.remove();
       this.band = new paper.Path.Rectangle({ from: this.start, to: p, insert: false });
@@ -529,11 +560,27 @@ class NodeTool extends BaseTool {
     this.e.clearUi("snap");
     this.mode = "none";
     this.hit = null;
+    this.curve = null;
   }
 
   move(p: paper.Point): void {
     const hit = this.hitNode(p);
-    this.e.canvas.style.cursor = hit ? "pointer" : "default";
+    this.e.canvas.style.cursor = hit ? "pointer" : this.hitCurve(p) ? "grab" : "default";
+  }
+
+  /** Segment of a path under the pointer (away from its nodes), with the time along it. */
+  private hitCurve(p: paper.Point): { path: paper.Path; a: paper.Segment; b: paper.Segment; t: number } | null {
+    const found = this.e.project.hitTest(p, {
+      stroke: true,
+      tolerance: this.e.px(5),
+      match: (h: paper.HitResult) => {
+        const top = h.item instanceof paper.Path ? this.topItem(h.item) : null;
+        return !!top && top.data?.kind !== "dim" && !this.e.layerMeta(top.parent?.data?.layerId)?.locked;
+      },
+    });
+    const loc = found?.location;
+    if (!loc?.curve || !(found.item instanceof paper.Path)) return null;
+    return { path: found.item, a: loc.curve.segment1, b: loc.curve.segment2, t: loc.time };
   }
 
   doubleClick(p: paper.Point): void {
@@ -577,6 +624,7 @@ class NodeTool extends BaseTool {
     this.band = null;
     this.e.clearUi("band");
     this.mode = "none";
+    this.curve = null;
   }
 
   private hitNode(p: paper.Point): NodeHit | null {

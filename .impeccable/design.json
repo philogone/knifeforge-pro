@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-07T00:00:00Z",
+  "title": "Design System: KnifeForge Pro",
+  "extensions": {
+    "colorMeta": {
+      "action-indigo": { "role": "primary", "displayName": "Action Indigo (provisional)", "canonical": "#4f46e5", "tonalRamp": ["#312e81", "#3730a3", "#4338ca", "#4f46e5", "#6366f1", "#818cf8", "#c7d2fe", "#eef2ff"] },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#0f172a", "tonalRamp": ["#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#f1f5f9"] },
+      "bench": { "role": "neutral", "displayName": "Bench", "canonical": "#f8fafc", "tonalRamp": ["#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9", "#f8fafc"] },
+      "quench-red": { "role": "semantic", "displayName": "Quench Red", "canonical": "#dc2626", "tonalRamp": ["#7f1d1d", "#991b1b", "#b91c1c", "#dc2626", "#ef4444", "#f87171", "#fecaca", "#fef2f2"] },
+      "temper-green": { "role": "semantic", "displayName": "Temper Green", "canonical": "#16a34a", "tonalRamp": ["#14532d", "#166534", "#15803d", "#16a34a", "#22c55e", "#4ade80", "#bbf7d0", "#f0fdf4"] },
+      "caution-amber": { "role": "semantic", "displayName": "Caution Amber", "canonical": "#d97706", "tonalRamp": ["#78350f", "#92400e", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fde68a", "#fffbeb"] },
+      "grind-teal": { "role": "semantic", "displayName": "Grind Teal (layer)", "canonical": "#0f766e", "tonalRamp": ["#134e4a", "#115e59", "#0f766e", "#0d9488", "#14b8a6", "#2dd4bf", "#99f6e4", "#f0fdfa"] },
+      "engrave-blue": { "role": "semantic", "displayName": "Engrave Blue (layer)", "canonical": "#2563eb", "tonalRamp": ["#1e3a8a", "#1e40af", "#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa", "#bfdbfe", "#eff6ff"] }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline", "purpose": "One page title per page." },
+      "title": { "displayName": "Title", "purpose": "Card and section headings, list item names." },
+      "body": { "displayName": "Body", "purpose": "Default for forms, lists, toolbars, inspector." },
+      "label": { "displayName": "Label", "purpose": "Field labels, hints, metadata, status bar." },
+      "numeric": { "displayName": "Numeric", "purpose": "Aligned numeric readouts." }
+    },
+    "shadows": [
+      { "name": "floating-layer", "value": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)", "purpose": "Modal dialogs and menus only." }
+    ],
+    "motion": [],
+    "breakpoints": [
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    { "name": "Primary Button", "kind": "button", "refersTo": "button-primary", "description": "One per form or toolbar.", "html": "<button class=\"ds-btn-primary\">Enregistrer</button>", "css": ".ds-btn-primary{background:#4f46e5;color:#fff;font:500 14px/20px ui-sans-serif,system-ui,sans-serif;border:0;border-radius:8px;padding:8px 16px;cursor:pointer}.ds-btn-primary:hover{background:#4338ca}.ds-btn-primary:focus-visible{outline:2px solid #4f46e5;outline-offset:2px}" },
+    { "name": "Secondary Button", "kind": "button", "refersTo": "button-secondary", "description": "Inline add action inside a card.", "html": "<button class=\"ds-btn-secondary\">Ajouter une scie</button>", "css": ".ds-btn-secondary{background:#1e293b;color:#fff;font:400 14px/20px ui-sans-serif,system-ui,sans-serif;border:0;border-radius:8px;padding:6px 12px;cursor:pointer}.ds-btn-secondary:hover{background:#0f172a}.ds-btn-secondary:focus-visible{outline:2px solid #4f46e5;outline-offset:2px}" },
+    { "name": "Outline Button", "kind": "button", "refersTo": "button-outline", "description": "Editor toolbar actions.", "html": "<button class=\"ds-btn-outline\">Exporter DXF</button>", "css": ".ds-btn-outline{background:#fff;color:#334155;font:400 14px/20px ui-sans-serif,system-ui,sans-serif;border:1px solid #cbd5e1;border-radius:4px;padding:4px 8px;cursor:pointer}.ds-btn-outline:hover{background:#f8fafc}.ds-btn-outline:focus-visible{outline:2px solid #4f46e5;outline-offset:2px}" },
+    { "name": "Text Field", "kind": "input", "refersTo": "input-field", "description": "Labelled form field.", "html": "<label class=\"ds-field\"><span>Longueur (mm)</span><input value=\"1000\"></label>", "css": ".ds-field{display:flex;flex-direction:column;gap:4px;font:400 12px/16px ui-sans-serif,system-ui,sans-serif;color:#64748b}.ds-field input{background:#fff;color:#0f172a;font-size:14px;border:1px solid #cbd5e1;border-radius:8px;padding:8px 12px}.ds-field input:focus-visible{outline:none;border-color:#818cf8;box-shadow:0 0 0 2px #e0e7ff}" },
+    { "name": "Card", "kind": "card", "refersTo": "card", "description": "Flat sheet on the bench.", "html": "<div class=\"ds-card\"><strong>1095 High Carbon Steel Bar</strong><span class=\"ds-tag\">démo</span><p>Stock : 5000 mm</p></div>", "css": ".ds-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;font:400 14px/20px ui-sans-serif,system-ui,sans-serif;color:#334155}.ds-card strong{color:#0f172a;font-weight:600}.ds-card p{margin:8px 0 0}.ds-tag{margin-left:8px;font-size:12px;color:#94a3b8;background:#f1f5f9;border-radius:4px;padding:2px 6px}" },
+    { "name": "Navigation", "kind": "nav", "refersTo": "nav", "description": "Top bar.", "html": "<nav class=\"ds-nav\"><b>KnifeForge</b><a class=\"on\">Matériaux</a><a>Commandes</a><a>Gabarits</a></nav>", "css": ".ds-nav{display:flex;gap:24px;align-items:center;background:#fff;border-bottom:1px solid #e2e8f0;padding:16px 24px;font:400 14px/20px ui-sans-serif,system-ui,sans-serif}.ds-nav b{font-size:18px;color:#0f172a}.ds-nav a{color:#475569;cursor:pointer}.ds-nav a:hover{color:#0f172a}.ds-nav a.on{color:#4f46e5;font-weight:500}" }
+  ],
+  "narrative": {
+    "northStar": "Le carnet du coutelier",
+    "overview": "KnifeForge Pro should feel like a knifemaker's workshop notebook: a technical record kept by a craftsman. The notebook is technical first: numbers, drawings and dimensions are always legible, aligned and unambiguous. The artisan warmth lives at the edges. The current implementation is the notebook's sober base: a neutral cool-slate interface on stock Tailwind values, with flat white cards and one provisional indigo accent.",
+    "keyCharacteristics": ["Flat white sheets on a pale bench, separated by hairline borders, never by shadows.", "One action accent (indigo, provisional), used for primary actions, active navigation and selection.", "Small type (14 px body, 12 px labels).", "Colour on the drawing is semantic: each layer role has a fixed stroke colour and dash pattern.", "System fonts throughout."],
+    "rules": [
+      { "name": "The Layer Colour Is Meaning Rule", "body": "On the drawing and client plan, a stroke's colour and dash identify its layer role. Never reuse them decoratively.", "section": "colors" },
+      { "name": "The One Accent Rule", "body": "Indigo is the only accent. Status colours speak only for state.", "section": "colors" },
+      { "name": "The Small And Exact Rule", "body": "Body 14 px, labels 12 px, never below 12 px. Dimensions are never truncated or rounded for display beyond their stored precision.", "section": "typography" },
+      { "name": "The Flat Sheet Rule", "body": "Nothing in the page flow casts a shadow; only dialogs and menus do. Use a hairline border to separate.", "section": "elevation" }
+    ],
+    "dos": ["Do separate surfaces with the 1 px Hairline border on white Paper over the Bench.", "Do keep one primary indigo button per form or toolbar.", "Do put labels above fields in 12 px Slate Muted, with 8 px as the default gap.", "Do respect the layer colour code on the drawing and the client plan.", "Do bring the carnet warmth through voice, material naming and notes first."],
+    "donts": ["Don't add shadows to cards, panels, buttons or inputs.", "Don't introduce a second accent colour, or use red, green or amber decoratively.", "Don't reuse layer colours for interface chrome inside the editor.", "Don't set any text below 12 px, and never display a dimension rounded beyond its stored precision.", "Don't treat the indigo as a brand commitment."]
+  }
+}

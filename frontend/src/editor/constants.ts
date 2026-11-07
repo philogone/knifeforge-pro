@@ -5,7 +5,7 @@ export const MM_PER_INCH = 25.4;
 export const PX_PER_MM_CSS = 96 / MM_PER_INCH;
 
 export const ROLE_STYLE: Record<LayerRole, { stroke: string; fill: string | null; dash: number[] | null; width: number }> = {
-  cut: { stroke: "#0f172a", fill: "rgba(99,102,241,0.14)", dash: null, width: 1.4 },
+  cut: { stroke: "#0f172a", fill: "rgba(100,116,139,0.12)", dash: null, width: 1.4 },
   hole: { stroke: "#dc2626", fill: "rgba(255,255,255,0.92)", dash: null, width: 1.4 },
   engrave: { stroke: "#2563eb", fill: null, dash: null, width: 1.2 },
   // dash-dot, the drawing convention for a grind line
@@ -14,7 +14,7 @@ export const ROLE_STYLE: Record<LayerRole, { stroke: string; fill: string | null
   dimension: { stroke: "#334155", fill: null, dash: null, width: 1 },
 };
 
-export const UI_COLOR = "#4f46e5";
+export const UI_COLOR = "#4d5a1c";
 
 export function defaultLayers(): DocLayer[] {
   return [

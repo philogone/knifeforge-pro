@@ -215,17 +215,33 @@ def collect_items(
 class NestingCandidates:
     orders: list[dict]
     designs: list[Design]
+    # order lines whose knife model uses this material but has no design for it:
+    # their parts cannot be nested until a design is linked to model + material
+    unlinked: list[dict]
 
 
 def list_candidates(db: Session, material_id: int) -> NestingCandidates:
     designs = db.query(Design).filter(Design.material_id == material_id).order_by(Design.name).all()
     orders_out: list[dict] = []
+    unlinked: list[dict] = []
     for order in _orders_to_use(db, None):
         full = load_order_with_relations(db, order.id)
         count = 0
         for line in full.lines:
-            for design in (d for d in designs if d.knife_model_id == line.knife_model_id):
+            linked = [d for d in designs if d.knife_model_id == line.knife_model_id]
+            for design in linked:
                 count += design.part_count * line.quantity
+            uses_material = any(m.material_id == material_id for m in line.knife_model.materials)
+            if uses_material and not linked:
+                unlinked.append(
+                    {
+                        "order_id": order.id,
+                        "customer_name": order.customer_name,
+                        "knife_model_id": line.knife_model_id,
+                        "knife_model_name": line.knife_model.name,
+                        "quantity": line.quantity,
+                    }
+                )
         if count:
             orders_out.append(
                 {
@@ -235,7 +251,7 @@ def list_candidates(db: Session, material_id: int) -> NestingCandidates:
                     "part_count": count,
                 }
             )
-    return NestingCandidates(orders=orders_out, designs=designs)
+    return NestingCandidates(orders=orders_out, designs=designs, unlinked=unlinked)
 
 
 # ---------------------------------------------------------------------------

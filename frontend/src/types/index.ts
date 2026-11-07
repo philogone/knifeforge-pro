@@ -319,4 +319,6 @@ export interface NestingResult {
 export interface NestingCandidates {
   orders: { order_id: number; customer_name: string; status: string; part_count: number }[];
   designs: { id: number; name: string; part_count: number; knife_model_name: string | null }[];
+  /** order lines whose model uses this material but has no template for it */
+  unlinked: { order_id: number; customer_name: string; knife_model_id: number; knife_model_name: string; quantity: number }[];
 }

@@ -59,15 +59,19 @@ async function submit() {
       Object.assign(form, emptyForm());
     }
   } catch (err) {
-    formError.value = err instanceof ApiError ? err.message : "Failed";
+    formError.value = err instanceof ApiError ? err.message : t("common.error");
   }
 }
 
-async function remove(id: number) {
+const deleteError = ref("");
+
+async function remove(id: number, name: string) {
+  if (!confirm(t("common.confirmDeleteNamed", { name }))) return;
+  deleteError.value = "";
   try {
     await store.deleteTreatmentRecipe(id);
   } catch (err) {
-    alert(err instanceof ApiError ? err.message : "Failed to delete recipe");
+    deleteError.value = err instanceof ApiError ? err.message : t("common.deleteFailed");
   }
 }
 </script>
@@ -75,6 +79,7 @@ async function remove(id: number) {
 <template>
   <div class="max-w-4xl mx-auto px-4 py-8">
     <h1 class="text-2xl font-bold text-slate-900 mb-1">{{ t("treatments.title") }}</h1>
+    <p v-if="deleteError" role="alert" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ deleteError }}</p>
     <p class="text-sm text-slate-500 mb-6">{{ t("treatments.subtitle") }}</p>
 
     <div class="bg-white rounded-xl border border-slate-200 p-4 mb-8">
@@ -92,7 +97,7 @@ async function remove(id: number) {
         <div>
           <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium text-slate-700">{{ t("treatments.steps") }}</span>
-            <button type="button" class="text-sm text-indigo-600" @click="addStep">{{ t("treatments.addStep") }}</button>
+            <button type="button" class="text-sm text-accent-600" @click="addStep">{{ t("treatments.addStep") }}</button>
           </div>
           <div v-for="(step, i) in form.steps" :key="i" class="grid grid-cols-12 gap-2 mb-2 items-center">
             <input v-model.number="step.step_order" type="number" class="col-span-1 rounded-lg border border-slate-300 px-2 py-1 text-sm" />
@@ -106,7 +111,7 @@ async function remove(id: number) {
 
         <p v-if="formError" class="text-sm text-red-600">{{ formError }}</p>
         <div class="flex gap-2">
-          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg px-4 py-2">
+          <button type="submit" class="bg-accent-600 hover:bg-accent-700 text-white text-sm font-medium rounded-lg px-4 py-2">
             {{ editingId ? t("common.saveChanges") : t("treatments.saveRecipe") }}
           </button>
           <button v-if="editingId" type="button" class="text-sm text-slate-500 px-4 py-2" @click="cancelEdit">{{ t("common.cancel") }}</button>
@@ -119,19 +124,19 @@ async function remove(id: number) {
         <div class="flex items-center justify-between">
           <div>
             <span class="font-medium text-slate-900">{{ r.name }}</span>
-            <span v-if="r.is_mock" class="ml-2 text-xs text-slate-400 bg-slate-100 rounded px-1.5 py-0.5">{{ t("common.demo") }}</span>
-            <span class="ml-2 text-xs text-slate-500 bg-indigo-50 text-indigo-700 rounded px-1.5 py-0.5">{{ t(`treatments.type.${r.treatment_type}`) }}</span>
+            <span v-if="r.is_mock" class="ml-2 text-xs text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">{{ t("common.demo") }}</span>
+            <span class="ml-2 text-xs text-slate-500 bg-accent-50 text-accent-700 rounded px-1.5 py-0.5">{{ t(`treatments.type.${r.treatment_type}`) }}</span>
           </div>
           <div class="flex gap-3">
-            <button class="text-sm text-indigo-600" @click="startEdit(r)">{{ t("common.edit") }}</button>
-            <button class="text-sm text-red-600" @click="remove(r.id)">{{ t("common.delete") }}</button>
+            <button class="text-sm text-accent-600" @click="startEdit(r)">{{ t("common.edit") }}</button>
+            <button class="text-sm text-red-600" @click="remove(r.id, r.name)">{{ t("common.delete") }}</button>
           </div>
         </div>
         <p class="text-sm text-slate-500 mt-1">{{ r.applies_to }}</p>
         <ol class="mt-2 space-y-1 text-sm text-slate-700 list-decimal list-inside">
           <li v-for="s in r.steps" :key="s.id">
             {{ s.description }}
-            <span class="text-slate-400">
+            <span class="text-slate-500">
               <template v-if="s.temperature_c !== null">— {{ s.temperature_c }}°C</template>
               <template v-if="s.duration_minutes !== null">, {{ s.duration_minutes }} min</template>
               <template v-if="s.medium">, {{ s.medium }}</template>

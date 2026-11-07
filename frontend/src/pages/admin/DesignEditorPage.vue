@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from "vue";
 import { onBeforeRouteLeave, useRoute } from "vue-router";
 
+import EditorIcon, { type EditorIconName } from "@/components/EditorIcon.vue";
 import { ApiError, saveBlob } from "@/composables/useApi";
 import { useSnapshotDirty } from "@/composables/useSnapshotDirty";
 import { initialPlacement, loadImageFile, mmPerPixel, type BackgroundState, type Straighten } from "@/editor/background";
@@ -18,25 +19,13 @@ import { useI18n } from "@/i18n";
 import { useAppStore } from "@/stores/app.store";
 import type { Design, DesignKind, DesignSummary } from "@/types";
 
-const { t } = useI18n();
+const { t, num } = useI18n();
 const store = useAppStore();
 const route = useRoute();
 
 const kinds: DesignKind[] = ["blade", "handle_scale", "guard", "bolster", "sheath", "template", "other"];
 const roles: LayerRole[] = ["cut", "hole", "engrave", "grind", "construction", "dimension"];
-const tools: { name: ToolName; icon: string }[] = [
-  { name: "select", icon: "↖" },
-  { name: "node", icon: "◇" },
-  { name: "pen", icon: "✒" },
-  { name: "rect", icon: "▭" },
-  { name: "ellipse", icon: "◯" },
-  { name: "line", icon: "∕" },
-  { name: "polygon", icon: "⬡" },
-  { name: "arc", icon: "◠" },
-  { name: "dimension", icon: "↔" },
-  { name: "measure", icon: "📏" },
-  { name: "pan", icon: "✋" },
-];
+const tools: (ToolName & EditorIconName)[] = ["select", "node", "pen", "rect", "ellipse", "line", "polygon", "arc", "dimension", "measure", "pan"];
 const alignKinds: AlignKind[] = ["left", "centerH", "right", "top", "middleV", "bottom"];
 const booleanOps: BooleanOp[] = ["unite", "subtract", "intersect", "exclude"];
 
@@ -292,7 +281,7 @@ async function load() {
     engine.value?.setBackground(d.background ? { ...d.background } : null);
     markBgClean();
   } catch (err) {
-    loadError.value = err instanceof ApiError ? err.message : "Failed";
+    loadError.value = err instanceof ApiError ? err.message : t("common.error");
   }
 }
 
@@ -390,6 +379,12 @@ async function exportFile(kind: "export.svg" | "export.dxf") {
 
 // ------------------------------------------------------------------ import
 const fileInput = ref<HTMLInputElement | null>(null);
+const exportMenu = ref<HTMLDetailsElement | null>(null);
+
+function exportFrom(kind: "export.svg" | "export.dxf") {
+  if (exportMenu.value) exportMenu.value.open = false;
+  void exportFile(kind);
+}
 async function onImport(ev: Event) {
   const input = ev.target as HTMLInputElement;
   const file = input.files?.[0];
@@ -985,22 +980,39 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         <router-link to="/designs" class="text-slate-500 hover:text-slate-900">← {{ t("editor.back") }}</router-link>
         <input
           v-model="meta.name"
-          class="font-semibold text-slate-900 border border-transparent hover:border-slate-300 focus:border-indigo-400 rounded px-2 py-1 w-56"
+          :aria-label="t('common.name')"
+          class="font-semibold text-slate-900 border border-transparent hover:border-slate-300 focus:border-accent-500 rounded px-2 py-1 w-56"
         />
-        <span v-if="unsaved" class="text-amber-600 text-xs">● {{ t("editor.unsaved") }}</span>
-        <span v-else class="text-emerald-600 text-xs">✓ {{ t("editor.saved") }}</span>
+        <span v-if="unsaved" class="text-amber-700 text-xs">● {{ t("editor.unsaved") }}</span>
+        <span v-else class="text-green-700 text-xs">✓ {{ t("editor.saved") }}</span>
+        <!-- the link the nesting relies on: model + material, in plain sight -->
+        <select v-model.number="meta.knife_model_id" :aria-label="t('designs.knifeModel')" :title="t('designs.knifeModel')" class="max-w-40 border border-slate-300 rounded px-1.5 py-1 text-xs text-slate-700">
+          <option :value="0">{{ t("editor.noModel") }}</option>
+          <option v-for="m in store.knifeModels" :key="m.id" :value="m.id">{{ m.name }}</option>
+        </select>
+        <select v-model.number="meta.material_id" :aria-label="t('designs.material')" :title="t('designs.material')" class="max-w-40 border border-slate-300 rounded px-1.5 py-1 text-xs text-slate-700">
+          <option :value="0">{{ t("editor.noMaterial") }}</option>
+          <option v-for="m in store.materials" :key="m.id" :value="m.id">{{ m.name }}</option>
+        </select>
         <div class="flex-1"></div>
-        <button class="px-2 py-1 rounded border border-slate-300 disabled:opacity-40" :disabled="!canUndo" :title="t('editor.undo')" @click="engine?.undo()">↶</button>
-        <button class="px-2 py-1 rounded border border-slate-300 disabled:opacity-40" :disabled="!canRedo" :title="t('editor.redo')" @click="engine?.redo()">↷</button>
-        <button class="px-2 py-1 rounded border border-slate-300" :title="t('editor.fit')" @click="engine?.zoomToFit()">⤢</button>
-        <button class="px-2 py-1 rounded border border-slate-300" :title="t('editor.zoomActual')" @click="engine?.zoomActual()">1:1</button>
-        <button class="px-2 py-1 rounded border border-slate-300" @click="fileInput?.click()">{{ t("editor.importSvg") }}</button>
+        <button class="p-1.5 rounded border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-40" :disabled="!canUndo" :title="t('editor.undo')" :aria-label="t('editor.undo')" @click="engine?.undo()"><EditorIcon name="undo" :size="16" /></button>
+        <button class="p-1.5 rounded border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-40" :disabled="!canRedo" :title="t('editor.redo')" :aria-label="t('editor.redo')" @click="engine?.redo()"><EditorIcon name="redo" :size="16" /></button>
+        <button class="p-1.5 rounded border border-slate-300 text-slate-700 hover:bg-slate-50" :title="t('editor.fit')" :aria-label="t('editor.fit')" @click="engine?.zoomToFit()"><EditorIcon name="fit" :size="16" /></button>
+        <button class="px-2 py-1 rounded border border-slate-300 text-slate-700 hover:bg-slate-50 tabular-nums" :title="t('editor.zoomActual')" @click="engine?.zoomActual()">1:1</button>
+        <button class="px-2 py-1 rounded border border-slate-300 text-slate-700 hover:bg-slate-50" @click="fileInput?.click()">{{ t("editor.importSvg") }}</button>
         <input ref="fileInput" type="file" accept=".svg,image/svg+xml" class="hidden" @change="onImport" />
-        <button class="px-2 py-1 rounded border border-slate-300" @click="exportFile('export.svg')">{{ t("editor.exportSvg") }}</button>
-        <button class="px-2 py-1 rounded border border-slate-300" @click="exportFile('export.dxf')">{{ t("editor.exportDxf") }}</button>
-        <button class="px-2 py-1 rounded border border-slate-300" @click="openPlan">{{ t("editor.plan") }}</button>
+        <details ref="exportMenu" class="relative">
+          <summary class="list-none cursor-pointer select-none flex items-center gap-1 px-2 py-1 rounded border border-slate-300 text-slate-700 hover:bg-slate-50">
+            {{ t("editor.export") }} <EditorIcon name="chevron-down" :size="14" />
+          </summary>
+          <div class="absolute right-0 z-30 mt-1 w-44 bg-white border border-slate-200 rounded-lg shadow-lg py-1">
+            <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" @click="exportFrom('export.svg')">{{ t("editor.exportSvg") }}</button>
+            <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" @click="exportFrom('export.dxf')">{{ t("editor.exportDxf") }}</button>
+          </div>
+        </details>
+        <button class="px-2 py-1 rounded border border-slate-300 text-slate-700 hover:bg-slate-50" @click="openPlan">{{ t("editor.plan") }}</button>
         <button
-          class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium rounded-lg px-4 py-1.5"
+          class="bg-accent-600 hover:bg-accent-700 disabled:opacity-60 text-white font-medium rounded-lg px-4 py-1.5"
           :disabled="saving || !unsaved"
           @click="save"
         >
@@ -1019,13 +1031,13 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         </label>
         <label class="flex items-center gap-1"><input v-model="opts.showGrid" type="checkbox" /> {{ t("editor.showGrid") }}</label>
         <details class="relative">
-          <summary class="cursor-pointer select-none text-slate-700">🧲 {{ t("editor.snapMenu") }}</summary>
+          <summary class="cursor-pointer select-none text-slate-700 inline-flex items-center gap-1"><EditorIcon name="magnet" :size="14" /> {{ t("editor.snapMenu") }}</summary>
           <div class="absolute z-20 mt-1 w-72 bg-white border border-slate-200 rounded-lg shadow-lg p-3 space-y-1">
             <label v-for="k in snapKinds" :key="k" class="flex items-center gap-2"><input v-model="snapOpts[k]" type="checkbox" /> {{ t(`snap.opt.${k}`) }}</label>
             <label class="flex items-center gap-2 pt-1">{{ t("editor.snapRadius") }}
               <input v-model.number="opts.snapRadius" type="number" min="2" max="40" class="w-14 border border-slate-300 rounded px-1 py-0.5" />
             </label>
-            <p class="text-[11px] text-slate-400 pt-1">{{ t("snap.help") }}</p>
+            <p class="text-xs text-slate-500 pt-1">{{ t("snap.help") }}</p>
           </div>
         </details>
         <label v-if="tool === 'rect'" class="flex items-center gap-1">
@@ -1043,38 +1055,40 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <label v-if="symmetry.axis" class="flex items-center gap-1">{{ symmetry.axis === "x" ? "X =" : "Y =" }}
             <input v-model.number="symmetry.pos" type="number" step="any" class="w-16 border border-slate-300 rounded px-1 py-0.5" />
           </label>
-          <span v-if="drawing" class="flex items-center gap-1 bg-indigo-50 border border-indigo-200 rounded px-2 py-0.5">
+          <span v-if="drawing" class="flex items-center gap-1 bg-accent-50 border border-accent-200 rounded px-2 py-0.5">
             {{ t("num.length") }}
             <input ref="lengthInput" v-model.number="numeric.length" type="number" min="0" step="any" class="w-16 border border-slate-300 rounded px-1" @keydown.enter.prevent="applyNumeric" @keydown.esc.prevent="cancelNumeric" />
             {{ t("num.angle") }}
             <input v-model.number="numeric.angle" type="number" step="any" class="w-14 border border-slate-300 rounded px-1" @keydown.enter.prevent="applyNumeric" />
-            <button class="px-1.5 rounded bg-indigo-600 text-white" @click="applyNumeric">↵</button>
+            <button class="px-1.5 rounded bg-accent-600 text-white" @click="applyNumeric">↵</button>
           </span>
         </template>
         <label v-if="tool === 'polygon'" class="flex items-center gap-1">
           {{ t("editor.polygonSides") }}
           <input v-model.number="opts.polygonSides" type="number" min="3" max="64" class="w-16 border border-slate-300 rounded px-1 py-0.5" />
         </label>
-        <span v-if="activeLayerBlocked" class="text-amber-600">⚠ {{ t("editor.layerLockedHint") }}</span>
+        <span v-if="activeLayerBlocked" class="inline-flex items-center gap-1 text-amber-700"><EditorIcon name="warning" :size="14" /> {{ t("editor.layerLockedHint") }}</span>
       </div>
 
       <div class="flex-1 flex min-h-0">
         <!-- toolbar -->
         <div class="w-12 bg-white border-r border-slate-200 flex flex-col items-center py-2 gap-1">
           <button
-            v-for="tl in tools"
-            :key="tl.name"
-            class="w-9 h-9 rounded-lg text-lg flex items-center justify-center"
-            :class="tool === tl.name ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
-            :title="toolLabel(tl.name)"
-            @click="engine?.setTool(tl.name)"
+            v-for="name in tools"
+            :key="name"
+            class="w-9 h-9 rounded-lg flex items-center justify-center"
+            :class="tool === name ? 'bg-accent-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
+            :title="toolLabel(name)"
+            :aria-label="toolLabel(name)"
+            :aria-pressed="tool === name"
+            @click="engine?.setTool(name)"
           >
-            {{ tl.icon }}
+            <EditorIcon :name="name" />
           </button>
           <div class="w-7 border-t border-slate-200 my-1"></div>
-          <button class="w-9 h-9 rounded-lg text-lg text-slate-600 hover:bg-slate-100" :title="t('library.title')" @click="openLibrary">❖</button>
-          <button class="w-9 h-9 rounded-lg text-lg text-slate-600 hover:bg-slate-100" :title="t('holes.title')" @click="openHoles">⦾</button>
-          <button class="w-9 h-9 rounded-lg text-lg font-serif text-slate-600 hover:bg-slate-100" :title="t('text.title')" @click="openText">T</button>
+          <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('library.title')" :aria-label="t('library.title')" @click="openLibrary"><EditorIcon name="library" /></button>
+          <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('holes.title')" :aria-label="t('holes.title')" @click="openHoles"><EditorIcon name="holes" /></button>
+          <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('text.title')" :aria-label="t('text.title')" @click="openText"><EditorIcon name="text" /></button>
         </div>
 
         <!-- canvas stack -->
@@ -1095,7 +1109,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
               v-for="id in ['object', 'layers', 'background', 'document'] as const"
               :key="id"
               class="flex-1 py-2"
-              :class="tab === id ? 'border-b-2 border-indigo-600 text-indigo-600 font-medium' : 'text-slate-500'"
+              :class="tab === id ? 'border-b-2 border-accent-600 text-accent-600 font-medium' : 'text-slate-500'"
               @click="tab = id"
             >
               {{ t(`editor.tab.${id}`) }}
@@ -1180,7 +1194,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                     <button class="px-1 py-1 rounded border border-slate-300 text-xs" @click="engine?.combine()">{{ t("editor.combine") }}</button>
                     <button class="px-1 py-1 rounded border border-slate-300 text-xs" @click="engine?.breakApart()">{{ t("editor.breakApart") }}</button>
                   </div>
-                  <p class="text-[11px] text-slate-400 mt-1">{{ t("editor.booleanHelp") }}</p>
+                  <p class="text-[11px] text-slate-500 mt-1">{{ t("editor.booleanHelp") }}</p>
                 </div>
 
                 <div v-if="sel.path" class="bg-slate-50 rounded-lg p-2 text-xs text-slate-600 space-y-0.5">
@@ -1204,7 +1218,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                     </select>
                   </label>
                   <label class="text-xs text-slate-500 flex items-center gap-1"><input v-model="offsetForm.keep" type="checkbox" /> {{ t("editor.offsetKeep") }}</label>
-                  <button class="w-full px-2 py-1 rounded border border-indigo-300 text-indigo-700 bg-indigo-50" @click="applyOffset">{{ t("editor.offsetApply") }}</button>
+                  <button class="w-full px-2 py-1 rounded border border-accent-300 text-accent-700 bg-accent-50" @click="applyOffset">{{ t("editor.offsetApply") }}</button>
                 </div>
 
                 <div v-if="sel.dimension" class="space-y-2">
@@ -1244,7 +1258,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                     <button class="flex-1 px-1 py-1 rounded border border-slate-300 text-xs" @click="roundCorners('fillet')">◜ {{ t("corner.fillet") }}</button>
                     <button class="flex-1 px-1 py-1 rounded border border-slate-300 text-xs" @click="roundCorners('chamfer')">◸ {{ t("corner.chamfer") }}</button>
                   </div>
-                  <p class="text-[11px] text-slate-400">{{ t("corner.help") }}</p>
+                  <p class="text-[11px] text-slate-500">{{ t("corner.help") }}</p>
                 </div>
               </div>
             </template>
@@ -1257,13 +1271,13 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                   v-for="(l, i) in [...layers].reverse()"
                   :key="l.id"
                   class="border rounded-lg p-2 space-y-1"
-                  :class="l.id === activeLayerId ? 'border-indigo-400 bg-indigo-50/40' : 'border-slate-200'"
+                  :class="l.id === activeLayerId ? 'border-accent-400 bg-accent-50/40' : 'border-slate-200'"
                 >
                   <div class="flex items-center gap-1">
                     <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ background: roleColor(l.role) }"></span>
                     <input :value="l.name" class="flex-1 min-w-0 border border-transparent hover:border-slate-300 rounded px-1 py-0.5" @change="patchLayer(l, { name: ($event.target as HTMLInputElement).value })" />
-                    <button :title="t('editor.layerVisible')" class="px-1" :class="l.visible ? 'text-slate-700' : 'text-slate-300'" @click="patchLayer(l, { visible: !l.visible })">👁</button>
-                    <button :title="t('editor.layerLocked')" class="px-1" :class="l.locked ? 'text-amber-600' : 'text-slate-300'" @click="patchLayer(l, { locked: !l.locked })">🔒</button>
+                    <button :title="t('editor.layerVisible')" :aria-label="t('editor.layerVisible')" :aria-pressed="l.visible" class="p-0.5 rounded hover:bg-slate-100" :class="l.visible ? 'text-slate-700' : 'text-slate-400'" @click="patchLayer(l, { visible: !l.visible })"><EditorIcon :name="l.visible ? 'eye' : 'eye-off'" :size="16" /></button>
+                    <button :title="t('editor.layerLocked')" :aria-label="t('editor.layerLocked')" :aria-pressed="l.locked" class="p-0.5 rounded hover:bg-slate-100" :class="l.locked ? 'text-slate-800' : 'text-slate-400'" @click="patchLayer(l, { locked: !l.locked })"><EditorIcon :name="l.locked ? 'lock' : 'unlock'" :size="16" /></button>
                   </div>
                   <div class="flex items-center gap-1">
                     <select :value="l.role" class="flex-1 min-w-0 border border-slate-300 rounded px-1 py-0.5 text-xs" @change="patchLayer(l, { role: ($event.target as HTMLSelectElement).value as LayerRole })">
@@ -1271,9 +1285,9 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                     </select>
                     <button class="px-1 text-xs" :title="t('editor.layerUp')" :disabled="i === 0" @click="moveLayer(l, 1)">▲</button>
                     <button class="px-1 text-xs" :title="t('editor.layerDown')" :disabled="i === layers.length - 1" @click="moveLayer(l, -1)">▼</button>
-                    <button class="px-1 text-xs text-red-600" :title="t('editor.layerDelete')" :disabled="layers.length <= 1" @click="removeLayer(l)">✕</button>
+                    <button class="p-0.5 rounded text-slate-400 hover:text-red-700 hover:bg-slate-100 disabled:opacity-30" :title="t('editor.layerDelete')" :aria-label="t('editor.layerDelete')" :disabled="layers.length <= 1" @click="removeLayer(l)"><EditorIcon name="close" :size="14" /></button>
                   </div>
-                  <button class="text-xs" :class="l.id === activeLayerId ? 'text-indigo-700 font-medium' : 'text-slate-500'" @click="setActive(l)">
+                  <button class="text-xs" :class="l.id === activeLayerId ? 'text-accent-700 font-medium' : 'text-slate-500'" @click="setActive(l)">
                     {{ l.id === activeLayerId ? "● " : "○ " }}{{ t("editor.layerActive") }}
                   </button>
                 </div>
@@ -1286,7 +1300,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
               <p class="text-xs font-medium text-slate-700">{{ t("bg.title") }}</p>
               <p class="text-xs text-slate-500">{{ t("bg.intro") }}</p>
               <template v-if="!bg">
-                <button class="w-full px-2 py-1.5 rounded-lg bg-indigo-600 text-white" @click="pickBackground">{{ t("bg.import") }}</button>
+                <button class="w-full px-2 py-1.5 rounded-lg bg-accent-600 text-white" @click="pickBackground">{{ t("bg.import") }}</button>
               </template>
               <template v-else>
                 <div class="flex items-center gap-3 text-xs">
@@ -1353,20 +1367,20 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
               </div>
               <div v-if="design" class="bg-slate-50 rounded-lg p-2 text-xs text-slate-600 space-y-0.5">
                 <p class="font-medium text-slate-700">{{ t("editor.docMetrics") }}</p>
-                <p>{{ design.width_mm.toFixed(1) }} × {{ design.height_mm.toFixed(1) }} mm</p>
-                <p>{{ t("editor.area") }} : {{ (design.area_mm2 / 100).toFixed(2) }} cm²</p>
-                <p>{{ t("editor.perimeter") }} : {{ design.perimeter_mm.toFixed(1) }} mm</p>
+                <p>{{ num(design.width_mm) }} × {{ num(design.height_mm) }} mm</p>
+                <p>{{ t("editor.area") }} : {{ num(design.area_mm2 / 100, 2) }} cm²</p>
+                <p>{{ t("editor.perimeter") }} : {{ num(design.perimeter_mm) }} mm</p>
                 <p>{{ t("editor.docParts") }} : {{ design.part_count }}</p>
-                <p class="text-slate-400">{{ t("editor.docMetricsHint") }}</p>
+                <p class="text-slate-500">{{ t("editor.docMetricsHint") }}</p>
               </div>
               <div class="space-y-2 border-t border-slate-100 pt-3">
                 <p class="text-xs font-medium text-slate-700">{{ t("guides.title") }}</p>
-                <p class="text-[11px] text-slate-400">{{ t("guides.help") }}</p>
+                <p class="text-[11px] text-slate-500">{{ t("guides.help") }}</p>
                 <p v-if="!guides.length" class="text-xs text-slate-500">{{ t("guides.none") }}</p>
                 <div v-for="(g, i) in guides" :key="i" class="flex items-center gap-1 text-xs">
                   <span class="w-28 text-slate-500">{{ g.axis === "x" ? t("guides.vertical") : t("guides.horizontal") }}</span>
                   <input :value="g.pos" type="number" step="any" class="flex-1 min-w-0 border border-slate-300 rounded px-1 py-0.5" @change="setGuidePos(i, $event)" />
-                  <button class="px-1 text-red-600" @click="engine?.removeGuide(i)">✕</button>
+                  <button class="p-0.5 rounded text-slate-400 hover:text-red-700 hover:bg-slate-100" :aria-label="t('common.delete')" @click="engine?.removeGuide(i)"><EditorIcon name="close" :size="14" /></button>
                 </div>
                 <div class="grid grid-cols-2 gap-1 text-xs">
                   <input v-model.number="guideForm.x" type="number" step="any" class="border border-slate-300 rounded px-1 py-0.5" />
@@ -1388,8 +1402,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
       <!-- status bar -->
       <div class="bg-white border-t border-slate-200 px-3 py-1 text-xs text-slate-500 flex items-center gap-4">
         <span class="flex-1 truncate">{{ hintText }}</span>
-        <span v-if="valueHint" class="font-mono text-indigo-600">{{ valueHint }}</span>
-        <span v-if="status" :class="statusIsError ? 'text-red-600' : 'text-emerald-600'">{{ status }}</span>
+        <span v-if="valueHint" class="font-mono text-accent-600">{{ valueHint }}</span>
+        <span v-if="status" :class="statusIsError ? 'text-red-600' : 'text-green-700'">{{ status }}</span>
         <span>{{ t("editor.cursor") }} : {{ cursorText }}</span>
         <span>{{ t("editor.zoom") }} : {{ zoomPct }} %</span>
       </div>
@@ -1401,25 +1415,25 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         <div class="flex items-center gap-3">
           <h2 class="font-semibold text-slate-900 flex-1">{{ t("library.title") }}</h2>
           <div class="flex rounded-lg border border-slate-300 overflow-hidden text-xs">
-            <button v-for="src in (['shapes', 'designs'] as const)" :key="src" type="button" class="px-2 py-1" :class="library.source === src ? 'bg-indigo-600 text-white' : 'text-slate-600'" @click="library.source = src; centreLibraryPlacement()">{{ t(`library.${src}`) }}</button>
+            <button v-for="src in (['shapes', 'designs'] as const)" :key="src" type="button" class="px-2 py-1" :class="library.source === src ? 'bg-accent-600 text-white' : 'text-slate-600'" @click="library.source = src; centreLibraryPlacement()">{{ t(`library.${src}`) }}</button>
           </div>
         </div>
         <div class="grid grid-cols-[11rem_1fr] gap-3">
           <div class="space-y-1 max-h-80 overflow-y-auto">
             <template v-if="library.source === 'shapes'">
-              <button v-for="d in SHAPES" :key="d.key" type="button" class="w-full text-left px-2 py-1 rounded" :class="library.shape === d.key ? 'bg-indigo-50 text-indigo-700 font-medium' : 'hover:bg-slate-50'" @click="library.shape = d.key; centreLibraryPlacement()">{{ t(d.label) }}</button>
+              <button v-for="d in SHAPES" :key="d.key" type="button" class="w-full text-left px-2 py-1 rounded" :class="library.shape === d.key ? 'bg-accent-50 text-accent-700 font-medium' : 'hover:bg-slate-50'" @click="library.shape = d.key; centreLibraryPlacement()">{{ t(d.label) }}</button>
             </template>
             <template v-else>
-              <p v-if="!library.designs.length" class="text-xs text-slate-400">{{ t("library.noDesigns") }}</p>
-              <button v-for="d in library.designs" :key="d.id" type="button" class="w-full text-left px-2 py-1 rounded" :class="library.designId === d.id ? 'bg-indigo-50 text-indigo-700 font-medium' : 'hover:bg-slate-50'" @click="pickLibraryDesign(d.id)">
-                {{ d.name }}<span class="block text-[11px] text-slate-400">{{ t(`designs.kind.${d.kind}`) }} · {{ formatMm(d.width_mm) }} × {{ formatMm(d.height_mm) }} mm</span>
+              <p v-if="!library.designs.length" class="text-xs text-slate-500">{{ t("library.noDesigns") }}</p>
+              <button v-for="d in library.designs" :key="d.id" type="button" class="w-full text-left px-2 py-1 rounded" :class="library.designId === d.id ? 'bg-accent-50 text-accent-700 font-medium' : 'hover:bg-slate-50'" @click="pickLibraryDesign(d.id)">
+                {{ d.name }}<span class="block text-[11px] text-slate-500">{{ t(`designs.kind.${d.kind}`) }} · {{ formatMm(d.width_mm) }} × {{ formatMm(d.height_mm) }} mm</span>
               </button>
             </template>
           </div>
           <div class="space-y-2">
             <div class="h-40 rounded-lg bg-slate-50 border border-slate-200 p-2 [&>svg]:w-full [&>svg]:h-full" v-html="libraryPreview"></div>
             <p v-if="librarySize" class="text-xs text-slate-500">{{ t("library.size", { w: formatMm(librarySize.w), h: formatMm(librarySize.h) }) }}</p>
-            <p v-else-if="library.source === 'designs'" class="text-xs text-slate-400">{{ library.loading ? t("library.loading") : t("library.pick") }}</p>
+            <p v-else-if="library.source === 'designs'" class="text-xs text-slate-500">{{ library.loading ? t("library.loading") : t("library.pick") }}</p>
             <div v-if="library.source === 'shapes'" class="grid grid-cols-2 gap-2">
               <label v-for="p in currentShape.params" :key="p.key" class="text-xs text-slate-500">{{ t(p.label) }}
                 <input v-model.number="shapeValues(currentShape.key)[p.key]" type="number" :min="p.min" :max="p.max" :step="p.integer ? 1 : 'any'" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
@@ -1429,12 +1443,12 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
               <label class="text-xs text-slate-500">{{ t("library.x") }}<input v-model.number="library.x" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
               <label class="text-xs text-slate-500">{{ t("library.y") }}<input v-model.number="library.y" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
             </div>
-            <p class="text-[11px] text-slate-400">{{ t("library.help") }}</p>
+            <p class="text-[11px] text-slate-500">{{ t("library.help") }}</p>
           </div>
         </div>
         <div class="flex gap-2 justify-end">
           <button type="button" class="px-3 py-1.5 rounded border border-slate-300" @click="library.open = false">{{ t("common.cancel") }}</button>
-          <button type="submit" class="px-3 py-1.5 rounded bg-indigo-600 text-white disabled:opacity-50" :disabled="!libraryParts.length">{{ t("library.insert") }}</button>
+          <button type="submit" class="px-3 py-1.5 rounded bg-accent-600 text-white disabled:opacity-50" :disabled="!libraryParts.length">{{ t("library.insert") }}</button>
         </div>
       </form>
     </div>
@@ -1448,7 +1462,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <datalist id="hole-sizes"><option v-for="h in STANDARD_HOLES_MM" :key="h.d" :value="h.d">{{ h.label }}</option></datalist>
         </label>
         <div class="flex flex-wrap gap-1">
-          <button v-for="h in STANDARD_HOLES_MM" :key="h.d" type="button" class="px-1.5 py-0.5 rounded border text-xs" :class="holes.diameter === h.d ? 'border-indigo-500 bg-indigo-50' : 'border-slate-300'" @click="holes.diameter = h.d">{{ h.label }}</button>
+          <button v-for="h in STANDARD_HOLES_MM" :key="h.d" type="button" class="px-1.5 py-0.5 rounded border text-xs" :class="holes.diameter === h.d ? 'border-accent-500 bg-accent-50' : 'border-slate-300'" @click="holes.diameter = h.d">{{ h.label }}</button>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <label class="text-xs text-slate-500">{{ t("holes.x") }}<input v-model.number="holes.x" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
@@ -1457,10 +1471,10 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <label class="text-xs text-slate-500">{{ t("holes.pitch") }}<input v-model.number="holes.pitch" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
           <label class="text-xs text-slate-500 col-span-2">{{ t("holes.angle") }}<input v-model.number="holes.angle" type="number" step="any" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
         </div>
-        <p class="text-[11px] text-slate-400">{{ t("holes.help") }}</p>
+        <p class="text-[11px] text-slate-500">{{ t("holes.help") }}</p>
         <div class="flex gap-2 justify-end">
           <button type="button" class="px-3 py-1.5 rounded border border-slate-300" @click="holes.open = false">{{ t("common.cancel") }}</button>
-          <button type="submit" class="px-3 py-1.5 rounded bg-indigo-600 text-white">{{ t("holes.add") }}</button>
+          <button type="submit" class="px-3 py-1.5 rounded bg-accent-600 text-white">{{ t("holes.add") }}</button>
         </div>
       </form>
     </div>
@@ -1485,14 +1499,14 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
             <option v-if="textForm.customName" value="custom">{{ textForm.customName }}</option>
           </select>
         </label>
-        <label class="block text-xs text-indigo-700 cursor-pointer">+ {{ t("text.ownFont") }}
+        <label class="block text-xs text-accent-700 cursor-pointer">+ {{ t("text.ownFont") }}
           <input type="file" accept=".ttf,.otf,.woff,font/ttf,font/otf,font/woff" class="hidden" @change="onFontFile" />
         </label>
-        <p class="text-[11px] text-slate-400">{{ t("text.help") }}</p>
+        <p class="text-[11px] text-slate-500">{{ t("text.help") }}</p>
         <p v-if="textForm.error" class="text-xs text-red-600">{{ textForm.error }}</p>
         <div class="flex gap-2 justify-end">
           <button type="button" class="px-3 py-1.5 rounded border border-slate-300" @click="textForm.open = false">{{ t("common.cancel") }}</button>
-          <button type="submit" class="px-3 py-1.5 rounded bg-indigo-600 text-white" :disabled="textForm.busy">{{ t("text.add") }}</button>
+          <button type="submit" class="px-3 py-1.5 rounded bg-accent-600 text-white" :disabled="textForm.busy">{{ t("text.add") }}</button>
         </div>
       </form>
     </div>
@@ -1522,7 +1536,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         <p v-if="persp.error" class="text-xs text-red-600">{{ persp.error }}</p>
         <div class="flex justify-end gap-2">
           <button type="button" class="px-3 py-1.5 rounded border border-slate-300" @click="cancelPerspective">{{ t("common.cancel") }}</button>
-          <button type="submit" class="px-3 py-1.5 rounded bg-indigo-600 text-white disabled:opacity-50" :disabled="persp.busy">{{ persp.busy ? t("persp.busy") : t("persp.apply") }}</button>
+          <button type="submit" class="px-3 py-1.5 rounded bg-accent-600 text-white disabled:opacity-50" :disabled="persp.busy">{{ persp.busy ? t("persp.busy") : t("persp.apply") }}</button>
         </div>
       </form>
     </div>
@@ -1543,7 +1557,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         <label class="flex items-center gap-2 text-xs text-slate-600"><input v-model="calib.origin" type="checkbox" /> {{ t("calib.origin") }}</label>
         <div class="flex gap-2 justify-end">
           <button type="button" class="px-3 py-1.5 rounded border border-slate-300" @click="cancelCalibration">{{ t("common.cancel") }}</button>
-          <button type="submit" class="px-3 py-1.5 rounded bg-indigo-600 text-white">{{ t("calib.apply") }}</button>
+          <button type="submit" class="px-3 py-1.5 rounded bg-accent-600 text-white">{{ t("calib.apply") }}</button>
         </div>
       </form>
     </div>
@@ -1569,12 +1583,12 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <label class="block text-xs text-slate-500">{{ t("plan.customer") }}<input v-model="planForm.customer" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
           <label class="block text-xs text-slate-500">{{ t("plan.orderRef") }}<input v-model="planForm.order_ref" class="w-full border border-slate-300 rounded px-2 py-1 text-sm" /></label>
           <label class="block text-xs text-slate-500">{{ t("plan.notes") }}<textarea v-model="planForm.notes" rows="2" class="w-full border border-slate-300 rounded px-2 py-1 text-sm"></textarea></label>
-          <button class="w-full px-3 py-1.5 rounded-lg bg-indigo-600 text-white" :disabled="planBusy" @click="refreshPlan">{{ planBusy ? t("plan.generating") : "↻" }}</button>
+          <button class="w-full px-3 py-1.5 rounded-lg bg-accent-600 text-white" :disabled="planBusy" @click="refreshPlan">{{ planBusy ? t("plan.generating") : "↻" }}</button>
           <div class="flex gap-2">
             <button class="flex-1 px-2 py-1.5 rounded border border-slate-300" @click="downloadPlan">{{ t("plan.download") }}</button>
             <button class="flex-1 px-2 py-1.5 rounded border border-slate-300" :disabled="!planUrl" @click="printPlan">{{ t("plan.print") }}</button>
           </div>
-          <p class="text-[11px] text-slate-400">{{ t("plan.needSave") }}</p>
+          <p class="text-[11px] text-slate-500">{{ t("plan.needSave") }}</p>
           <button class="w-full text-slate-500 text-sm" @click="planOpen = false">{{ t("common.close") }}</button>
         </div>
         <div class="flex-1 bg-slate-100 p-4 overflow-auto min-h-[320px] flex items-start justify-center">

@@ -89,15 +89,19 @@ async function submit() {
       Object.assign(form, emptyForm());
     }
   } catch (err) {
-    formError.value = err instanceof ApiError ? err.message : "Failed";
+    formError.value = err instanceof ApiError ? err.message : t("common.error");
   }
 }
 
-async function removeMaterial(id: number) {
+const deleteError = ref("");
+
+async function removeMaterial(id: number, name: string) {
+  if (!confirm(t("common.confirmDeleteNamed", { name }))) return;
+  deleteError.value = "";
   try {
     await store.deleteMaterial(id);
   } catch (err) {
-    alert(err instanceof ApiError ? err.message : "Failed to delete material");
+    deleteError.value = err instanceof ApiError ? err.message : t("common.deleteFailed");
   }
 }
 
@@ -117,7 +121,7 @@ async function submitRestock(id: number) {
     await store.restockMaterial(id, restockForm.quantity_delta, restockForm.purchase_price, restockForm.shipping_cost);
     restockOpenFor.value = null;
   } catch (err) {
-    restockError.value = err instanceof ApiError ? err.message : "Failed";
+    restockError.value = err instanceof ApiError ? err.message : t("common.error");
   }
 }
 
@@ -212,19 +216,20 @@ const cutBarsForVisual = computed(() => {
 });
 
 function unitFor(dimension_type: DimensionType) {
-  return dimension_type === "length" ? "mm" : dimension_type === "area" ? "mm²" : "unit(s)";
+  return dimension_type === "length" ? "mm" : dimension_type === "area" ? "mm²" : t("common.unitShort");
 }
 </script>
 
 <template>
   <div class="max-w-5xl mx-auto px-4 py-8">
     <h1 class="text-2xl font-bold text-slate-900 mb-6">{{ t("materials.title") }}</h1>
+    <p v-if="deleteError" role="alert" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ deleteError }}</p>
 
     <!-- Saw blade catalog -->
     <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
       <button class="flex items-center justify-between w-full text-left" @click="showSawCatalog = !showSawCatalog">
         <span class="font-semibold text-slate-900">{{ t("materials.sawBladeCatalog") }}</span>
-        <span class="text-slate-400 text-sm">{{ showSawCatalog ? "−" : "+" }}</span>
+        <span class="text-slate-500 text-sm">{{ showSawCatalog ? "−" : "+" }}</span>
       </button>
       <div v-if="showSawCatalog" class="mt-3">
         <p class="text-xs text-slate-500 mb-3">{{ t("materials.sawBladeCatalog.hint") }}</p>
@@ -354,12 +359,12 @@ function unitFor(dimension_type: DimensionType) {
           <div>
             <label class="block text-xs text-slate-500 mb-1">{{ t("materials.unitCost", { unit: unitFor(form.dimension_type) }) }}</label>
             <input v-model.number="form.unit_cost" type="number" step="any" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-            <p class="text-xs text-slate-400 mt-1">{{ t("materials.unitCost.hint") }}</p>
+            <p class="text-xs text-slate-500 mt-1">{{ t("materials.unitCost.hint") }}</p>
           </div>
         </div>
         <p v-if="formError" class="text-sm text-red-600">{{ formError }}</p>
         <div class="flex gap-2">
-          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg px-4 py-2">
+          <button type="submit" class="bg-accent-600 hover:bg-accent-700 text-white text-sm font-medium rounded-lg px-4 py-2">
             {{ editingId ? t("common.saveChanges") : t("common.add") }}
           </button>
           <button v-if="editingId" type="button" class="text-sm text-slate-500 px-4 py-2" @click="cancelEdit">{{ t("common.cancel") }}</button>
@@ -372,12 +377,12 @@ function unitFor(dimension_type: DimensionType) {
         <div class="flex items-center justify-between">
           <div>
             <span class="font-medium text-slate-900">{{ m.name }}</span>
-            <span v-if="m.is_mock" class="ml-2 text-xs text-slate-400 bg-slate-100 rounded px-1.5 py-0.5">{{ t("common.demo") }}</span>
-            <span class="ml-2 text-xs text-slate-400">{{ t(`materials.category.${m.category}`) }} &middot; {{ t(`materials.dimensionType.${m.dimension_type}`) }}</span>
+            <span v-if="m.is_mock" class="ml-2 text-xs text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">{{ t("common.demo") }}</span>
+            <span class="ml-2 text-xs text-slate-500">{{ t(`materials.category.${m.category}`) }} &middot; {{ t(`materials.dimensionType.${m.dimension_type}`) }}</span>
           </div>
           <div class="flex gap-3">
-            <button class="text-sm text-indigo-600" @click="startEdit(m)">{{ t("common.edit") }}</button>
-            <button class="text-sm text-red-600" @click="removeMaterial(m.id)">{{ t("common.delete") }}</button>
+            <button class="text-sm text-accent-600" @click="startEdit(m)">{{ t("common.edit") }}</button>
+            <button class="text-sm text-red-600" @click="removeMaterial(m.id, m.name)">{{ t("common.delete") }}</button>
           </div>
         </div>
 
@@ -393,11 +398,11 @@ function unitFor(dimension_type: DimensionType) {
           <span :class="m.quantity_in_stock <= m.low_stock_threshold ? 'text-red-600 font-medium' : 'text-slate-600'">
             {{ t("materials.stock") }}: {{ m.quantity_in_stock }} {{ unitFor(m.dimension_type) }}
           </span>
-          <span class="text-slate-400">{{ t("materials.lowStockBelow", { n: m.low_stock_threshold }) }}</span>
-          <span class="text-slate-400">{{ t("materials.landedCost") }}: {{ m.unit_cost }} €/{{ unitFor(m.dimension_type) }}</span>
+          <span class="text-slate-500">{{ t("materials.lowStockBelow", { n: m.low_stock_threshold }) }}</span>
+          <span class="text-slate-500">{{ t("materials.landedCost") }}: {{ m.unit_cost }} €/{{ unitFor(m.dimension_type) }}</span>
         </div>
         <div class="mt-3 flex items-center gap-2 flex-wrap">
-          <button class="text-sm text-indigo-600" @click="openRestock(m.id)">{{ t("materials.restock") }}</button>
+          <button class="text-sm text-accent-600" @click="openRestock(m.id)">{{ t("materials.restock") }}</button>
           <button v-if="m.dimension_type !== 'count'" class="text-sm text-slate-600" @click="openYieldCalc(m.id)">{{ t("materials.yieldCalculator") }}</button>
           <button v-if="m.dimension_type === 'length'" class="text-sm text-slate-600" @click="openOptimizer(m.id)">{{ t("materials.cuttingOptimizer") }}</button>
         </div>
@@ -466,7 +471,7 @@ function unitFor(dimension_type: DimensionType) {
         </div>
 
         <div v-if="optimizerMaterialId === m.id" class="mt-3 border-t border-slate-100 pt-3">
-          <div v-if="candidates.length === 0" class="text-sm text-slate-400">{{ t("materials.optimizer.noDraftDemand") }}</div>
+          <div v-if="candidates.length === 0" class="text-sm text-slate-500">{{ t("materials.optimizer.noDraftDemand") }}</div>
           <template v-else>
             <p class="text-xs text-slate-500 mb-2">{{ t("materials.optimizer.pickOrders") }}</p>
             <ul class="space-y-1 mb-3">
@@ -478,7 +483,7 @@ function unitFor(dimension_type: DimensionType) {
                 />
                 <span class="text-slate-800">{{ c.customer_name }}</span>
                 <span class="text-xs rounded px-1.5 py-0.5" :class="c.status === 'confirmed' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'">{{ t(`orders.status.${c.status}`) }}</span>
-                <span class="text-slate-400">{{ c.piece_count }} {{ t("materials.optimizer.pieces") }}, {{ c.total_length_mm }}mm</span>
+                <span class="text-slate-500">{{ c.piece_count }} {{ t("materials.optimizer.pieces") }}, {{ c.total_length_mm }}mm</span>
               </li>
             </ul>
             <button class="text-sm bg-slate-800 text-white rounded-lg px-3 py-1.5" @click="runOptimizer(m.id)">{{ t("materials.optimizer.run") }}</button>

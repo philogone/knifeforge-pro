@@ -64,7 +64,7 @@ async function remove() {
 
 <template>
   <div v-if="order" class="max-w-3xl mx-auto px-4 py-8">
-    <router-link to="/orders" class="text-sm text-slate-400">&larr; {{ t("common.backToList") }}</router-link>
+    <router-link to="/orders" class="text-sm text-slate-500">&larr; {{ t("common.backToList") }}</router-link>
     <h1 class="text-2xl font-bold text-slate-900 mt-1">{{ order.customer_name }}</h1>
     <p class="text-sm text-slate-500">{{ order.customer_email }}</p>
     <span class="inline-block mt-2 text-xs font-medium rounded px-2 py-1 bg-slate-100 text-slate-700">{{ t(`orders.status.${order.status}`) }}</span>
@@ -74,7 +74,7 @@ async function remove() {
       <ul class="text-sm text-slate-700 space-y-1">
         <li v-for="line in order.lines" :key="line.id">
           {{ line.quantity }}x
-          <router-link :to="`/knife-models/${line.knife_model_id}`" class="text-indigo-600 hover:underline">{{ line.knife_model_name }}</router-link>
+          <router-link :to="`/knife-models/${line.knife_model_id}`" class="text-accent-600 hover:underline">{{ line.knife_model_name }}</router-link>
         </li>
       </ul>
       <p v-if="order.notes" class="text-sm text-slate-500 mt-3">{{ t("common.notes") }}: {{ order.notes }}</p>
@@ -84,7 +84,7 @@ async function remove() {
       <h2 class="font-semibold text-slate-900 mb-2">{{ t("orderDetail.feasibility") }}</h2>
       <table class="w-full text-sm">
         <thead>
-          <tr class="text-left text-slate-400">
+          <tr class="text-left text-slate-500">
             <th class="font-normal pb-1">{{ t("orderDetail.material") }}</th>
             <th class="font-normal pb-1">{{ t("orderDetail.required") }}</th>
             <th class="font-normal pb-1">{{ t("orderDetail.available") }}</th>
@@ -97,13 +97,13 @@ async function remove() {
             <td>{{ m.required }} {{ m.unit }}</td>
             <td>{{ m.available }} {{ m.unit }}</td>
             <td>
-              <span v-if="m.sufficient" class="text-green-600">{{ t("orderDetail.ok") }}</span>
+              <span v-if="m.sufficient" class="text-green-700">{{ t("orderDetail.ok") }}</span>
               <span v-else class="text-red-600">{{ t("orderDetail.short", { n: `${m.shortfall} ${m.unit}` }) }}</span>
             </td>
           </tr>
         </tbody>
       </table>
-      <p class="mt-2 text-sm font-medium" :class="feasibility.feasible ? 'text-green-600' : 'text-red-600'">
+      <p class="mt-2 text-sm font-medium" :class="feasibility.feasible ? 'text-green-700' : 'text-red-600'">
         {{ feasibility.feasible ? t("orderDetail.feasibleYes") : t("orderDetail.feasibleNo") }}
       </p>
     </div>
@@ -111,7 +111,7 @@ async function remove() {
     <p v-if="actionError" class="text-sm text-red-600 mt-4">{{ actionError }}</p>
 
     <div class="mt-6 flex items-center gap-3">
-      <button v-if="order.status === 'draft'" :disabled="loading" class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2" @click="runAction('confirm')">
+      <button v-if="order.status === 'draft'" :disabled="loading" class="bg-accent-600 hover:bg-accent-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2" @click="runAction('confirm')">
         {{ t("orderDetail.confirm") }}
       </button>
       <button v-if="order.status === 'confirmed'" :disabled="loading" class="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2" @click="runAction('complete')">

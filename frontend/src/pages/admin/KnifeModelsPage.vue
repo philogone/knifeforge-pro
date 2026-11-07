@@ -7,7 +7,7 @@ import { useI18n } from "@/i18n";
 import { useAppStore } from "@/stores/app.store";
 import type { KnifeModel, KnifeModelMaterial, KnifeModelTreatment, KnifeType, MaterialRole } from "@/types";
 
-const { t } = useI18n();
+const { t, money } = useI18n();
 const store = useAppStore();
 const route = useRoute();
 const router = useRouter();
@@ -86,15 +86,19 @@ async function submit() {
       Object.assign(form, emptyForm());
     }
   } catch (err) {
-    formError.value = err instanceof ApiError ? err.message : "Failed";
+    formError.value = err instanceof ApiError ? err.message : t("common.error");
   }
 }
 
-async function remove(id: number) {
+const deleteError = ref("");
+
+async function remove(id: number, name: string) {
+  if (!confirm(t("common.confirmDeleteNamed", { name }))) return;
+  deleteError.value = "";
   try {
     await store.deleteKnifeModel(id);
   } catch (err) {
-    alert(err instanceof ApiError ? err.message : "Failed to delete knife model");
+    deleteError.value = err instanceof ApiError ? err.message : t("common.deleteFailed");
   }
 }
 </script>
@@ -102,6 +106,7 @@ async function remove(id: number) {
 <template>
   <div class="max-w-4xl mx-auto px-4 py-8">
     <h1 class="text-2xl font-bold text-slate-900 mb-6">{{ t("knifeModels.title") }}</h1>
+    <p v-if="deleteError" role="alert" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ deleteError }}</p>
 
     <div class="bg-white rounded-xl border border-slate-200 p-4 mb-8">
       <h2 class="font-semibold text-slate-900 mb-3">{{ editingId ? t("knifeModels.editTitle") : t("knifeModels.addTitle") }}</h2>
@@ -139,7 +144,7 @@ async function remove(id: number) {
         <div>
           <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium text-slate-700">{{ t("knifeModels.materialsRequired") }}</span>
-            <button type="button" class="text-sm text-indigo-600" @click="addMaterialLine">{{ t("knifeModels.addMaterial") }}</button>
+            <button type="button" class="text-sm text-accent-600" @click="addMaterialLine">{{ t("knifeModels.addMaterial") }}</button>
           </div>
           <div v-for="(line, i) in form.materials" :key="i" class="grid grid-cols-12 gap-2 mb-2 items-center">
             <select v-model.number="line.material_id" class="col-span-4 rounded-lg border border-slate-300 px-2 py-1 text-sm">
@@ -163,7 +168,7 @@ async function remove(id: number) {
         <div>
           <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium text-slate-700">{{ t("knifeModels.pipeline") }}</span>
-            <button type="button" class="text-sm text-indigo-600" @click="addTreatmentLine">{{ t("knifeModels.addStep") }}</button>
+            <button type="button" class="text-sm text-accent-600" @click="addTreatmentLine">{{ t("knifeModels.addStep") }}</button>
           </div>
           <div v-for="(line, i) in form.treatments" :key="i" class="grid grid-cols-12 gap-2 mb-2 items-center">
             <input v-model.number="line.step_order" type="number" class="col-span-1 rounded-lg border border-slate-300 px-2 py-1 text-sm" />
@@ -176,7 +181,7 @@ async function remove(id: number) {
 
         <p v-if="formError" class="text-sm text-red-600">{{ formError }}</p>
         <div class="flex gap-2">
-          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg px-4 py-2">
+          <button type="submit" class="bg-accent-600 hover:bg-accent-700 text-white text-sm font-medium rounded-lg px-4 py-2">
             {{ editingId ? t("common.saveChanges") : t("common.save") }}
           </button>
           <button v-if="editingId" type="button" class="text-sm text-slate-500 px-4 py-2" @click="cancelEdit">{{ t("common.cancel") }}</button>
@@ -188,16 +193,16 @@ async function remove(id: number) {
       <div v-for="km in store.knifeModels" :key="km.id" class="bg-white rounded-xl border border-slate-200 p-4">
         <div class="flex items-center justify-between">
           <div>
-            <router-link :to="`/knife-models/${km.id}`" class="font-medium text-slate-900 hover:text-indigo-600">{{ km.name }}</router-link>
-            <span class="ml-2 text-xs text-slate-500 bg-indigo-50 text-indigo-700 rounded px-1.5 py-0.5">{{ t(`knifeModels.knifeType.${km.knife_type}`) }}</span>
-            <span v-if="km.is_mock" class="ml-2 text-xs text-slate-400 bg-slate-100 rounded px-1.5 py-0.5">{{ t("common.demo") }}</span>
+            <router-link :to="`/knife-models/${km.id}`" class="font-medium text-slate-900 hover:text-accent-600">{{ km.name }}</router-link>
+            <span class="ml-2 text-xs text-slate-500 bg-accent-50 text-accent-700 rounded px-1.5 py-0.5">{{ t(`knifeModels.knifeType.${km.knife_type}`) }}</span>
+            <span v-if="km.is_mock" class="ml-2 text-xs text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">{{ t("common.demo") }}</span>
           </div>
           <div class="flex gap-3">
-            <button class="text-sm text-indigo-600" @click="startEdit(km)">{{ t("common.edit") }}</button>
-            <button class="text-sm text-red-600" @click="remove(km.id)">{{ t("common.delete") }}</button>
+            <button class="text-sm text-accent-600" @click="startEdit(km)">{{ t("common.edit") }}</button>
+            <button class="text-sm text-red-600" @click="remove(km.id, km.name)">{{ t("common.delete") }}</button>
           </div>
         </div>
-        <p class="text-sm text-slate-500 mt-1">{{ t("knifeModels.buildTime") }}: {{ t("knifeModels.hours", { n: km.base_labor_hours }) }} &middot; ${{ km.sale_price }}</p>
+        <p class="text-sm text-slate-500 mt-1">{{ t("knifeModels.buildTime") }}: {{ t("knifeModels.hours", { n: km.base_labor_hours }) }} &middot; {{ money(km.sale_price) }}</p>
         <p class="text-sm text-slate-600 mt-2">
           {{ t("knifeModels.materials") }}: {{ km.materials.map((m) => m.material_name).join(", ") || t("knifeModels.none") }}
         </p>

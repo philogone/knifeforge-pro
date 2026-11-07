@@ -5,18 +5,49 @@ import { useRoute, useRouter } from "vue-router";
 import { ApiError } from "@/composables/useApi";
 import { useI18n } from "@/i18n";
 import { useAppStore } from "@/stores/app.store";
-import type { CostBreakdown } from "@/types";
+import type { CostBreakdown, DesignSummary } from "@/types";
 
-const { t } = useI18n();
+const { t, money } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const store = useAppStore();
 const modelId = Number(route.params.id);
 
 onMounted(async () => {
-  await Promise.all([store.fetchKnifeModels(), store.fetchTreatmentRecipes()]);
+  await Promise.all([store.fetchKnifeModels(), store.fetchTreatmentRecipes(), loadDesigns()]);
   cost.value = await store.fetchCostBreakdown(modelId);
 });
+
+// Templates (gabarits) linked to this model: the nesting takes an order's parts from them,
+// one template per material the model uses.
+const allDesigns = ref<DesignSummary[]>([]);
+const linkedDesigns = computed(() => allDesigns.value.filter((d) => d.knife_model_id === modelId));
+const attachable = computed(() => allDesigns.value.filter((d) => d.knife_model_id !== modelId));
+const attachId = ref(0);
+const designError = ref("");
+
+async function loadDesigns() {
+  await store.fetchDesigns();
+  allDesigns.value = store.designs;
+}
+
+async function setDesignModel(id: number, knifeModelId: number | null) {
+  designError.value = "";
+  try {
+    await store.updateDesign(id, { knife_model_id: knifeModelId });
+    await loadDesigns();
+    attachId.value = 0;
+  } catch (err) {
+    designError.value = err instanceof ApiError ? err.message : t("common.error");
+  }
+}
+
+/** model materials that no linked template covers: their parts can't be nested yet */
+const uncoveredMaterials = computed(() =>
+  (model.value?.materials ?? []).filter(
+    (m) => m.blank_length_mm && !linkedDesigns.value.some((d) => d.material_id === m.material_id),
+  ),
+);
 
 const model = computed(() => store.knifeModels.find((m) => m.id === modelId));
 const recipesByModel = computed(() =>
@@ -37,31 +68,36 @@ function editModel() {
   router.push({ path: "/knife-models", query: { edit: String(modelId) } });
 }
 
+const deleteError = ref("");
+
 async function deleteModel() {
-  if (!confirm(t("common.confirmDelete"))) return;
+  if (!confirm(t("common.confirmDeleteNamed", { name: model.value?.name ?? "" }))) return;
+  deleteError.value = "";
   try {
     await store.deleteKnifeModel(modelId);
     router.push("/knife-models");
   } catch (err) {
-    alert(err instanceof ApiError ? err.message : "Failed to delete knife model");
+    deleteError.value = err instanceof ApiError ? err.message : t("common.deleteFailed");
   }
 }
 </script>
 
 <template>
   <div v-if="model" class="max-w-3xl mx-auto px-4 py-8">
-    <router-link to="/knife-models" class="text-sm text-slate-400">&larr; {{ t("common.backToList") }}</router-link>
+    <router-link to="/knife-models" class="text-sm text-slate-500">&larr; {{ t("common.backToList") }}</router-link>
     <div class="flex items-center justify-between mt-1">
       <div class="flex items-center gap-2">
         <h1 class="text-2xl font-bold text-slate-900">{{ model.name }}</h1>
-        <span class="text-xs text-slate-500 bg-indigo-50 text-indigo-700 rounded px-1.5 py-0.5">{{ t(`knifeModels.knifeType.${model.knife_type}`) }}</span>
+        <span class="text-xs text-slate-500 bg-accent-50 text-accent-700 rounded px-1.5 py-0.5">{{ t(`knifeModels.knifeType.${model.knife_type}`) }}</span>
       </div>
       <div class="flex gap-3">
-        <button class="text-sm text-indigo-600" @click="editModel">{{ t("common.edit") }}</button>
+        <button class="text-sm text-accent-600" @click="editModel">{{ t("common.edit") }}</button>
         <button class="text-sm text-red-600" @click="deleteModel">{{ t("common.delete") }}</button>
       </div>
     </div>
-    <p class="text-sm text-slate-500 mt-1">{{ t("knifeModels.buildTime") }}: {{ t("knifeModels.hours", { n: model.base_labor_hours }) }} &middot; ${{ model.sale_price }}</p>
+    <p class="text-sm text-slate-500 mt-1">{{ t("knifeModels.buildTime") }}: {{ t("knifeModels.hours", { n: model.base_labor_hours }) }} &middot; {{ money(model.sale_price) }}</p>
+
+    <p v-if="deleteError" role="alert" class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ deleteError }}</p>
 
     <div class="bg-white rounded-xl border border-slate-200 p-4 mt-6">
       <h2 class="font-semibold text-slate-900 mb-2">{{ t("knifeModels.materialsRequired") }}</h2>
@@ -72,19 +108,55 @@ async function deleteModel() {
             <td class="py-2 text-slate-500">{{ t(`knifeModels.role.${m.role}`) }}</td>
             <td class="py-2 text-slate-500">
               <span v-if="m.blank_length_mm">{{ m.blank_length_mm }} &times; {{ m.blank_width_mm ?? "–" }} &times; {{ m.blank_thickness_mm ?? "–" }} mm</span>
-              <span v-else>{{ m.quantity }} unit(s)</span>
+              <span v-else>{{ t("common.units", { n: m.quantity }) }}</span>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
+
+    <section class="bg-white rounded-xl border border-slate-200 p-4 mt-4" aria-labelledby="model-designs">
+      <div class="flex items-center justify-between gap-3">
+        <h2 id="model-designs" class="font-semibold text-slate-900">{{ t("modelDesigns.title") }}</h2>
+        <router-link :to="{ path: '/designs', query: { model: String(modelId) } }" class="text-sm text-accent-700 hover:underline">
+          + {{ t("modelDesigns.new") }}
+        </router-link>
+      </div>
+      <p class="text-xs text-slate-500 mt-1">{{ t("modelDesigns.hint") }}</p>
+
+      <ul v-if="linkedDesigns.length" class="mt-3 divide-y divide-slate-100">
+        <li v-for="d in linkedDesigns" :key="d.id" class="flex items-center gap-3 py-2 text-sm">
+          <router-link :to="`/designs/${d.id}`" class="font-medium text-slate-800 hover:text-accent-700">{{ d.name }}</router-link>
+          <span class="text-slate-500">{{ d.material_name ?? t("modelDesigns.noMaterial") }}</span>
+          <button class="ml-auto text-xs text-slate-500 hover:text-red-700" @click="setDesignModel(d.id, null)">{{ t("modelDesigns.detach") }}</button>
+        </li>
+      </ul>
+      <p v-else class="mt-3 text-sm text-slate-600">{{ t("modelDesigns.empty") }}</p>
+
+      <p v-for="m in uncoveredMaterials" :key="m.id" class="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        {{ t("modelDesigns.uncovered", { material: m.material_name ?? "" }) }}
+      </p>
+
+      <form v-if="attachable.length" class="mt-3 flex gap-2" @submit.prevent="attachId && setDesignModel(attachId, modelId)">
+        <label class="sr-only" for="attach-design">{{ t("modelDesigns.attach") }}</label>
+        <select id="attach-design" v-model.number="attachId" class="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+          <option :value="0">{{ t("modelDesigns.attachPlaceholder") }}</option>
+          <option v-for="d in attachable" :key="d.id" :value="d.id">
+            {{ d.name }}{{ d.knife_model_name ? ` (${d.knife_model_name})` : "" }}
+          </option>
+        </select>
+        <button type="submit" :disabled="!attachId" class="rounded-lg bg-slate-800 px-3 py-1.5 text-sm text-white disabled:opacity-50">{{ t("modelDesigns.attach") }}</button>
+      </form>
+      <p v-if="designError" role="alert" class="mt-2 text-sm text-red-700">{{ designError }}</p>
+    </section>
+
     <div v-if="cost" class="bg-white rounded-xl border border-slate-200 p-4 mt-4">
       <h2 class="font-semibold text-slate-900 mb-1">{{ t("costing.title") }}</h2>
       <p class="text-xs text-slate-500 mb-2">{{ t("costing.hint") }}</p>
       <table class="w-full text-sm">
         <thead>
-          <tr class="text-left text-slate-400">
+          <tr class="text-left text-slate-500">
             <th class="font-normal pb-1">{{ t("costing.material") }}</th>
             <th class="font-normal pb-1">{{ t("costing.consumption") }}</th>
             <th class="font-normal pb-1">{{ t("costing.unitCost") }}</th>
@@ -96,33 +168,33 @@ async function deleteModel() {
             <td class="py-1.5">{{ line.material_name }}</td>
             <td class="py-1.5 text-slate-500">{{ line.consumption }} {{ line.unit }}</td>
             <td class="py-1.5 text-slate-500">{{ line.unit_cost }} €/{{ line.unit }}</td>
-            <td class="py-1.5 font-medium text-slate-800">{{ line.line_cost.toFixed(2) }} €</td>
+            <td class="py-1.5 font-medium text-slate-800">{{ money(line.line_cost) }}</td>
           </tr>
           <tr class="border-t border-slate-100">
             <td class="py-1.5">{{ t("costing.labor") }}</td>
             <td class="py-1.5 text-slate-500">{{ cost.labor_hours }} h</td>
             <td class="py-1.5 text-slate-500">{{ cost.hourly_rate }} €/h</td>
-            <td class="py-1.5 font-medium text-slate-800">{{ cost.labor_cost.toFixed(2) }} €</td>
+            <td class="py-1.5 font-medium text-slate-800">{{ money(cost.labor_cost) }}</td>
           </tr>
         </tbody>
       </table>
 
       <div class="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
         <span class="font-semibold text-slate-900">{{ t("costing.costPrice") }}</span>
-        <span class="font-semibold text-slate-900">{{ cost.cost_price.toFixed(2) }} €</span>
+        <span class="font-semibold text-slate-900">{{ money(cost.cost_price) }}</span>
       </div>
 
       <div class="mt-3 pt-3 border-t border-slate-200 space-y-1">
         <div class="flex items-center justify-between text-sm">
           <span class="text-slate-600">{{ t("costing.suggestedPrice", { n: cost.margin_percent }) }}</span>
-          <span class="font-semibold text-indigo-700">{{ cost.suggested_sale_price.toFixed(2) }} €</span>
+          <span class="font-semibold text-accent-700">{{ money(cost.suggested_sale_price) }}</span>
         </div>
         <div class="flex items-center justify-between text-sm">
           <span class="text-slate-600">{{ t("costing.currentPrice") }}</span>
-          <span class="font-medium text-slate-800">{{ cost.current_sale_price.toFixed(2) }} €</span>
+          <span class="font-medium text-slate-800">{{ money(cost.current_sale_price) }}</span>
         </div>
-        <p v-if="priceDelta !== null" class="text-xs mt-1" :class="priceDelta < 0 ? 'text-red-600' : 'text-green-600'">
-          {{ priceDelta < 0 ? t("costing.belowSuggested", { n: Math.abs(priceDelta).toFixed(2) }) : t("costing.aboveSuggested", { n: priceDelta.toFixed(2) }) }}
+        <p v-if="priceDelta !== null" class="text-xs mt-1" :class="priceDelta < 0 ? 'text-red-600' : 'text-green-700'">
+          {{ priceDelta < 0 ? t("costing.belowSuggested", { n: money(Math.abs(priceDelta)) }) : t("costing.aboveSuggested", { n: money(priceDelta) }) }}
         </p>
       </div>
     </div>
@@ -135,8 +207,8 @@ async function deleteModel() {
           <ol class="mt-1 ml-4 list-decimal list-inside text-sm text-slate-600 space-y-0.5">
             <li v-for="s in recipe!.steps" :key="s.id">
               {{ s.description }}
-              <span class="text-slate-400">
-                <template v-if="s.temperature_c !== null">— {{ s.temperature_c }}°C</template>
+              <span class="text-slate-500">
+                <template v-if="s.temperature_c !== null">— {{ s.temperature_c }} °C</template>
                 <template v-if="s.duration_minutes !== null">, {{ s.duration_minutes }} min</template>
                 <template v-if="s.medium">, {{ s.medium }}</template>
               </span>

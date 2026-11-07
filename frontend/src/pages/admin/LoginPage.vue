@@ -42,7 +42,7 @@ async function submit() {
         <input v-model="password" type="password" required class="w-full rounded-lg border border-slate-300 px-3 py-2" />
       </div>
       <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
-      <button type="submit" :disabled="loading" class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium rounded-lg py-2">
+      <button type="submit" :disabled="loading" class="w-full bg-accent-600 hover:bg-accent-700 disabled:opacity-50 text-white font-medium rounded-lg py-2">
         {{ t("login.signIn") }}
       </button>
     </form>

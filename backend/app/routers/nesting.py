@@ -87,7 +87,7 @@ def _to_out(result: NestingResult) -> NestingResultOut:
 @router.get("/candidates", response_model=NestingCandidatesOut)
 def candidates(material_id: int = Query(...), db: Session = Depends(get_db)):
     found = list_candidates(db, material_id)
-    return NestingCandidatesOut(orders=found.orders, designs=found.designs)
+    return NestingCandidatesOut(orders=found.orders, designs=found.designs, unlinked=found.unlinked)
 
 
 @router.post("/run", response_model=NestingResultOut)

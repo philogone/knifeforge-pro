@@ -37,7 +37,7 @@ async function submit() {
     form.notes = "";
     form.lines = [];
   } catch (err) {
-    formError.value = err instanceof ApiError ? err.message : "Failed to create order";
+    formError.value = err instanceof ApiError ? err.message : t("common.error");
   }
 }
 
@@ -64,7 +64,7 @@ const statusColor: Record<OrderStatus, string> = {
         <div>
           <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium text-slate-700">{{ t("orders.lines") }}</span>
-            <button type="button" class="text-sm text-indigo-600" @click="addLine">{{ t("orders.addLine") }}</button>
+            <button type="button" class="text-sm text-accent-600" @click="addLine">{{ t("orders.addLine") }}</button>
           </div>
           <div v-for="(line, i) in form.lines" :key="i" class="grid grid-cols-12 gap-2 mb-2 items-center">
             <select v-model.number="line.knife_model_id" class="col-span-8 rounded-lg border border-slate-300 px-2 py-1 text-sm">
@@ -75,16 +75,16 @@ const statusColor: Record<OrderStatus, string> = {
           </div>
         </div>
         <p v-if="formError" class="text-sm text-red-600">{{ formError }}</p>
-        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg px-4 py-2">{{ t("orders.createOrder") }}</button>
+        <button type="submit" class="bg-accent-600 hover:bg-accent-700 text-white text-sm font-medium rounded-lg px-4 py-2">{{ t("orders.createOrder") }}</button>
       </form>
     </div>
 
     <div class="space-y-3">
-      <router-link v-for="o in store.orders" :key="o.id" :to="`/orders/${o.id}`" class="block bg-white rounded-xl border border-slate-200 p-4 hover:border-indigo-300">
+      <router-link v-for="o in store.orders" :key="o.id" :to="`/orders/${o.id}`" class="block bg-white rounded-xl border border-slate-200 p-4 hover:border-accent-300">
         <div class="flex items-center justify-between">
           <div>
             <span class="font-medium text-slate-900">{{ o.customer_name }}</span>
-            <span v-if="o.is_mock" class="ml-2 text-xs text-slate-400 bg-slate-100 rounded px-1.5 py-0.5">{{ t("common.demo") }}</span>
+            <span v-if="o.is_mock" class="ml-2 text-xs text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">{{ t("common.demo") }}</span>
           </div>
           <span class="text-xs font-medium rounded px-2 py-1" :class="statusColor[o.status]">{{ t(`orders.status.${o.status}`) }}</span>
         </div>

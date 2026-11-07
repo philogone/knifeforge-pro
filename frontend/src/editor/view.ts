@@ -1,3 +1,5 @@
+import { UI_COLOR } from "./constants";
+
 /** Pure canvas drawing for the editor background (grid) and rulers. They are
  *  drawn on 2D canvases layered under / over the Paper.js canvas, driven by
  *  the engine's view transform, so Paper never has to redraw thousands of lines. */
@@ -196,7 +198,7 @@ export function drawRulers(
 
   if (cursor) {
     const [cx, cy] = worldToScreen(v, cursor[0], cursor[1]);
-    ctx.fillStyle = "#4f46e5";
+    ctx.fillStyle = UI_COLOR;
     ctx.fillRect(Math.round(cx), 0, 1, RULER_SIZE);
     ctx.fillRect(0, Math.round(cy), RULER_SIZE, 1);
   }

@@ -90,6 +90,15 @@ class NestingCandidateDesignOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class NestingUnlinkedLineOut(BaseModel):
+    order_id: int
+    customer_name: str
+    knife_model_id: int
+    knife_model_name: str
+    quantity: int
+
+
 class NestingCandidatesOut(BaseModel):
     orders: list[NestingCandidateOrderOut]
     designs: list[NestingCandidateDesignOut]
+    unlinked: list[NestingUnlinkedLineOut] = []

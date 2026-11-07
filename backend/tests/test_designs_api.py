@@ -2,7 +2,7 @@ import copy
 
 from app.core.security import require_admin
 from app.main import app
-from app.models.knife_model import KnifeModel
+from app.models.knife_model import KnifeModel, KnifeModelMaterial, MaterialRole
 from app.models.material import DimensionType, Material, MaterialCategory
 from app.models.order import Order, OrderLine, OrderStatus
 from app.services import design_templates as tpl
@@ -303,3 +303,21 @@ def test_duplicate_keeps_the_background(client):
     client.patch(f"/api/admin/designs/{design['id']}", json={"background": background()})
     copy = client.post(f"/api/admin/designs/{design['id']}/duplicate").json()
     assert copy["background"]["image"] == PNG_1PX
+
+
+def test_nesting_candidates_flag_order_lines_without_a_linked_design(client, db):
+    steel = make_material(db)
+    linked, unlinked, unrelated = make_model(db), make_model(db, "Sans gabarit"), make_model(db, "Autre matière")
+    for model in (linked, unlinked):
+        db.add(KnifeModelMaterial(knife_model_id=model.id, material_id=steel.id, role=MaterialRole.BLADE, blank_length_mm=200))
+    db.commit()
+    create_design(client, material_id=steel.id, knife_model_id=linked.id)
+    make_order(db, linked, 2)
+    make_order(db, unlinked, 3, customer="Camille")
+    make_order(db, unrelated, 1, customer="Ignoré")  # does not use this steel: not a missing design
+
+    candidates = client.get(f"/api/admin/nesting/candidates?material_id={steel.id}").json()
+    assert [(o["customer_name"], o["part_count"]) for o in candidates["orders"]] == [("Alex", 2)]
+    assert [(u["customer_name"], u["knife_model_name"], u["quantity"]) for u in candidates["unlinked"]] == [
+        ("Camille", "Sans gabarit", 3)
+    ]

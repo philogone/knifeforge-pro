@@ -31,7 +31,25 @@ export function useI18n() {
     }
     return text;
   };
-  return { t, locale: computed(() => locale.value), setLocale };
+  /** fixed-precision number in the reader's convention ("182,0" in French) */
+  const num = (n: number, digits = 1): string => formatFixed(n, locale.value, digits);
+  /** an amount in euros, always two decimals ("180,00 €") */
+  const money = (n: number): string => formatMoney(n, locale.value);
+  return { t, locale: computed(() => locale.value), setLocale, num, money };
+}
+
+function tag(loc: Locale): string {
+  return loc === "fr" ? "fr-FR" : "en-US";
+}
+
+/** Fixed decimals, locale-aware: replaces `toFixed`, whose dot a French reader misreads. */
+export function formatFixed(n: number, loc: Locale, digits = 1): string {
+  return n.toLocaleString(tag(loc), { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+
+/** The workshop prices everything in euros. */
+export function formatMoney(n: number, loc: Locale): string {
+  return n.toLocaleString(tag(loc), { style: "currency", currency: "EUR" });
 }
 
 /** Locale-aware decimal ("1,94" in French, "1.94" in English) — never a bare "1.939" a French reader takes for 1939. */

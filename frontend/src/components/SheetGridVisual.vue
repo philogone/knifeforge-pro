@@ -39,7 +39,7 @@ const cells = computed(() => {
       :y="cell.y + 1"
       :width="Math.max(cellW - 2, 0)"
       :height="Math.max(cellH - 2, 0)"
-      fill="#6366f1"
+      fill="#6b7a2c"
       fill-opacity="0.85"
       stroke="white"
     />

@@ -7,7 +7,7 @@ import { formatDecimal, useI18n } from "@/i18n";
 import { useAppStore } from "@/stores/app.store";
 import type { NestingCandidates, NestingRequest, NestingResult } from "@/types";
 
-const { t, locale } = useI18n();
+const { t, locale, num } = useI18n();
 const store = useAppStore();
 
 const materialId = ref(0);
@@ -43,7 +43,7 @@ watch(materialId, async (id) => {
     candidates.value = await store.nestingCandidates(id);
     selectedOrders.value = candidates.value.orders.map((o) => o.order_id);
   } catch (err) {
-    error.value = err instanceof ApiError ? err.message : "Failed";
+    error.value = err instanceof ApiError ? err.message : t("common.error");
   }
 });
 
@@ -141,19 +141,26 @@ const wastePct = computed(() => (result.value ? Math.round((100 - result.value.u
         <div v-if="candidates" class="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
           <h2 class="font-semibold text-slate-900 text-sm">{{ t("nesting.orders") }}</h2>
           <p class="text-xs text-slate-500">{{ t("nesting.ordersHint") }}</p>
-          <p v-if="!candidates.orders.length" class="text-xs text-slate-400">{{ t("nesting.noOrders") }}</p>
+          <p v-if="!candidates.orders.length" class="text-xs text-slate-500">{{ t("nesting.noOrders") }}</p>
           <label v-for="o in candidates.orders" :key="o.order_id" class="flex items-center gap-2 text-sm">
             <input v-model="selectedOrders" type="checkbox" :value="o.order_id" />
             <span class="flex-1">#{{ o.order_id }} {{ o.customer_name }}</span>
             <span class="text-xs text-slate-500">{{ t("nesting.orderParts", { n: o.part_count }) }}</span>
           </label>
+          <div v-if="candidates.unlinked?.length" class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 space-y-1">
+            <p class="font-medium">{{ t("nesting.unlinkedTitle") }}</p>
+            <p v-for="u in candidates.unlinked" :key="`${u.order_id}-${u.knife_model_id}`">
+              #{{ u.order_id }} {{ u.customer_name }} · {{ u.quantity }} × {{ u.knife_model_name }} —
+              <router-link :to="`/knife-models/${u.knife_model_id}`" class="underline underline-offset-2">{{ t("nesting.unlinkedLink") }}</router-link>
+            </p>
+          </div>
         </div>
 
         <div v-if="candidates" class="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
           <h2 class="font-semibold text-slate-900 text-sm">{{ t("nesting.extraDesigns") }}</h2>
-          <p v-if="!candidates.designs.length" class="text-xs text-slate-400">{{ t("nesting.noDesigns") }}</p>
+          <p v-if="!candidates.designs.length" class="text-xs text-slate-500">{{ t("nesting.noDesigns") }}</p>
           <div v-for="d in candidates.designs" :key="d.id" class="flex items-center gap-2 text-sm">
-            <span class="flex-1 truncate">{{ d.name }}<span v-if="d.knife_model_name" class="text-xs text-slate-400"> · {{ d.knife_model_name }}</span></span>
+            <span class="flex-1 truncate">{{ d.name }}<span v-if="d.knife_model_name" class="text-xs text-slate-500"> · {{ d.knife_model_name }}</span></span>
             <input
               :value="extras[d.id] ?? 0"
               type="number" min="0" max="500" step="1" :aria-label="t('nesting.quantity')"
@@ -164,12 +171,13 @@ const wastePct = computed(() => (result.value ? Math.round((100 - result.value.u
         </div>
 
         <button
-          class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
+          class="w-full bg-accent-600 hover:bg-accent-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
           :disabled="!materialId || busy"
           @click="run"
         >
           {{ busy ? t("nesting.running") : t("nesting.run") }}
         </button>
+        <p v-if="!materialId" class="text-xs text-slate-500">{{ t("nesting.pickMaterialFirst") }}</p>
         <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
       </div>
 
@@ -182,19 +190,19 @@ const wastePct = computed(() => (result.value ? Math.round((100 - result.value.u
             </div>
             <div class="bg-white rounded-xl border border-slate-200 p-3">
               <p class="text-xs text-slate-500">{{ t("nesting.partsPlaced") }}</p>
-              <p class="text-2xl font-bold text-slate-900">{{ result.placed_parts }}<span class="text-sm text-slate-400"> / {{ result.total_parts }}</span></p>
+              <p class="text-2xl font-bold text-slate-900">{{ result.placed_parts }}<span class="text-sm text-slate-500"> / {{ result.total_parts }}</span></p>
             </div>
             <div class="bg-white rounded-xl border border-slate-200 p-3">
               <p class="text-xs text-slate-500">{{ t("nesting.utilization") }}</p>
-              <p class="text-2xl font-bold text-slate-900">{{ result.utilization_pct.toFixed(1) }} %</p>
-              <p class="text-xs text-slate-400">{{ t("nesting.waste") }} : {{ wastePct }} % · {{ (result.waste_area_mm2 / 100).toFixed(0) }} cm²</p>
+              <p class="text-2xl font-bold text-slate-900">{{ num(result.utilization_pct) }} %</p>
+              <p class="text-xs text-slate-500">{{ t("nesting.waste") }} : {{ wastePct }} % · {{ num(result.waste_area_mm2 / 100, 0) }} cm²</p>
             </div>
             <div class="bg-white rounded-xl border p-3" :class="result.stock_sufficient ? 'border-emerald-200' : 'border-red-300'">
               <p class="text-xs text-slate-500">{{ t("nesting.stock") }}</p>
-              <p class="text-sm font-semibold" :class="result.stock_sufficient ? 'text-emerald-600' : 'text-red-600'">
+              <p class="text-sm font-semibold" :class="result.stock_sufficient ? 'text-green-700' : 'text-red-600'">
                 {{ result.stock_sufficient ? t("nesting.stockOk") : t("nesting.stockShort") }}
               </p>
-              <p class="text-xs text-slate-400">{{ t("nesting.stockUnits", { n: formatDecimal(result.stock_sheets_available, locale) }) }}</p>
+              <p class="text-xs text-slate-500">{{ t("nesting.stockUnits", { n: formatDecimal(result.stock_sheets_available, locale) }) }}</p>
             </div>
           </div>
 
@@ -209,19 +217,19 @@ const wastePct = computed(() => (result.value ? Math.round((100 - result.value.u
                 v-for="s in result.sheets"
                 :key="s.index"
                 class="px-3 py-1 rounded-lg text-sm border"
-                :class="s.index === activeSheet ? 'bg-indigo-600 text-white border-indigo-600' : 'border-slate-300 text-slate-600'"
+                :class="s.index === activeSheet ? 'bg-accent-600 text-white border-accent-600' : 'border-slate-300 text-slate-600'"
                 @click="activeSheet = s.index"
               >{{ t(material?.dimension_type === "length" ? "nesting.bar" : "nesting.sheet", { n: s.index + 1 }) }}</button>
-              <span class="text-xs text-slate-500 ml-auto">{{ t("nesting.sheetStats", { parts: sheet.placements.length, pct: sheet.utilization_pct.toFixed(1) }) }}</span>
+              <span class="text-xs text-slate-500 ml-auto">{{ t("nesting.sheetStats", { parts: sheet.placements.length, pct: num(sheet.utilization_pct) }) }}</span>
             </div>
             <NestingSheetVisual :sheet="sheet" :length="result.sheet_length_mm" :width="result.sheet_width_mm" :margin="result.margin_mm" />
-            <p class="text-xs text-slate-400">{{ result.sheet_length_mm }} × {{ result.sheet_width_mm }} mm · {{ t("nesting.spacing") }} {{ result.spacing_mm }} · {{ t("nesting.margin") }} {{ result.margin_mm }}</p>
+            <p class="text-xs text-slate-500">{{ result.sheet_length_mm }} × {{ result.sheet_width_mm }} mm · {{ t("nesting.spacing") }} {{ result.spacing_mm }} · {{ t("nesting.margin") }} {{ result.margin_mm }}</p>
             <div class="flex gap-2">
               <button class="px-3 py-1.5 rounded-lg border border-slate-300 text-sm" @click="exportSheet('svg')">{{ t("nesting.exportSvg") }}</button>
               <button class="px-3 py-1.5 rounded-lg border border-slate-300 text-sm" @click="exportSheet('dxf')">{{ t("nesting.exportDxf") }}</button>
             </div>
           </div>
-          <p class="text-xs text-slate-400">{{ t("nesting.note") }}</p>
+          <p class="text-xs text-slate-500">{{ t("nesting.note") }}</p>
         </template>
       </div>
     </div>

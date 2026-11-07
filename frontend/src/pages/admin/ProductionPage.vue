@@ -21,10 +21,10 @@ onMounted(async () => {
 
     <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
       <h2 class="font-semibold text-slate-900 mb-3">{{ t("production.demandTitle") }}</h2>
-      <div v-if="overview.materials.length === 0" class="text-sm text-slate-400">{{ t("production.noDrafts") }}</div>
+      <div v-if="overview.materials.length === 0" class="text-sm text-slate-500">{{ t("production.noDrafts") }}</div>
       <table v-else class="w-full text-sm">
         <thead>
-          <tr class="text-left text-slate-400">
+          <tr class="text-left text-slate-500">
             <th class="font-normal pb-1">{{ t("production.material") }}</th>
             <th class="font-normal pb-1">{{ t("production.demand") }}</th>
             <th class="font-normal pb-1">{{ t("production.available") }}</th>
@@ -36,7 +36,7 @@ onMounted(async () => {
             <td class="py-1.5">{{ m.material_name }}</td>
             <td class="py-1.5">{{ m.demand }} {{ m.unit }}</td>
             <td class="py-1.5">{{ m.available }} {{ m.unit }}</td>
-            <td class="py-1.5" :class="m.shortfall > 0 ? 'text-red-600 font-medium' : 'text-green-600'">
+            <td class="py-1.5" :class="m.shortfall > 0 ? 'text-red-600 font-medium' : 'text-green-700'">
               {{ m.shortfall > 0 ? `${m.shortfall} ${m.unit}` : t("orderDetail.ok") }}
             </td>
           </tr>
@@ -46,7 +46,7 @@ onMounted(async () => {
 
     <div class="bg-white rounded-xl border border-slate-200 p-4">
       <h2 class="font-semibold text-slate-900 mb-3">{{ t("production.ordersTitle") }}</h2>
-      <div v-if="overview.orders.length === 0" class="text-sm text-slate-400">{{ t("production.noDrafts") }}</div>
+      <div v-if="overview.orders.length === 0" class="text-sm text-slate-500">{{ t("production.noDrafts") }}</div>
       <div v-else class="space-y-2">
         <router-link
           v-for="o in overview.orders"

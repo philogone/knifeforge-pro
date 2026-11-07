@@ -2,111 +2,116 @@
 name: KnifeForge Pro
 description: Workshop manager and 1:1 vector editor for knifemakers, precise to the tenth of a millimetre.
 colors:
-  action-indigo: "#4f46e5"
-  action-indigo-deep: "#4338ca"
-  action-indigo-mist: "#eef2ff"
-  ink: "#0f172a"
-  graphite: "#1e293b"
-  slate-text: "#334155"
-  slate-muted: "#64748b"
-  slate-faint: "#94a3b8"
-  rule-line: "#cbd5e1"
-  hairline: "#e2e8f0"
+  olive: "#4d5a1c"
+  olive-deep: "#3f4a17"
+  olive-mist: "#f4f6ea"
+  olive-wash: "#e7ecd2"
+  ink: "#1c1b18"
+  graphite: "#2b2925"
+  graphite-text: "#403d37"
+  graphite-muted: "#6f6a60"
+  graphite-faint: "#a39d90"
+  rule-line: "#cdc7ba"
+  hairline: "#e3dfd5"
   paper: "#ffffff"
-  bench: "#f8fafc"
-  tag-wash: "#f1f5f9"
-  quench-red: "#dc2626"
-  quench-red-wash: "#fef2f2"
-  temper-green: "#16a34a"
-  caution-amber: "#d97706"
+  bench: "#f8f6f1"
+  tag-wash: "#f0ede6"
+  quench-red: "#b91c1c"
+  temper-green: "#15803d"
+  caution-amber: "#92400e"
   caution-amber-wash: "#fffbeb"
-  engrave-blue: "#2563eb"
-  grind-teal: "#0f766e"
+  layer-cut: "#0f172a"
+  layer-hole: "#dc2626"
+  layer-engrave: "#2563eb"
+  layer-grind: "#0f766e"
+  layer-construction: "#94a3b8"
+  layer-dimension: "#334155"
   snap-amber: "#f59e0b"
 typography:
   headline:
-    fontFamily: "ui-sans-serif, system-ui, sans-serif"
-    fontSize: "1.5rem"
-    fontWeight: 700
-    lineHeight: 1.33
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1.625rem"
+    fontWeight: 600
+    lineHeight: 1.25
+    letterSpacing: "-0.025em"
   title:
-    fontFamily: "ui-sans-serif, system-ui, sans-serif"
-    fontSize: "1rem"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.9375rem"
     fontWeight: 600
     lineHeight: 1.5
   body:
-    fontFamily: "ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
-    lineHeight: 1.43
+    lineHeight: 1.5
   label:
-    fontFamily: "ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.75rem"
-    fontWeight: 400
+    fontWeight: 500
     lineHeight: 1.33
   numeric:
-    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
-    fontSize: "0.75rem"
+    fontFamily: "IBM Plex Mono, ui-monospace, Consolas, monospace"
+    fontSize: "0.625rem"
     fontWeight: 400
-    lineHeight: 1.33
+    lineHeight: 1
 rounded:
   sm: "4px"
-  md: "8px"
-  lg: "12px"
-  full: "9999px"
+  md: "6px"
+  lg: "8px"
+  xl: "12px"
 spacing:
   xs: "4px"
   sm: "8px"
   md: "12px"
   lg: "16px"
-  xl: "32px"
+  xl: "20px"
+  xxl: "32px"
 components:
   button-primary:
-    backgroundColor: "{colors.action-indigo}"
+    backgroundColor: "{colors.olive}"
     textColor: "{colors.paper}"
     typography: "{typography.body}"
-    rounded: "{rounded.md}"
+    rounded: "{rounded.lg}"
     padding: "8px 16px"
   button-primary-hover:
-    backgroundColor: "{colors.action-indigo-deep}"
+    backgroundColor: "{colors.olive-deep}"
   button-secondary:
     backgroundColor: "{colors.graphite}"
     textColor: "{colors.paper}"
-    typography: "{typography.body}"
-    rounded: "{rounded.md}"
-    padding: "6px 12px"
+    rounded: "{rounded.lg}"
+    padding: "8px 16px"
   button-outline:
     backgroundColor: "{colors.paper}"
-    textColor: "{colors.slate-text}"
-    typography: "{typography.body}"
-    rounded: "{rounded.sm}"
-    padding: "4px 8px"
+    textColor: "{colors.graphite-text}"
+    rounded: "{rounded.lg}"
+    padding: "8px 16px"
   input-field:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.ink}"
     typography: "{typography.body}"
-    rounded: "{rounded.md}"
+    rounded: "{rounded.lg}"
     padding: "8px 12px"
   input-compact:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.ink}"
-    typography: "{typography.body}"
-    rounded: "{rounded.sm}"
+    rounded: "{rounded.md}"
     padding: "4px 8px"
-  card:
+  sheet:
     backgroundColor: "{colors.paper}"
-    rounded: "{rounded.lg}"
+    rounded: "{rounded.xl}"
     padding: "16px"
-  tag-demo:
-    backgroundColor: "{colors.tag-wash}"
-    textColor: "{colors.slate-faint}"
+  tag-accent:
+    backgroundColor: "{colors.olive-mist}"
+    textColor: "{colors.olive-deep}"
     typography: "{typography.label}"
     rounded: "{rounded.sm}"
     padding: "2px 6px"
-  dialog:
-    backgroundColor: "{colors.paper}"
-    rounded: "{rounded.lg}"
-    padding: "16px"
+  tag-neutral:
+    backgroundColor: "{colors.tag-wash}"
+    textColor: "{colors.graphite-muted}"
+    typography: "{typography.label}"
+    rounded: "{rounded.sm}"
+    padding: "2px 6px"
 ---
 
 # Design System: KnifeForge Pro
@@ -115,180 +120,170 @@ components:
 
 **Creative North Star: "Le carnet du coutelier"**
 
-KnifeForge Pro should feel like a knifemaker's workshop notebook: a technical record kept by a craftsman. On the left page, measured drawings, dimensions and stock counts that must be exact. In the margins, the maker's notes. The notebook is technical first: numbers, drawings and dimensions are always legible, aligned and unambiguous. The artisan warmth lives at the edges: in the voice of notes and hints, in how materials (steel, wood, G10) are named and recognised, in a sense of care. It never gets in the way of a dimension.
+KnifeForge Pro is a knifemaker's workshop notebook. The pages are warm paper on a faint 5 mm graph grid. The ink is a warm graphite, and the single action colour is a patinated olive, like an oiled tool handle. It is technical first: dimensions, drawings and stock counts are always legible, aligned and exact. The warmth lives in the material, not in decoration: the paper tone, a humanist engineered typeface (IBM Plex Sans), and the maker's own vocabulary in labels and hints.
 
-The current implementation is the notebook's sober base. It is a neutral cool-slate interface on stock Tailwind values, with white cards on a near-white bench and a single indigo action accent. It is dense where work happens: the editor runs edge to edge, with rulers, a tool rail and an inspector. Management pages are calm, centred columns of cards and forms. Warmth is a direction, not yet a token. Any warm material colour introduced later must be recorded here before use, and it must never touch the editor's layer colours, which carry meaning.
+Density follows the work. The editor runs edge to edge, with rulers, an icon rail, an inspector and a status bar. Management pages are calm centred columns: a page head (title, one-line lead, primary action), then the list, with creation forms opening on demand. The interface never competes with the drawing. Layer colours on the canvas carry meaning, and nothing in the chrome borrows them.
 
 **Key Characteristics:**
-- Flat white sheets on a pale bench, separated by hairline borders, never by shadows.
-- One action accent (indigo, provisional), used for primary actions, active navigation and selection.
-- Small type (14 px body, 12 px labels): an information-dense tool for long desk sessions.
-- Colour on the drawing is semantic: each layer role has a fixed stroke colour and dash pattern.
-- System fonts throughout. Nothing decorative competes with the drawing.
+- Warm graphite neutrals on paper (`bench`). White sheets with a hairline edge, and no shadows in the page flow.
+- One action colour, olive. It marks primary buttons, the active navigation, selection on the canvas and links.
+- IBM Plex Sans throughout, self-hosted. IBM Plex Mono only for ruler figures.
+- Figures in the reader's convention (`182,0 mm`, `180,00 €`). Tabular numerals in tables.
+- One drawn icon set (20 px, 1.5 px stroke, `currentColor`). No emoji or glyph icons.
 
 ## Colors
 
-A cool slate neutral ramp carries almost everything. One indigo accent marks action and selection, and a small set of semantic colours carries meaning, both in status and on the drawing.
+The palette is a warm graphite ramp with one olive accent. Semantic colours are kept for state, and a fixed set of layer colours is used only on the drawing.
 
 ### Primary
-- **Action Indigo** (`action-indigo`): primary buttons ("Ajouter", "Créer la commande", "Enregistrer"), active navigation and tabs, links ("Modifier", "+ Ajouter une ligne"), the editor's selection and UI overlay colour (`UI_COLOR`), and the translucent fill of cut parts. **Provisional:** it is inherited from Tailwind's default palette, not chosen for the trade, and may be replaced by a colour closer to the notebook world. Until then, use it exactly as documented.
-- **Action Indigo Deep** (`action-indigo-deep`): hover state of primary buttons.
-- **Action Indigo Mist** (`action-indigo-mist`): selected or highlighted rows and active toggles.
+- **Olive** (`olive`): primary buttons, the active navigation underline, the active tool tile, canvas selection (`UI_COLOR`), focus rings and text actions (`olive-deep`).
+- **Olive Mist / Wash**: category tags, text selection and the origin axes on the grid.
 
 ### Neutral
-- **Ink** (`ink`): page titles, primary text, and the stroke of cut outlines on the drawing.
-- **Graphite** (`graphite`): secondary solid buttons (for example "Ajouter une scie") and dark toolbar chips.
-- **Slate Text** (`slate-text`): body copy in dense lists, and dimension lines on the drawing.
-- **Slate Muted** (`slate-muted`): field labels, hints and secondary metadata. This is the most used text colour.
-- **Slate Faint** (`slate-faint`): tertiary metadata, the footer, "démo" tags, and construction lines on the drawing.
-- **Rule Line** (`rule-line`): the border of every input, select and outline button.
-- **Hairline** (`hairline`): card borders, the navigation bottom rule and dividers.
-- **Paper** (`paper`): cards, dialogs, navigation and the editor canvas.
-- **Bench** (`bench`): the app background behind the cards.
-- **Tag Wash** (`tag-wash`): neutral tag and badge backgrounds.
+The ramp is exposed as Tailwind `slate-*`, overridden in `tailwind.config.js` so the whole interface stays on one warm ramp.
+- **Ink**: titles and body text.
+- **Graphite**: secondary solid buttons.
+- **Graphite Text**: dense lists.
+- **Graphite Muted**: labels, hints and metadata. Its contrast on white is about 5.3:1. Never go lighter than this for text.
+- **Graphite Faint**: icons and disabled states only, never text.
+- **Rule Line**: the borders of inputs and outline buttons.
+- **Hairline**: sheet edges, dividers and the bar rules.
+- **Paper**: sheets, dialogs, the nav and the canvas.
+- **Bench**: the page background, with its 20 px graph grid.
 
 ### Semantic
-- **Quench Red** (`quench-red`, wash `quench-red-wash`):
-  - Destructive actions ("Supprimer") and errors.
-  - Shortages, and cancelled orders.
-  - On the drawing, the stroke of hole (perçage) layers.
-- **Temper Green** (`temper-green`): success, for example a saved state or a feasible order.
-- **Caution Amber** (`caution-amber`, wash `caution-amber-wash`): low stock and warnings.
-- **Engrave Blue** (`engrave-blue`): engrave layer strokes on the drawing.
-- **Grind Teal** (`grind-teal`): the grind line (émouture) on the drawing and client plan, always dash-dot.
-- **Snap Amber** (`snap-amber`): the editor's snap marker.
+- **Quench Red**: destructive actions, errors and shortfalls.
+- **Temper Green**: "sufficient", "saved" and "feasible".
+- **Caution Amber**: low stock, a missing template link and warnings.
+
+All three are always paired with text, never colour alone.
+
+### Layer colours (drawing only)
+Each layer type has a fixed stroke colour, plus a dash pattern where shown:
+
+| Layer | Colour | Stroke |
+|---|---|---|
+| cut | ink | solid; neutral translucent fill |
+| hole | red | solid |
+| engrave | blue | solid |
+| grind | teal | dash-dot |
+| construction | faint | dashed |
+| dimension | slate | solid |
 
 ### Named Rules
-**The Layer Colour Is Meaning Rule.** On the drawing and the client plan, a stroke's colour and dash identify its layer role:
-- cut: ink, solid;
-- hole: red;
-- engrave: blue;
-- grind: teal, dash-dot;
-- construction: faint, dashed;
-- dimension: slate.
+**The Layer Colour Is Meaning Rule.** On the drawing and the client plan, a stroke's colour and dash identify its layer role. The chrome never uses these colours: no red magnet, no amber lock.
 
-Never reuse these colours decoratively elsewhere in the editor, and never restyle a role without updating the plan export.
-
-**The One Accent Rule.** Indigo is the only accent. It marks what you can act on, or what is selected. Status colours (red, green, amber) speak only for state, never for decoration.
+**The One Accent Rule.** Olive is the only accent. It means "you can act here" or "this is selected". Status colours speak only for state.
 
 ## Typography
 
-**Display Font:** none (no display face)
-**Body Font:** the system UI sans (`ui-sans-serif, system-ui`)
-**Label/Mono Font:** the system monospace, used sparingly for numeric readouts
+**Body Font:** IBM Plex Sans, at weights 400, 500 and 600, self-hosted through `@fontsource`.
+**Label/Mono Font:** IBM Plex Mono, used only for the canvas ruler figures.
 
-**Character:** Plain, native and legible. The type stays out of the way so that dimensions and drawings lead, like the printed grid of a notebook rather than its handwriting.
+**Character:** An engineered sans with a humanist hand. It reads like a technical drawing annotated by a person, which is the notebook in type.
 
 ### Hierarchy
-- **Headline:** page titles ("Matériaux", "Commandes"). One per page.
-- **Title:** card and section headings, and item names in lists.
-- **Body:** the default for forms, lists, buttons and the editor's toolbars and inspector.
-- **Label:** field labels (Slate Muted), hints, metadata lines, tags and the editor's status bar.
-- **Numeric:** monospace readouts where digits must align.
+- **Headline**: the page title, one per page.
+- **Title**: sheet and section headings, and item names.
+- **Body**: forms, lists, toolbars and the inspector. Leads are capped at about 65ch.
+- **Label**: field labels (medium weight) and tags. Never below 12 px in the HTML interface.
+- **Numeric**: ruler ticks on the canvas.
 
 ### Named Rules
-**The Small And Exact Rule.** The interface is set small (body 14 px, labels 12 px) because it is a dense desk tool. Never shrink below 12 px. Dimensions and numeric fields are never truncated or rounded for display beyond their stored precision.
+**The Small And Exact Rule.** Body is 14 px and labels are 12 px. Numbers use the locale formatters in `@/i18n`:
+- `num` for a fixed number of decimals;
+- `money` for euros;
+- `qty` for a quantity with its unit;
+- `formatDecimal` for costs, up to 6 decimals.
+
+Never use `toFixed` in a template. Never round a value for display below its stored precision; a unit cost of 0,000778 €/mm² stays 0,000778.
 
 ## Layout
 
-- **Management pages:** a single centred column (`max-w-3xl` to `max-w-6xl` depending on the page), 16 px side padding and 32 px top padding. Content is stacked as cards with 24 to 32 px between them.
-- **Forms:** grids of 2 columns on small screens and 3 to 5 from `md` upward, with 8 to 12 px gaps. Labels sit above their fields.
-- **Navigation:** a full-width white bar with a hairline bottom border. The brand sits on the left, the page links follow, and "Déconnexion" sits on the far right. It wraps on narrow screens.
-- **Editor:** full bleed below the navigation.
-  - Header bar: back link, design name and save state on the left; history, zoom, import/export and "Enregistrer" on the right.
-  - Options bar: grid, nodes and snapping toggles.
-  - Main area: a vertical tool rail on the left, the canvas with mm rulers in the centre, and a tabbed inspector on the right (Objet, Calques, Fond, Document).
-  - Status bar at the bottom: hint text, cursor position and zoom level.
-- **Rhythm:** spacing comes from the 4 px Tailwind scale. 8 px is the workhorse gap, 16 px the card padding.
-- **Responsive:** the system is desktop-first. Only about 15 responsive overrides exist, all switching form grids at `md`. Mobile and tablet use is not a designed target.
+- **Page shell:** a 56 px sticky nav. The brand mark sits on the left. Links follow in three groups (stock and know-how, orders, drawing) separated by hairlines. Settings and sign-out sit on the right. The active section, detail pages included, gets a 2 px olive underline flush with the bottom rule.
+- **Management pages:**
+  - `.page` with a max width of 3xl to 6xl, 20 px side padding and 32 px top padding.
+  - `.page-head` holds the title, the lead and the primary action on the right.
+  - Below it comes the list of sheets with 12 px gaps.
+  - Creation forms are hidden until "+ Ajouter…" is pressed, then open above the list.
+  - The footer is hidden on the editor.
+- **Forms:** labels above fields (`.field-label`), on grids of 2 to 4 columns with 12 px gaps. Placeholder-only fields are not allowed.
+- **Editor:** full height under the nav.
+  - Header bar: back link, name, save state, model and material selects; then history, fit, 1:1, the File menu (import and exports), Plan client and Enregistrer.
+  - Options bar.
+  - Main area: icon rail, canvas with rulers, and the tabbed inspector.
+  - Status bar along the bottom.
+  - At 1024 px the header wraps onto two rows.
+- **Responsive:** desktop-first. Login drops its drawing panel below `lg`.
 
 ## Elevation & Depth
 
-The system is flat. Depth comes from tone and line: white sheets (Paper) sit on a pale Bench and are outlined by a hairline border. Shadows appear only on layers that float above the page, such as modal dialogs (perspective correction, the shape library, confirmations) and dropdown menus.
+The system is flat. Depth comes from tone and line: white sheets on the paper bench, separated by a hairline. Shadows appear only on layers that float: dialogs, the File menu and the snap menu.
 
 ### Shadow Vocabulary
-- **Floating layer** (`box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)`): modal dialogs only.
+- **Floating layer** (Tailwind `shadow-xl` / `shadow-lg`): dialogs and dropdown menus only.
 
 ### Named Rules
-**The Flat Sheet Rule.** Nothing that sits in the page flow casts a shadow: no card, button, input or panel. A shadow means "this floats above the page", so only dialogs and menus get one. Use a hairline border to separate, never a shadow.
+**The Flat Sheet Rule.** Nothing in the page flow casts a shadow. To separate two surfaces, use a hairline.
 
 ## Shapes
 
-Gently rounded and consistent by size:
-- **Small (4 px):** tags, compact inputs and the small buttons of the editor's toolbars.
-- **Medium (8 px):** standard inputs, selects and primary or secondary buttons.
-- **Large (12 px):** cards and dialogs.
-- **Fully round:** rare, reserved for dots and toggles.
-
-Borders are always 1 px solid. Drawing geometry (parts, dimension arrows, rulers) is never rounded or styled by the interface's shape language.
+- **Radius:** 4 px for tags, 6 px for compact inputs and the editor's small buttons, 8 px for buttons and inputs, and 12 px for sheets and dialogs.
+- **Borders:** always 1 px.
+- **Empty states:** a dashed hairline marks a frame waiting for content, for example the nesting result area.
+- **Drawing geometry** is never styled by the interface's shape language.
 
 ## Components
 
+All primitives live in `frontend/src/assets/main.css` under `@layer components`. Pages compose them rather than restating utility strings.
+
 ### Buttons
-- **Primary:** Action Indigo with white medium-weight text, 8 px radius and 8 × 16 px padding. Hover moves to Action Indigo Deep. When disabled, opacity drops to 50 %. Use one per form or toolbar ("Ajouter", "Enregistrer").
-- **Secondary (solid):** Graphite with white text, 8 px radius and 6 × 12 px padding, for inline add actions inside a card.
-- **Outline:** a white button with a Rule Line border, Slate Text, a 4 px radius and compact padding. The editor's toolbar actions (Importer un SVG, Exporter SVG/DXF, Plan client…, 1:1) use it.
-- **Text actions:** an Action Indigo link ("Modifier", "+ Ajouter une ligne") or a Quench Red one ("Supprimer"), at 12 to 14 px, with no background.
-- **Focus:** no custom focus style exists, so the browser default ring is relied on. This is a known gap.
+- `.btn`, combined with one of:
+  - `.btn-primary`: olive. One per form or page head.
+  - `.btn-secondary`: graphite. For an inline commit such as "Réapprovisionner".
+  - `.btn-outline`: paper with a rule-line border. Cancel, secondary and neutral actions, and dangerous actions in red text.
+- `.btn-sm` gives a compact size. Disabled buttons drop to 50 % opacity.
+- **Text actions:** `.link-action` (olive) and `.link-danger` (red), with an underline on hover.
 
-### Chips / Tags
-- **Demo tag:** Tag Wash background, Slate Faint 12 px text, 4 px radius, 2 × 6 px padding. It marks seed data.
-- **Order status:**
-  - "brouillon" (draft): neutral slate wash.
-  - "confirmée" (confirmed): blue wash.
-  - "annulée" (cancelled): red wash.
-  - All three share the tag shape, aligned to the right of the card.
+### Tags
+- `.tag` combined with one of `tag-accent` (category or type), `tag-neutral` (démo, draft), `tag-info` (confirmed), `tag-success`, `tag-warning` or `tag-danger`.
+- Order states come from `ORDER_STATUS_TAG` in `constants/referenceData.ts`, so the list and the detail page always agree.
 
-### Cards / Containers
-- **Corner Style:** 12 px.
-- **Background:** Paper on the Bench.
-- **Shadow Strategy:** none (see the Flat Sheet Rule).
-- **Border:** 1 px Hairline.
-- **Internal Padding:** 16 px. Collapsible cards ("Catalogue scies / lames") put their title on the left and a faint +/− on the right.
+### Sheets
+- `.sheet` is paper, a 1 px hairline and a 12 px radius, with 16 to 20 px padding. It is never nested inside another sheet.
+- `.sheet-title` and `.sheet-hint` style headings and hints inside it.
 
 ### Inputs / Fields
-- **Style:** Paper background with a 1 px Rule Line border.
-  - Form fields: 8 px radius and 8 × 12 px padding, 14 px text.
-  - Compact fields: 4 px radius and 4 × 8 px padding, used in the editor inspector and in dense tables.
-- **Label:** 12 px Slate Muted, above the field, with 4 px between them.
-- **Focus:** only one field defines a focus colour (an indigo border), so the browser default is relied on elsewhere. This is a known gap.
-- **Error:** inline Quench Red text below or beside the field.
+- `.input` is for forms; `.input-sm` is for dense rows and the editor inspector.
+- Hovering darkens the border. Keyboard focus gets a 2 px olive outline (global `:focus-visible`), with an olive border on fields.
+- Placeholders use Graphite Muted.
 
 ### Navigation
-- **Top bar:**
-  - The bold brand wordmark sits at 18 px.
-  - Page links are 14 px Slate Muted and darken to Ink on hover. The active link is Action Indigo and medium weight.
-  - The sign-out link sits on the far right.
-- **Tabs:** the editor inspector and some pages use underline tabs. The active tab gets a 2 px Action Indigo bottom border and indigo text; inactive tabs are Slate Muted.
+- Grouped top bar with underline-active state and `aria-current="page"`.
+- Editor tabs use a 2 px olive underline, ink text when active and muted text when inactive.
 
-### Editor Canvas (signature component)
-- **Canvas and grid:** the drawing sits on a white canvas with a faint millimetre grid. Rulers in mm run along the top and left edges.
-- **Tool rail:** single icons, with the active tool on an Action Indigo tile.
-- **Parts:**
-  - Cut parts get an Ink outline and a translucent indigo fill (14 % opacity).
-  - Holes are red circles on an opaque white fill.
-- **Dimensions:** slate lines with arrowheads and a centred "112 mm" label.
-- **Snap feedback:** an amber marker with an amber-brown label.
-- **Status bar:** at 12 px, it gives the hint for the current tool on the left, and the cursor position and zoom level on the right.
+### Editor chrome (signature component)
+- **Icons:** `EditorIcon.vue` is the only icon source in the editor. Each tool button has an `aria-label` and a tooltip containing its shortcut.
+- **Tool rail:** the active tool sits on an olive tile.
+- **Canvas grid and rulers:** warm minor and major lines and warm ruler colours, with olive origin axes.
+- **Dimension labels:** set in Plex Sans, centred a clear gap off their line, so they are never struck through.
+- **Plan client dialog:** `role="dialog"`. Esc closes it. The preview follows the form. "Imprimer / PDF" is the primary action, and a 100 % scale reminder sits underneath.
+
+### Login (the one authored moment)
+A split screen: a blade plate draws its outline once, then its holes, grind line and dimensions settle in. This is the editor's own visual language, and it respects `prefers-reduced-motion`. The form sits on the right.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** separate surfaces with the 1 px Hairline border on white Paper over the Bench, the way every page already works.
-- **Do** keep one primary indigo button per form or toolbar. Everything else is outline, text or secondary.
-- **Do** put labels above fields in 12 px Slate Muted, and keep 8 px as the default gap.
-- **Do** respect the layer colour code on the drawing and the client plan:
-  - cut: ink;
-  - hole: red;
-  - engrave: blue;
-  - grind: teal, dash-dot;
-  - construction: faint, dashed;
-  - dimension: slate.
-- **Do** bring the "carnet" warmth through voice, material naming and notes first. Record any warm colour or texture token in this file before using it.
+- **Do** start every management page with `.page-head`: a title, a one-line lead in the maker's words, and one primary action.
+- **Do** put the list first and open forms on demand. Give every field a visible label.
+- **Do** format every number through the `@/i18n` helpers, and use tabular numerals in tables.
+- **Do** confirm destructive actions by naming the item, and show errors in the page, translated (no `alert()`).
+- **Do** flag what blocks nesting (a missing template for a model and material) in caution amber, with a link to fix it.
 
 ### Don't:
-- **Don't** add shadows to cards, panels, buttons or inputs. Shadows are for dialogs and menus only (the Flat Sheet Rule).
-- **Don't** introduce a second accent colour, or use red, green or amber decoratively.
-- **Don't** reuse layer colours (red, blue, teal, amber) for interface chrome inside the editor, where they would be read as geometry.
-- **Don't** set any text below 12 px, and never display a dimension rounded beyond its stored precision.
-- **Don't** treat the indigo as a brand commitment. It is provisional and may be replaced as a whole, never mixed with a new accent.
+- **Don't** add shadows to sheets, buttons or inputs.
+- **Don't** use emoji or Unicode glyphs as icons. Draw them in `EditorIcon.vue`.
+- **Don't** use layer colours (red, blue, teal, amber) for chrome inside the editor.
+- **Don't** set text lighter than Graphite Muted, or smaller than 12 px.
+- **Don't** write "$". The workshop prices in euros through `money()`.

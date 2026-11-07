@@ -584,6 +584,7 @@ export class EditorEngine {
   screenText(at: paper.Point, content: string, sizePx: number, color: string, justification: "left" | "center" = "left"): paper.PointText {
     const t = new paper.PointText({ point: at, content, insert: false });
     t.fontSize = sizePx;
+    t.fontFamily = '"IBM Plex Sans", sans-serif';
     t.justification = justification;
     t.fillColor = new paper.Color(color);
     t.scale(1 / this.view.zoom, at);
@@ -828,11 +829,14 @@ export class EditorEngine {
     };
     parts.push(arrow(a2, u.multiply(-1)), arrow(b2, u));
     const text: string = group.data.label || `${formatMm(length)} mm`;
-    const mid = a2.add(b2).divide(2).add(n.multiply(sign * 1.4));
+    const lineMid = a2.add(b2).divide(2);
     let angle = (Math.atan2(v.y, v.x) * 180) / Math.PI;
     if (angle > 90 || angle < -90) angle += 180;
-    const label = new paper.PointText({ point: mid, content: text, fillColor: color, fontSize: DIM_TEXT_MM, fontFamily: "sans-serif", justification: "center", insert: false });
-    label.rotate(angle, mid);
+    const label = new paper.PointText({ point: lineMid, content: text, fillColor: color, fontSize: DIM_TEXT_MM, fontFamily: '"IBM Plex Sans", sans-serif', justification: "center", insert: false });
+    label.rotate(angle, lineMid);
+    // centre the text a clear gap off the dimension line, on the outer side, so the line
+    // never strikes through the figure whichever way the dimension is drawn
+    label.position = lineMid.add(n.multiply(sign * (0.8 + DIM_TEXT_MM * 0.45)));
     parts.push(label);
     for (const part of parts) group.addChild(part);
   }

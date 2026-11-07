@@ -108,7 +108,7 @@ async function duplicate(d: DesignSummary) {
 }
 
 async function remove(d: DesignSummary) {
-  if (!confirm(`${t("common.delete")} « ${d.name} » ?`)) return;
+  if (!confirm(t("common.confirmDeleteNamed", { name: d.name }))) return;
   await store.deleteDesign(d.id);
   await load();
 }
@@ -134,20 +134,18 @@ function fmtDate(iso: string) {
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto px-4 py-8">
-    <div class="flex items-start justify-between flex-wrap gap-3 mb-6">
+  <div class="page max-w-6xl">
+    <header class="page-head">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900">{{ t("designs.title") }}</h1>
-        <p class="text-sm text-slate-500 mt-1 max-w-2xl">{{ t("designs.subtitle") }}</p>
+        <h1 class="page-title">{{ t("designs.title") }}</h1>
+        <p class="page-lead">{{ t("designs.subtitle") }}</p>
       </div>
-      <button class="bg-accent-600 hover:bg-accent-700 text-white text-sm font-medium rounded-lg px-4 py-2" @click="showNew = !showNew">
-        + {{ t("designs.new") }}
-      </button>
-    </div>
+      <button v-if="!showNew" class="btn btn-primary" @click="showNew = true">+ {{ t("designs.new") }}</button>
+    </header>
 
-    <form v-if="showNew" class="bg-white rounded-xl border border-slate-200 p-4 mb-6 space-y-4" @submit.prevent="create">
+    <form v-if="showNew" class="sheet p-4 mb-6 space-y-4" @submit.prevent="create">
       <div>
-        <label class="block text-xs text-slate-500 mb-2">{{ t("designs.template") }}</label>
+        <label class="field-label mb-2">{{ t("designs.template") }}</label>
         <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
           <button
             v-for="tpl in templates"
@@ -164,32 +162,32 @@ function fmtDate(iso: string) {
       </div>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div>
-          <label class="block text-xs text-slate-500 mb-1">{{ t("common.name") }}</label>
-          <input v-model="form.name" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+          <label class="field-label">{{ t("common.name") }}</label>
+          <input v-model="form.name" class="input w-full" />
         </div>
         <div>
-          <label class="block text-xs text-slate-500 mb-1">{{ t("designs.kind") }}</label>
-          <select v-model="form.kind" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+          <label class="field-label">{{ t("designs.kind") }}</label>
+          <select v-model="form.kind" class="input w-full">
             <option v-for="k in kinds" :key="k" :value="k">{{ t(`designs.kind.${k}`) }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-xs text-slate-500 mb-1">{{ t("designs.knifeModel") }}</label>
-          <select v-model.number="form.knife_model_id" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+          <label class="field-label">{{ t("designs.knifeModel") }}</label>
+          <select v-model.number="form.knife_model_id" class="input w-full">
             <option :value="0">{{ t("designs.none") }}</option>
             <option v-for="m in store.knifeModels" :key="m.id" :value="m.id">{{ m.name }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-xs text-slate-500 mb-1">{{ t("designs.material") }}</label>
-          <select v-model.number="form.material_id" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+          <label class="field-label">{{ t("designs.material") }}</label>
+          <select v-model.number="form.material_id" class="input w-full">
             <option :value="0">{{ t("designs.none") }}</option>
             <option v-for="m in store.materials" :key="m.id" :value="m.id">{{ m.name }}</option>
           </select>
         </div>
       </div>
       <div class="flex gap-2">
-        <button type="submit" class="bg-accent-600 hover:bg-accent-700 text-white text-sm font-medium rounded-lg px-4 py-2">{{ t("designs.create") }}</button>
+        <button type="submit" class="btn btn-primary">{{ t("designs.create") }}</button>
         <button type="button" class="text-sm text-slate-500 px-4 py-2" @click="showNew = false">{{ t("common.cancel") }}</button>
       </div>
     </form>
@@ -197,15 +195,15 @@ function fmtDate(iso: string) {
     <p v-if="error" class="text-sm text-red-600 mb-4">{{ error }}</p>
 
     <div class="flex flex-wrap gap-3 mb-4 text-sm">
-      <select v-model="filter.kind" class="rounded-lg border border-slate-300 px-3 py-1.5">
+      <select v-model="filter.kind" class="input-sm">
         <option value="">{{ t("designs.kind") }} : {{ t("designs.filterAll") }}</option>
         <option v-for="k in kinds" :key="k" :value="k">{{ t(`designs.kind.${k}`) }}</option>
       </select>
-      <select v-model.number="filter.knife_model_id" class="rounded-lg border border-slate-300 px-3 py-1.5">
+      <select v-model.number="filter.knife_model_id" class="input-sm">
         <option :value="0">{{ t("designs.knifeModel") }} : {{ t("designs.filterAll") }}</option>
         <option v-for="m in store.knifeModels" :key="m.id" :value="m.id">{{ m.name }}</option>
       </select>
-      <select v-model.number="filter.material_id" class="rounded-lg border border-slate-300 px-3 py-1.5">
+      <select v-model.number="filter.material_id" class="input-sm">
         <option :value="0">{{ t("designs.material") }} : {{ t("designs.filterAll") }}</option>
         <option v-for="m in store.materials" :key="m.id" :value="m.id">{{ m.name }}</option>
       </select>
@@ -215,29 +213,39 @@ function fmtDate(iso: string) {
     <p v-else-if="!visible.length" class="text-sm text-slate-500">{{ t("designs.empty") }}</p>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div v-for="d in visible" :key="d.id" class="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
-        <router-link :to="`/designs/${d.id}`" class="block h-40 bg-slate-50 border-b border-slate-100 p-3 [&>svg]:w-full [&>svg]:h-full" v-html="thumbs[d.id]"></router-link>
+      <div v-for="d in visible" :key="d.id" class="sheet overflow-hidden flex flex-col">
+        <router-link
+          v-if="d.part_count"
+          :to="`/designs/${d.id}`"
+          :aria-label="d.name"
+          class="block h-40 bg-slate-50 border-b border-slate-100 p-4 [&>svg]:w-full [&>svg]:h-full"
+          v-html="thumbs[d.id]"
+        ></router-link>
+        <router-link v-else :to="`/designs/${d.id}`" class="h-40 bg-slate-50 border-b border-slate-100 p-4 flex items-center justify-center text-center text-sm text-slate-500">
+          {{ t("designs.emptyThumb") }}
+        </router-link>
         <div class="p-3 flex-1 flex flex-col gap-1">
           <div class="flex items-center gap-2 flex-wrap">
-            <router-link :to="`/designs/${d.id}`" class="font-medium text-slate-900 hover:text-accent-600">{{ d.name }}</router-link>
-            <span class="text-xs bg-accent-50 text-accent-700 rounded px-1.5 py-0.5">{{ t(`designs.kind.${d.kind}`) }}</span>
-            <span v-if="d.is_mock" class="text-xs text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">{{ t("common.demo") }}</span>
+            <router-link :to="`/designs/${d.id}`" class="font-semibold text-slate-900 hover:text-accent-700">{{ d.name }}</router-link>
+            <span class="tag tag-accent">{{ t(`designs.kind.${d.kind}`) }}</span>
+            <span v-if="d.is_mock" class="tag tag-neutral">{{ t("common.demo") }}</span>
           </div>
-          <p class="text-xs text-slate-500">
-            {{ num(d.width_mm) }} × {{ num(d.height_mm) }} mm · {{ num(d.area_mm2 / 100) }} cm² · {{ d.part_count }} {{ t("designs.parts") }}
+          <p class="text-xs text-slate-600 tabular-nums">
+            {{ num(d.width_mm) }} × {{ num(d.height_mm) }} mm · {{ num(d.area_mm2 / 100) }} cm² · {{ t(d.part_count > 1 ? "designs.partsMany" : "designs.partsOne", { n: d.part_count }) }}
           </p>
-          <p v-if="d.knife_model_name || d.material_name" class="text-xs text-slate-500">
-            <span v-if="d.knife_model_name">🔪 {{ d.knife_model_name }}</span>
-            <span v-if="d.knife_model_name && d.material_name"> · </span>
-            <span v-if="d.material_name">▦ {{ d.material_name }}</span>
-          </p>
+          <dl class="text-xs grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 mt-0.5">
+            <dt class="text-slate-500">{{ t("designs.knifeModel") }}</dt>
+            <dd :class="d.knife_model_name ? 'text-slate-700' : 'text-amber-800'">{{ d.knife_model_name ?? t("designs.notLinked") }}</dd>
+            <dt class="text-slate-500">{{ t("designs.material") }}</dt>
+            <dd :class="d.material_name ? 'text-slate-700' : 'text-amber-800'">{{ d.material_name ?? t("designs.notLinked") }}</dd>
+          </dl>
           <p class="text-xs text-slate-500">{{ t("designs.updated") }} {{ fmtDate(d.updated_at) }}</p>
-          <div class="mt-auto pt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm">
-            <router-link :to="`/designs/${d.id}`" class="text-accent-600">{{ t("designs.open") }}</router-link>
-            <button class="text-slate-600" @click="duplicate(d)">{{ t("designs.duplicate") }}</button>
-            <button class="text-slate-600" @click="download(d, 'export.svg')">{{ t("designs.exportSvg") }}</button>
-            <button class="text-slate-600" @click="download(d, 'export.dxf')">{{ t("designs.exportDxf") }}</button>
-            <button class="text-red-600 ml-auto" @click="remove(d)">{{ t("common.delete") }}</button>
+          <div class="mt-auto pt-3 border-t border-slate-100 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <router-link :to="`/designs/${d.id}`" class="link-action font-medium">{{ t("designs.open") }}</router-link>
+            <button class="link-action" @click="duplicate(d)">{{ t("designs.duplicate") }}</button>
+            <button class="link-action" @click="download(d, 'export.svg')">{{ t("designs.exportSvg") }}</button>
+            <button class="link-action" @click="download(d, 'export.dxf')">{{ t("designs.exportDxf") }}</button>
+            <button class="link-danger ml-auto" @click="remove(d)">{{ t("common.delete") }}</button>
           </div>
         </div>
       </div>

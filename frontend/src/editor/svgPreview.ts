@@ -46,7 +46,7 @@ export function documentToSvg(doc: DesignDocument, size = 160): string {
         ? 'fill="none" stroke="#2563eb" stroke-dasharray="3 2"'
         : layer.role === "hole"
           ? 'fill="#fff" stroke="#dc2626"'
-          : 'fill="#e2e8f0" stroke="#0f172a" fill-rule="evenodd"';
+          : 'fill="#ebe7df" stroke="#1c1b18" fill-rule="evenodd"';
     parts.push(`<path d="${d}" ${style} vector-effect="non-scaling-stroke" stroke-width="1.2"/>`);
   }
   if (!parts.length || !isFinite(minX)) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}"></svg>`;

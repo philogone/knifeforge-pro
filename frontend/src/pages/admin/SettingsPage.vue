@@ -71,22 +71,24 @@ async function exportData() {
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto px-4 py-8">
-    <h1 class="text-2xl font-bold text-slate-900 mb-6">{{ t("settings.title") }}</h1>
+  <div class="page max-w-2xl">
+    <header class="page-head"><h1 class="page-title">{{ t("settings.title") }}</h1></header>
 
-    <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
-      <h2 class="font-semibold text-slate-900">{{ t("settings.language") }}</h2>
+    <div class="sheet p-5 mb-6">
+      <h2 class="sheet-title">{{ t("settings.language") }}</h2>
       <div class="mt-3 flex gap-2">
         <button
-          class="text-sm font-medium rounded-lg px-4 py-2 border"
-          :class="locale === 'fr' ? 'bg-accent-600 text-white border-accent-600' : 'border-slate-300 text-slate-600'"
+          class="btn btn-sm border"
+          :aria-pressed="locale === 'fr'"
+          :class="locale === 'fr' ? 'bg-accent-600 text-white border-accent-600' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'"
           @click="setLocale('fr' as Locale)"
         >
           Français
         </button>
         <button
-          class="text-sm font-medium rounded-lg px-4 py-2 border"
-          :class="locale === 'en' ? 'bg-accent-600 text-white border-accent-600' : 'border-slate-300 text-slate-600'"
+          class="btn btn-sm border"
+          :aria-pressed="locale === 'en'"
+          :class="locale === 'en' ? 'bg-accent-600 text-white border-accent-600' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'"
           @click="setLocale('en' as Locale)"
         >
           English
@@ -94,41 +96,41 @@ async function exportData() {
       </div>
     </div>
 
-    <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
-      <h2 class="font-semibold text-slate-900">{{ t("settings.shop") }}</h2>
-      <p class="text-sm text-slate-500 mt-1">{{ t("settings.shop.hint") }}</p>
+    <div class="sheet p-5 mb-6">
+      <h2 class="sheet-title">{{ t("settings.shop") }}</h2>
+      <p class="sheet-hint text-sm mt-1 max-w-prose">{{ t("settings.shop.hint") }}</p>
       <div class="mt-3 flex items-end gap-3 flex-wrap">
         <div>
-          <label class="block text-xs text-slate-500 mb-1">{{ t("settings.shop.hourlyRate") }}</label>
-          <input v-model.number="shop.hourly_rate" type="number" step="any" min="0" class="w-36 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+          <label class="field-label">{{ t("settings.shop.hourlyRate") }}</label>
+          <input v-model.number="shop.hourly_rate" type="number" step="any" min="0" class="w-36 input" />
         </div>
         <div>
-          <label class="block text-xs text-slate-500 mb-1">{{ t("settings.shop.defaultMargin") }}</label>
-          <input v-model.number="shop.default_margin_percent" type="number" step="any" min="0" max="99" class="w-36 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+          <label class="field-label">{{ t("settings.shop.defaultMargin") }}</label>
+          <input v-model.number="shop.default_margin_percent" type="number" step="any" min="0" max="99" class="w-36 input" />
         </div>
-        <button class="bg-accent-600 hover:bg-accent-700 text-white text-sm font-medium rounded-lg px-4 py-2" @click="saveShop">{{ t("common.save") }}</button>
+        <button class="btn btn-primary" @click="saveShop">{{ t("common.save") }}</button>
         <span v-if="shopSaved" class="text-sm text-green-700">{{ t("settings.shop.saved") }}</span>
       </div>
     </div>
 
-    <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
-      <h2 class="font-semibold text-slate-900">{{ t("settings.mockData") }}</h2>
-      <p class="text-sm text-slate-500 mt-1">{{ t("settings.mockData.hint") }}</p>
+    <div class="sheet p-5 mb-6">
+      <h2 class="sheet-title">{{ t("settings.mockData") }}</h2>
+      <p class="sheet-hint text-sm mt-1 max-w-prose">{{ t("settings.mockData.hint") }}</p>
       <p class="mt-3 text-sm">
-        {{ t("settings.mockData.status") }}:
+        {{ t("settings.mockData.status") }}{{ t("common.colon") }}
         <span :class="enabled ? 'text-green-700' : 'text-slate-500'">{{ enabled ? t("settings.mockData.enabled") : t("settings.mockData.disabled") }}</span>
       </p>
       <div class="mt-3 flex gap-3">
-        <button :disabled="busy" class="bg-accent-600 hover:bg-accent-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2" @click="seed">{{ t("settings.mockData.seed") }}</button>
-        <button :disabled="busy" class="bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-700 text-sm font-medium rounded-lg px-4 py-2" @click="clear">{{ t("settings.mockData.clear") }}</button>
+        <button :disabled="busy" class="btn btn-outline" @click="seed">{{ t("settings.mockData.seed") }}</button>
+        <button :disabled="busy" class="btn btn-outline text-red-700 hover:text-red-800 hover:border-red-300" @click="clear">{{ t("settings.mockData.clear") }}</button>
       </div>
     </div>
 
-    <div class="bg-white rounded-xl border border-slate-200 p-4">
-      <h2 class="font-semibold text-slate-900">{{ t("settings.backup") }}</h2>
-      <p class="text-sm text-slate-500 mt-1">{{ t("settings.backup.hint") }}</p>
+    <div class="sheet p-5">
+      <h2 class="sheet-title">{{ t("settings.backup") }}</h2>
+      <p class="sheet-hint text-sm mt-1 max-w-prose">{{ t("settings.backup.hint") }}</p>
       <div class="mt-3">
-        <button :disabled="exporting" class="bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2" @click="exportData">
+        <button :disabled="exporting" class="btn btn-secondary" @click="exportData">
           {{ t("settings.backup.export") }}
         </button>
       </div>

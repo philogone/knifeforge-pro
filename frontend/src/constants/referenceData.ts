@@ -27,3 +27,11 @@ export const PIECE_TYPE_SUGGESTIONS: string[] = [
   "Rivet tubulaire", "Rivet plein", "Vis Corby", "Entretoise", "Clip de poche",
   "Axe de pliant", "Ressort (backspring)", "Écrou à sertir",
 ];
+
+/** One colour per order state, shared by the list and the detail page. */
+export const ORDER_STATUS_TAG: Record<"draft" | "confirmed" | "completed" | "cancelled", string> = {
+  draft: "tag-neutral",
+  confirmed: "tag-info",
+  completed: "tag-success",
+  cancelled: "tag-danger",
+};

@@ -1,53 +1,234 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-07T00:00:00Z",
+  "generatedAt": "2026-11-07T14:46:45+00:00",
   "title": "Design System: KnifeForge Pro",
   "extensions": {
     "colorMeta": {
-      "action-indigo": { "role": "primary", "displayName": "Action Indigo (provisional)", "canonical": "#4f46e5", "tonalRamp": ["#312e81", "#3730a3", "#4338ca", "#4f46e5", "#6366f1", "#818cf8", "#c7d2fe", "#eef2ff"] },
-      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#0f172a", "tonalRamp": ["#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#f1f5f9"] },
-      "bench": { "role": "neutral", "displayName": "Bench", "canonical": "#f8fafc", "tonalRamp": ["#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9", "#f8fafc"] },
-      "quench-red": { "role": "semantic", "displayName": "Quench Red", "canonical": "#dc2626", "tonalRamp": ["#7f1d1d", "#991b1b", "#b91c1c", "#dc2626", "#ef4444", "#f87171", "#fecaca", "#fef2f2"] },
-      "temper-green": { "role": "semantic", "displayName": "Temper Green", "canonical": "#16a34a", "tonalRamp": ["#14532d", "#166534", "#15803d", "#16a34a", "#22c55e", "#4ade80", "#bbf7d0", "#f0fdf4"] },
-      "caution-amber": { "role": "semantic", "displayName": "Caution Amber", "canonical": "#d97706", "tonalRamp": ["#78350f", "#92400e", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fde68a", "#fffbeb"] },
-      "grind-teal": { "role": "semantic", "displayName": "Grind Teal (layer)", "canonical": "#0f766e", "tonalRamp": ["#134e4a", "#115e59", "#0f766e", "#0d9488", "#14b8a6", "#2dd4bf", "#99f6e4", "#f0fdfa"] },
-      "engrave-blue": { "role": "semantic", "displayName": "Engrave Blue (layer)", "canonical": "#2563eb", "tonalRamp": ["#1e3a8a", "#1e40af", "#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa", "#bfdbfe", "#eff6ff"] }
+      "olive": {
+        "role": "primary",
+        "displayName": "Vert olive patiné",
+        "canonical": "#4d5a1c",
+        "tonalRamp": [
+          "#2b3213",
+          "#343c15",
+          "#3f4a17",
+          "#4d5a1c",
+          "#6b7a2c",
+          "#8c9b45",
+          "#cfd8a6",
+          "#f4f6ea"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Warm graphite",
+        "canonical": "#1c1b18",
+        "tonalRamp": [
+          "#1c1b18",
+          "#2b2925",
+          "#403d37",
+          "#57534b",
+          "#6f6a60",
+          "#a39d90",
+          "#e3dfd5",
+          "#f8f6f1"
+        ]
+      },
+      "bench": {
+        "role": "neutral",
+        "displayName": "Paper bench",
+        "canonical": "#f8f6f1",
+        "tonalRamp": [
+          "#403d37",
+          "#57534b",
+          "#6f6a60",
+          "#a39d90",
+          "#cdc7ba",
+          "#e3dfd5",
+          "#f0ede6",
+          "#f8f6f1"
+        ]
+      },
+      "quench-red": {
+        "role": "semantic",
+        "displayName": "Quench Red",
+        "canonical": "#b91c1c",
+        "tonalRamp": [
+          "#7f1d1d",
+          "#991b1b",
+          "#b91c1c",
+          "#dc2626",
+          "#ef4444",
+          "#f87171",
+          "#fecaca",
+          "#fef2f2"
+        ]
+      },
+      "temper-green": {
+        "role": "semantic",
+        "displayName": "Temper Green",
+        "canonical": "#15803d",
+        "tonalRamp": [
+          "#14532d",
+          "#166534",
+          "#15803d",
+          "#16a34a",
+          "#22c55e",
+          "#4ade80",
+          "#bbf7d0",
+          "#f0fdf4"
+        ]
+      },
+      "caution-amber": {
+        "role": "semantic",
+        "displayName": "Caution Amber",
+        "canonical": "#92400e",
+        "tonalRamp": [
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#f59e0b",
+          "#fbbf24",
+          "#fde68a",
+          "#fffbeb"
+        ]
+      }
     },
     "typographyMeta": {
-      "headline": { "displayName": "Headline", "purpose": "One page title per page." },
-      "title": { "displayName": "Title", "purpose": "Card and section headings, list item names." },
-      "body": { "displayName": "Body", "purpose": "Default for forms, lists, toolbars, inspector." },
-      "label": { "displayName": "Label", "purpose": "Field labels, hints, metadata, status bar." },
-      "numeric": { "displayName": "Numeric", "purpose": "Aligned numeric readouts." }
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "One page title per page."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Sheet headings and item names."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Forms, lists, toolbars, inspector."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field labels and tags, never below 12 px."
+      },
+      "numeric": {
+        "displayName": "Numeric",
+        "purpose": "Canvas ruler figures."
+      }
     },
     "shadows": [
-      { "name": "floating-layer", "value": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)", "purpose": "Modal dialogs and menus only." }
+      {
+        "name": "floating-layer",
+        "value": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+        "purpose": "Modal dialogs and menus only."
+      }
     ],
-    "motion": [],
+    "motion": [
+      {
+        "name": "plate-draw",
+        "value": "1.6s cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Login plate outline draws once; reduced-motion disables it."
+      }
+    ],
     "breakpoints": [
-      { "name": "md", "value": "768px" },
-      { "name": "lg", "value": "1024px" }
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
     ]
   },
   "components": [
-    { "name": "Primary Button", "kind": "button", "refersTo": "button-primary", "description": "One per form or toolbar.", "html": "<button class=\"ds-btn-primary\">Enregistrer</button>", "css": ".ds-btn-primary{background:#4f46e5;color:#fff;font:500 14px/20px ui-sans-serif,system-ui,sans-serif;border:0;border-radius:8px;padding:8px 16px;cursor:pointer}.ds-btn-primary:hover{background:#4338ca}.ds-btn-primary:focus-visible{outline:2px solid #4f46e5;outline-offset:2px}" },
-    { "name": "Secondary Button", "kind": "button", "refersTo": "button-secondary", "description": "Inline add action inside a card.", "html": "<button class=\"ds-btn-secondary\">Ajouter une scie</button>", "css": ".ds-btn-secondary{background:#1e293b;color:#fff;font:400 14px/20px ui-sans-serif,system-ui,sans-serif;border:0;border-radius:8px;padding:6px 12px;cursor:pointer}.ds-btn-secondary:hover{background:#0f172a}.ds-btn-secondary:focus-visible{outline:2px solid #4f46e5;outline-offset:2px}" },
-    { "name": "Outline Button", "kind": "button", "refersTo": "button-outline", "description": "Editor toolbar actions.", "html": "<button class=\"ds-btn-outline\">Exporter DXF</button>", "css": ".ds-btn-outline{background:#fff;color:#334155;font:400 14px/20px ui-sans-serif,system-ui,sans-serif;border:1px solid #cbd5e1;border-radius:4px;padding:4px 8px;cursor:pointer}.ds-btn-outline:hover{background:#f8fafc}.ds-btn-outline:focus-visible{outline:2px solid #4f46e5;outline-offset:2px}" },
-    { "name": "Text Field", "kind": "input", "refersTo": "input-field", "description": "Labelled form field.", "html": "<label class=\"ds-field\"><span>Longueur (mm)</span><input value=\"1000\"></label>", "css": ".ds-field{display:flex;flex-direction:column;gap:4px;font:400 12px/16px ui-sans-serif,system-ui,sans-serif;color:#64748b}.ds-field input{background:#fff;color:#0f172a;font-size:14px;border:1px solid #cbd5e1;border-radius:8px;padding:8px 12px}.ds-field input:focus-visible{outline:none;border-color:#818cf8;box-shadow:0 0 0 2px #e0e7ff}" },
-    { "name": "Card", "kind": "card", "refersTo": "card", "description": "Flat sheet on the bench.", "html": "<div class=\"ds-card\"><strong>1095 High Carbon Steel Bar</strong><span class=\"ds-tag\">démo</span><p>Stock : 5000 mm</p></div>", "css": ".ds-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;font:400 14px/20px ui-sans-serif,system-ui,sans-serif;color:#334155}.ds-card strong{color:#0f172a;font-weight:600}.ds-card p{margin:8px 0 0}.ds-tag{margin-left:8px;font-size:12px;color:#94a3b8;background:#f1f5f9;border-radius:4px;padding:2px 6px}" },
-    { "name": "Navigation", "kind": "nav", "refersTo": "nav", "description": "Top bar.", "html": "<nav class=\"ds-nav\"><b>KnifeForge</b><a class=\"on\">Matériaux</a><a>Commandes</a><a>Gabarits</a></nav>", "css": ".ds-nav{display:flex;gap:24px;align-items:center;background:#fff;border-bottom:1px solid #e2e8f0;padding:16px 24px;font:400 14px/20px ui-sans-serif,system-ui,sans-serif}.ds-nav b{font-size:18px;color:#0f172a}.ds-nav a{color:#475569;cursor:pointer}.ds-nav a:hover{color:#0f172a}.ds-nav a.on{color:#4f46e5;font-weight:500}" }
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "One per form or page head.",
+      "html": "<button class=\"ds-btn-primary\">+ Ajouter un matériau</button>",
+      "css": ".ds-btn-primary{background:#4d5a1c;color:#fff;font:500 14px/20px 'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;border:0;border-radius:8px;padding:8px 16px;cursor:pointer;transition:background .15s}.ds-btn-primary:hover{background:#3f4a17}.ds-btn-primary:focus-visible{outline:2px solid #4d5a1c;outline-offset:2px}"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Cancel and neutral actions.",
+      "html": "<button class=\"ds-btn-outline\">Annuler</button>",
+      "css": ".ds-btn-outline{background:#fff;color:#403d37;font:500 14px/20px 'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;border:1px solid #cdc7ba;border-radius:8px;padding:8px 16px;cursor:pointer}.ds-btn-outline:hover{background:#f8f6f1;border-color:#a39d90}.ds-btn-outline:focus-visible{outline:2px solid #4d5a1c;outline-offset:2px}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Labelled form field.",
+      "html": "<label class=\"ds-field\"><span>Longueur (mm)</span><input value=\"182,0\"></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:4px;font:500 12px/16px 'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;color:#57534b}.ds-field input{background:#fff;color:#1c1b18;font:400 14px/20px 'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;border:1px solid #cdc7ba;border-radius:8px;padding:8px 12px}.ds-field input:hover{border-color:#a39d90}.ds-field input:focus-visible{outline:2px solid #4d5a1c;border-color:#4d5a1c}"
+    },
+    {
+      "name": "Sheet",
+      "kind": "card",
+      "refersTo": "sheet",
+      "description": "Flat paper sheet on the bench.",
+      "html": "<div class=\"ds-sheet\"><strong>1095 High Carbon Steel Bar</strong> <span class=\"ds-tag\">Acier de lame</span><p>Stock <b>5 000 mm</b> · Seuil 1 000 mm</p></div>",
+      "css": ".ds-sheet{background:#fff;border:1px solid #e3dfd5;border-radius:12px;padding:16px;font:400 14px/20px 'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;color:#403d37}.ds-sheet strong{color:#1c1b18;font-weight:600}.ds-sheet p{margin:8px 0 0;color:#6f6a60}.ds-sheet b{color:#1c1b18;font-weight:500}.ds-tag{font-size:12px;color:#3f4a17;background:#f4f6ea;border-radius:4px;padding:2px 6px}"
+    },
+    {
+      "name": "Navigation",
+      "kind": "nav",
+      "refersTo": "nav",
+      "description": "Grouped top bar, underline active.",
+      "html": "<nav class=\"ds-nav\"><b>KnifeForge <i>Pro</i></b><a class=\"on\">Matériaux</a><a>Recettes</a><span></span><a>Commandes</a></nav>",
+      "css": ".ds-nav{display:flex;gap:18px;align-items:center;height:56px;background:#fff;border-bottom:1px solid #e3dfd5;padding:0 20px;font:400 14px/20px 'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif}.ds-nav b{color:#1c1b18;font-weight:600}.ds-nav i{font-style:normal;color:#3f4a17}.ds-nav span{width:1px;height:16px;background:#e3dfd5}.ds-nav a{color:#57534b;cursor:pointer;height:56px;display:flex;align-items:center}.ds-nav a:hover{color:#1c1b18}.ds-nav a.on{color:#1c1b18;font-weight:500;box-shadow:inset 0 -2px #4d5a1c}"
+    }
   ],
   "narrative": {
     "northStar": "Le carnet du coutelier",
-    "overview": "KnifeForge Pro should feel like a knifemaker's workshop notebook: a technical record kept by a craftsman. The notebook is technical first: numbers, drawings and dimensions are always legible, aligned and unambiguous. The artisan warmth lives at the edges. The current implementation is the notebook's sober base: a neutral cool-slate interface on stock Tailwind values, with flat white cards and one provisional indigo accent.",
-    "keyCharacteristics": ["Flat white sheets on a pale bench, separated by hairline borders, never by shadows.", "One action accent (indigo, provisional), used for primary actions, active navigation and selection.", "Small type (14 px body, 12 px labels).", "Colour on the drawing is semantic: each layer role has a fixed stroke colour and dash pattern.", "System fonts throughout."],
-    "rules": [
-      { "name": "The Layer Colour Is Meaning Rule", "body": "On the drawing and client plan, a stroke's colour and dash identify its layer role. Never reuse them decoratively.", "section": "colors" },
-      { "name": "The One Accent Rule", "body": "Indigo is the only accent. Status colours speak only for state.", "section": "colors" },
-      { "name": "The Small And Exact Rule", "body": "Body 14 px, labels 12 px, never below 12 px. Dimensions are never truncated or rounded for display beyond their stored precision.", "section": "typography" },
-      { "name": "The Flat Sheet Rule", "body": "Nothing in the page flow casts a shadow; only dialogs and menus do. Use a hairline border to separate.", "section": "elevation" }
+    "overview": "KnifeForge Pro is a knifemaker's workshop notebook: warm paper on a faint graph grid, warm graphite ink, and one patinated olive action colour. Technical first: dimensions, drawings and stock counts are always legible, aligned and exact. The warmth lives in the material: paper tone, IBM Plex Sans, and the maker's own vocabulary.",
+    "keyCharacteristics": [
+      "Warm graphite neutrals on paper; white sheets with a hairline edge, no shadows in flow.",
+      "One action colour, olive: primary buttons, active nav, canvas selection, links.",
+      "IBM Plex Sans throughout, self-hosted; Plex Mono only for ruler figures.",
+      "Figures in the reader's convention; tabular numerals in tables.",
+      "One drawn icon set; no emoji or glyph icons."
     ],
-    "dos": ["Do separate surfaces with the 1 px Hairline border on white Paper over the Bench.", "Do keep one primary indigo button per form or toolbar.", "Do put labels above fields in 12 px Slate Muted, with 8 px as the default gap.", "Do respect the layer colour code on the drawing and the client plan.", "Do bring the carnet warmth through voice, material naming and notes first."],
-    "donts": ["Don't add shadows to cards, panels, buttons or inputs.", "Don't introduce a second accent colour, or use red, green or amber decoratively.", "Don't reuse layer colours for interface chrome inside the editor.", "Don't set any text below 12 px, and never display a dimension rounded beyond its stored precision.", "Don't treat the indigo as a brand commitment."]
+    "rules": [
+      {
+        "name": "The Layer Colour Is Meaning Rule",
+        "body": "On the drawing and client plan, a stroke's colour and dash identify its layer role. Never reuse them decoratively.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Accent Rule",
+        "body": "Indigo is the only accent. Status colours speak only for state.",
+        "section": "colors"
+      },
+      {
+        "name": "The Small And Exact Rule",
+        "body": "Body 14 px, labels 12 px, never below 12 px. Dimensions are never truncated or rounded for display beyond their stored precision.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Sheet Rule",
+        "body": "Nothing in the page flow casts a shadow; only dialogs and menus do. Use a hairline border to separate.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do start every management page with .page-head: title, one-line lead, one primary action.",
+      "Do put the list first and open forms on demand; every field has a visible label.",
+      "Do format every number through the @/i18n helpers; tabular numerals in tables.",
+      "Do confirm destructive actions by naming the item; errors are inline and translated.",
+      "Do flag what blocks nesting in caution amber, with a link to fix it."
+    ],
+    "donts": [
+      "Don't add shadows to sheets, buttons or inputs.",
+      "Don't use emoji or Unicode glyphs as icons.",
+      "Don't use layer colours for chrome inside the editor.",
+      "Don't set text lighter than Graphite Muted, or smaller than 12 px.",
+      "Don't write \"$\"; the workshop prices in euros."
+    ]
   }
 }

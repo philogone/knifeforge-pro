@@ -33,3 +33,100 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+@layer components {
+  /* the notebook page: a whisper of 5 mm graph paper behind the sheets (never on the canvas) */
+  .bench {
+    background-image:
+      linear-gradient(to right, rgb(28 27 24 / 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(28 27 24 / 0.035) 1px, transparent 1px);
+    background-size: 20px 20px;
+    background-position: -1px -1px;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* KnifeForge Pro primitives (DESIGN.md is the spec; keep them in sync) */
+@layer components {
+  .page {
+    @apply mx-auto px-5 pt-8 pb-4;
+  }
+  .page-head {
+    @apply flex items-start justify-between gap-4 flex-wrap mb-6;
+  }
+  .page-title {
+    @apply text-[1.625rem] leading-tight font-semibold tracking-tight text-slate-900;
+  }
+  .page-lead {
+    @apply mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600;
+  }
+  .back-link {
+    @apply inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 mb-2;
+  }
+
+  /* a sheet of the notebook: flat paper, hairline edge */
+  .sheet {
+    @apply bg-white rounded-xl border border-slate-200;
+  }
+  .sheet-title {
+    @apply text-[0.9375rem] font-semibold text-slate-900;
+  }
+  .sheet-hint {
+    @apply text-xs leading-relaxed text-slate-500;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply bg-accent-600 text-white hover:bg-accent-700;
+  }
+  .btn-secondary {
+    @apply bg-slate-800 text-white hover:bg-slate-900;
+  }
+  .btn-outline {
+    @apply bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5;
+  }
+
+  .link-action {
+    @apply text-sm text-accent-700 hover:text-accent-900 hover:underline underline-offset-2;
+  }
+  .link-danger {
+    @apply text-sm text-red-700 hover:text-red-800 hover:underline underline-offset-2;
+  }
+
+  .field-label {
+    @apply block text-xs font-medium text-slate-600 mb-1;
+  }
+  .input {
+    @apply rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors hover:border-slate-400;
+  }
+  .input-sm {
+    @apply rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 transition-colors hover:border-slate-400;
+  }
+
+  .tag {
+    @apply inline-flex items-center rounded px-1.5 py-0.5 text-xs leading-4 whitespace-nowrap;
+  }
+  .tag-neutral {
+    @apply bg-slate-100 text-slate-600;
+  }
+  .tag-accent {
+    @apply bg-accent-50 text-accent-800;
+  }
+  .tag-info {
+    @apply bg-sky-50 text-sky-800;
+  }
+  .tag-success {
+    @apply bg-green-50 text-green-800;
+  }
+  .tag-warning {
+    @apply bg-amber-50 text-amber-800;
+  }
+  .tag-danger {
+    @apply bg-red-50 text-red-800;
+  }
+}

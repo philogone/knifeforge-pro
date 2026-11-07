@@ -88,13 +88,13 @@ export function drawGrid(ctx: CanvasRenderingContext2D, v: ViewTransform, style:
     }
     ctx.stroke();
   };
-  lines(minor, dark ? "#16213a" : "#f1f5f9", 1);
-  lines(major, dark ? "#24324f" : "#e2e8f0", 1);
+  lines(minor, dark ? "#16213a" : "#f0ede6", 1);
+  lines(major, dark ? "#24324f" : "#e3dfd5", 1);
 
   // origin axes
   const [ox, oy] = worldToScreen(v, 0, 0);
   ctx.beginPath();
-  ctx.strokeStyle = "#a5b4fc";
+  ctx.strokeStyle = "#b0bd72";
   ctx.lineWidth = 1;
   ctx.moveTo(Math.round(ox) + 0.5, 0);
   ctx.lineTo(Math.round(ox) + 0.5, v.height);
@@ -160,20 +160,20 @@ export function drawRulers(
   ctx.fillStyle = "rgba(248,250,252,0.96)";
   ctx.fillRect(0, 0, v.width, RULER_SIZE);
   ctx.fillRect(0, 0, RULER_SIZE, v.height);
-  ctx.strokeStyle = "#cbd5e1";
+  ctx.strokeStyle = "#cdc7ba";
   ctx.lineWidth = 1;
   ctx.strokeRect(0.5, 0.5, v.width - 1, RULER_SIZE);
   ctx.strokeRect(0.5, 0.5, RULER_SIZE, v.height - 1);
 
-  ctx.fillStyle = "#475569";
-  ctx.font = "10px sans-serif";
+  ctx.fillStyle = "#57534b";
+  ctx.font = "10px \"IBM Plex Mono\", ui-monospace, monospace";
   const minor = niceStep(v.zoom, 8);
   const label = niceStep(v.zoom, 60);
   const [wx0, wy0] = screenToWorld(v, 0, 0);
   const [wx1, wy1] = screenToWorld(v, v.width, v.height);
 
   ctx.beginPath();
-  ctx.strokeStyle = "#94a3b8";
+  ctx.strokeStyle = "#a39d90";
   for (let x = Math.floor(wx0 / minor) * minor; x <= wx1; x += minor) {
     const sx = Math.round((x - v.centerX) * v.zoom + v.width / 2) + 0.5;
     const isLabel = Math.abs(x / label - Math.round(x / label)) < 1e-6;
@@ -202,9 +202,9 @@ export function drawRulers(
     ctx.fillRect(Math.round(cx), 0, 1, RULER_SIZE);
     ctx.fillRect(0, Math.round(cy), RULER_SIZE, 1);
   }
-  ctx.fillStyle = "#e2e8f0";
+  ctx.fillStyle = "#e3dfd5";
   ctx.fillRect(0, 0, RULER_SIZE, RULER_SIZE);
-  ctx.fillStyle = "#64748b";
+  ctx.fillStyle = "#6f6a60";
   ctx.fillText("mm", 2, 13);
 }
 

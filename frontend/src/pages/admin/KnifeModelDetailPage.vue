@@ -3,11 +3,11 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { ApiError } from "@/composables/useApi";
-import { useI18n } from "@/i18n";
+import { formatDecimal, useI18n } from "@/i18n";
 import { useAppStore } from "@/stores/app.store";
 import type { CostBreakdown, DesignSummary } from "@/types";
 
-const { t, money } = useI18n();
+const { t, money, qty, num, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const store = useAppStore();
@@ -83,32 +83,32 @@ async function deleteModel() {
 </script>
 
 <template>
-  <div v-if="model" class="max-w-3xl mx-auto px-4 py-8">
-    <router-link to="/knife-models" class="text-sm text-slate-500">&larr; {{ t("common.backToList") }}</router-link>
+  <div v-if="model" class="page max-w-3xl">
+    <router-link to="/knife-models" class="back-link">&larr; {{ t("common.backToList") }}</router-link>
     <div class="flex items-center justify-between mt-1">
       <div class="flex items-center gap-2">
-        <h1 class="text-2xl font-bold text-slate-900">{{ model.name }}</h1>
-        <span class="text-xs text-slate-500 bg-accent-50 text-accent-700 rounded px-1.5 py-0.5">{{ t(`knifeModels.knifeType.${model.knife_type}`) }}</span>
+        <h1 class="page-title">{{ model.name }}</h1>
+        <span class="tag tag-accent">{{ t(`knifeModels.knifeType.${model.knife_type}`) }}</span>
       </div>
       <div class="flex gap-3">
-        <button class="text-sm text-accent-600" @click="editModel">{{ t("common.edit") }}</button>
-        <button class="text-sm text-red-600" @click="deleteModel">{{ t("common.delete") }}</button>
+        <button class="link-action" @click="editModel">{{ t("common.edit") }}</button>
+        <button class="link-danger" @click="deleteModel">{{ t("common.delete") }}</button>
       </div>
     </div>
-    <p class="text-sm text-slate-500 mt-1">{{ t("knifeModels.buildTime") }}: {{ t("knifeModels.hours", { n: model.base_labor_hours }) }} &middot; {{ money(model.sale_price) }}</p>
+    <p class="text-sm text-slate-500 mt-1">{{ t("knifeModels.buildTime") }}{{ t("common.colon") }} {{ t("knifeModels.hours", { n: model.base_labor_hours }) }} &middot; {{ money(model.sale_price) }}</p>
 
     <p v-if="deleteError" role="alert" class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ deleteError }}</p>
 
-    <div class="bg-white rounded-xl border border-slate-200 p-4 mt-6">
-      <h2 class="font-semibold text-slate-900 mb-2">{{ t("knifeModels.materialsRequired") }}</h2>
+    <div class="sheet p-4 mt-6">
+      <h2 class="sheet-title mb-2">{{ t("knifeModels.materialsRequired") }}</h2>
       <table class="w-full text-sm">
         <tbody>
           <tr v-for="m in model.materials" :key="m.id" class="border-t border-slate-100 first:border-0">
             <td class="py-2 font-medium text-slate-800">{{ m.material_name }}</td>
             <td class="py-2 text-slate-500">{{ t(`knifeModels.role.${m.role}`) }}</td>
             <td class="py-2 text-slate-500">
-              <span v-if="m.blank_length_mm">{{ m.blank_length_mm }} &times; {{ m.blank_width_mm ?? "–" }} &times; {{ m.blank_thickness_mm ?? "–" }} mm</span>
-              <span v-else>{{ t("common.units", { n: m.quantity }) }}</span>
+              <span v-if="m.blank_length_mm" class="tabular-nums">{{ [m.blank_length_mm, m.blank_width_mm, m.blank_thickness_mm].filter((v) => v).map((v) => num(v!, 1)).join(" × ") }} mm</span>
+              <span v-else class="tabular-nums">{{ qty(m.quantity, "unit") }}</span>
             </td>
           </tr>
         </tbody>
@@ -116,7 +116,7 @@ async function deleteModel() {
     </div>
 
 
-    <section class="bg-white rounded-xl border border-slate-200 p-4 mt-4" aria-labelledby="model-designs">
+    <section class="sheet p-4 mt-4" aria-labelledby="model-designs">
       <div class="flex items-center justify-between gap-3">
         <h2 id="model-designs" class="font-semibold text-slate-900">{{ t("modelDesigns.title") }}</h2>
         <router-link :to="{ path: '/designs', query: { model: String(modelId) } }" class="text-sm text-accent-700 hover:underline">
@@ -140,7 +140,7 @@ async function deleteModel() {
 
       <form v-if="attachable.length" class="mt-3 flex gap-2" @submit.prevent="attachId && setDesignModel(attachId, modelId)">
         <label class="sr-only" for="attach-design">{{ t("modelDesigns.attach") }}</label>
-        <select id="attach-design" v-model.number="attachId" class="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+        <select id="attach-design" v-model.number="attachId" class="flex-1 input-sm text-sm">
           <option :value="0">{{ t("modelDesigns.attachPlaceholder") }}</option>
           <option v-for="d in attachable" :key="d.id" :value="d.id">
             {{ d.name }}{{ d.knife_model_name ? ` (${d.knife_model_name})` : "" }}
@@ -151,8 +151,8 @@ async function deleteModel() {
       <p v-if="designError" role="alert" class="mt-2 text-sm text-red-700">{{ designError }}</p>
     </section>
 
-    <div v-if="cost" class="bg-white rounded-xl border border-slate-200 p-4 mt-4">
-      <h2 class="font-semibold text-slate-900 mb-1">{{ t("costing.title") }}</h2>
+    <div v-if="cost" class="sheet p-4 mt-4">
+      <h2 class="sheet-title mb-1">{{ t("costing.title") }}</h2>
       <p class="text-xs text-slate-500 mb-2">{{ t("costing.hint") }}</p>
       <table class="w-full text-sm">
         <thead>
@@ -166,8 +166,8 @@ async function deleteModel() {
         <tbody>
           <tr v-for="line in cost.lines" :key="line.material_id" class="border-t border-slate-100">
             <td class="py-1.5">{{ line.material_name }}</td>
-            <td class="py-1.5 text-slate-500">{{ line.consumption }} {{ line.unit }}</td>
-            <td class="py-1.5 text-slate-500">{{ line.unit_cost }} €/{{ line.unit }}</td>
+            <td class="py-1.5 text-slate-500">{{ qty(line.consumption, line.unit) }}</td>
+            <td class="py-1.5 text-slate-500">{{ formatDecimal(line.unit_cost, locale, 6) }} €/{{ line.unit === "unit" ? t("common.unitOne") : line.unit }}</td>
             <td class="py-1.5 font-medium text-slate-800">{{ money(line.line_cost) }}</td>
           </tr>
           <tr class="border-t border-slate-100">
@@ -199,19 +199,15 @@ async function deleteModel() {
       </div>
     </div>
 
-    <div class="bg-white rounded-xl border border-slate-200 p-4 mt-4">
-      <h2 class="font-semibold text-slate-900 mb-2">{{ t("knifeModels.process") }}</h2>
+    <div class="sheet p-4 mt-4">
+      <h2 class="sheet-title mb-2">{{ t("knifeModels.process") }}</h2>
       <ol class="space-y-3">
         <li v-for="(recipe, i) in recipesByModel" :key="recipe!.id">
           <p class="text-sm font-medium text-slate-800">{{ i + 1 }}. {{ recipe!.name }}</p>
           <ol class="mt-1 ml-4 list-decimal list-inside text-sm text-slate-600 space-y-0.5">
             <li v-for="s in recipe!.steps" :key="s.id">
               {{ s.description }}
-              <span class="text-slate-500">
-                <template v-if="s.temperature_c !== null">— {{ s.temperature_c }} °C</template>
-                <template v-if="s.duration_minutes !== null">, {{ s.duration_minutes }} min</template>
-                <template v-if="s.medium">, {{ s.medium }}</template>
-              </span>
+              <span class="text-slate-500">— {{ [s.temperature_c !== null ? `${s.temperature_c} °C` : "", s.duration_minutes !== null ? `${s.duration_minutes} min` : "", s.medium ?? ""].filter(Boolean).join(" · ") }}</span>
             </li>
           </ol>
         </li>

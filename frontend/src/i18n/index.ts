@@ -35,7 +35,10 @@ export function useI18n() {
   const num = (n: number, digits = 1): string => formatFixed(n, locale.value, digits);
   /** an amount in euros, always two decimals ("180,00 €") */
   const money = (n: number): string => formatMoney(n, locale.value);
-  return { t, locale: computed(() => locale.value), setLocale, num, money };
+  /** a stock quantity with its unit, as the API sends it ("unit", "mm", "mm²") */
+  const qty = (n: number, unit: string): string =>
+    `${formatDecimal(n, locale.value, 3)} ${unit === "unit" ? t(n > 1 ? "common.unitMany" : "common.unitOne") : unit}`;
+  return { t, locale: computed(() => locale.value), setLocale, num, money, qty };
 }
 
 function tag(loc: Locale): string {

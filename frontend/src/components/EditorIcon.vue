@@ -6,7 +6,7 @@ import { computed } from "vue";
 export type EditorIconName =
   | "select" | "node" | "pen" | "rect" | "ellipse" | "line" | "polygon" | "arc" | "dimension" | "measure" | "pan"
   | "library" | "holes" | "text" | "undo" | "redo" | "fit" | "magnet" | "eye" | "eye-off" | "lock" | "unlock"
-  | "close" | "chevron-down" | "warning";
+  | "close" | "chevron-down" | "chevron-up" | "warning" | "swap";
 
 const props = defineProps<{ name: EditorIconName; size?: number }>();
 
@@ -35,6 +35,8 @@ const PATHS: Record<EditorIconName, string> = {
   unlock: "M5 9h10v8H5zM7 9V6.5a3 3 0 0 1 5.8-1",
   close: "M5 5l10 10M15 5L5 15",
   "chevron-down": "M5.5 8l4.5 4.5L14.5 8",
+  "chevron-up": "M5.5 12l4.5-4.5 4.5 4.5",
+  swap: "M4 7h11l-3-3M16 13H5l3 3",
   warning: "M10 3l7.5 13.5h-15zM10 8v4M10 14.5h0",
 };
 

@@ -3,8 +3,8 @@ import { onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import EditorIcon from "@/components/EditorIcon.vue";
-import { ApiError } from "@/composables/useApi";
 import { useI18n } from "@/i18n";
+import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
 import type { KnifeModel, KnifeModelMaterial, KnifeModelTreatment, KnifeType, MaterialRole } from "@/types";
 
@@ -77,7 +77,11 @@ function cancelEdit() {
   Object.assign(form, emptyForm());
 }
 
+const submitting = ref(false);
+
 async function submit() {
+  if (submitting.value) return;
+  submitting.value = true;
   formError.value = "";
   // v-model.number leaves an emptied number input as "" rather than
   // null, which the API rejects for an optional float field.
@@ -92,7 +96,9 @@ async function submit() {
       showForm.value = false;
     }
   } catch (err) {
-    formError.value = err instanceof ApiError ? err.message : t("common.error");
+    formError.value = errorMessage(err, t, "common.error");
+  } finally {
+    submitting.value = false;
   }
 }
 
@@ -104,7 +110,7 @@ async function remove(id: number, name: string) {
   try {
     await store.deleteKnifeModel(id);
   } catch (err) {
-    deleteError.value = err instanceof ApiError ? err.message : t("common.deleteFailed");
+    deleteError.value = errorMessage(err, t, "common.deleteFailed");
   }
 }
 </script>
@@ -125,12 +131,12 @@ async function remove(id: number, name: string) {
       <form class="space-y-4" @submit.prevent="submit">
         <div class="field-grid grid grid-cols-2 md:grid-cols-4 gap-3">
           <div class="col-span-2 md:col-span-4">
-            <label class="field-label">{{ t("knifeModels.name") }}</label>
-            <input v-model="form.name" required class="input w-full" />
+            <label class="field-label" for="knifemodels-f1">{{ t("knifeModels.name") }}</label>
+            <input id="knifemodels-f1" v-model="form.name" required class="input w-full" />
           </div>
           <div>
-            <label class="field-label">{{ t("knifeModels.knifeType") }}</label>
-            <select v-model="form.knife_type" class="input w-full">
+            <label class="field-label" for="knifemodels-f2">{{ t("knifeModels.knifeType") }}</label>
+            <select id="knifemodels-f2" v-model="form.knife_type" class="input w-full">
               <option value="fixed">{{ t("knifeModels.knifeType.fixed") }}</option>
               <option value="folder">{{ t("knifeModels.knifeType.folder") }}</option>
               <option value="kitchen">{{ t("knifeModels.knifeType.kitchen") }}</option>
@@ -140,16 +146,16 @@ async function remove(id: number, name: string) {
             </select>
           </div>
           <div>
-            <label class="field-label">{{ t("knifeModels.laborHours") }}</label>
-            <input v-model.number="form.base_labor_hours" type="number" step="any" class="input w-full" />
+            <label class="field-label" for="knifemodels-f3">{{ t("knifeModels.laborHours") }}</label>
+            <input id="knifemodels-f3" v-model.number="form.base_labor_hours" type="number" step="any" class="input w-full" />
           </div>
           <div>
-            <label class="field-label">{{ t("knifeModels.salePrice") }}</label>
-            <input v-model.number="form.sale_price" type="number" step="any" class="input w-full" />
+            <label class="field-label" for="knifemodels-f4">{{ t("knifeModels.salePrice") }}</label>
+            <input id="knifemodels-f4" v-model.number="form.sale_price" type="number" step="any" class="input w-full" />
           </div>
           <div>
-            <label class="field-label">{{ t("knifeModels.marginOverride") }}</label>
-            <input v-model.number="form.margin_percent_override" type="number" step="any" min="0" max="99" :placeholder="t('knifeModels.marginOverride.placeholder')" class="input w-full" />
+            <label class="field-label" for="knifemodels-f5">{{ t("knifeModels.marginOverride") }}</label>
+            <input id="knifemodels-f5" v-model.number="form.margin_percent_override" type="number" step="any" min="0" max="99" :placeholder="t('knifeModels.marginOverride.placeholder')" class="input w-full" />
           </div>
         </div>
 
@@ -204,7 +210,7 @@ async function remove(id: number, name: string) {
 
         <p v-if="formError" role="alert" class="text-sm text-red-700">{{ formError }}</p>
         <div class="flex gap-2">
-          <button type="submit" class="btn btn-primary">
+          <button type="submit" class="btn btn-primary" :disabled="submitting">
             {{ editingId ? t("common.saveChanges") : t("common.save") }}
           </button>
           <button type="button" class="btn btn-outline" @click="cancelEdit">{{ t("common.cancel") }}</button>
@@ -215,7 +221,7 @@ async function remove(id: number, name: string) {
     <div class="space-y-3">
       <div v-for="km in store.knifeModels" :key="km.id" class="sheet p-4">
         <div class="flex items-start justify-between gap-4">
-          <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center gap-2 flex-wrap min-w-0">
             <router-link :to="`/knife-models/${km.id}`" class="font-semibold text-slate-900 hover:text-accent-700 hover:underline underline-offset-2">{{ km.name }}</router-link>
             <span class="tag tag-accent">{{ t(`knifeModels.knifeType.${km.knife_type}`) }}</span>
             <span v-if="km.is_mock" class="tag tag-neutral">{{ t("common.demo") }}</span>

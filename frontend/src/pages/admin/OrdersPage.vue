@@ -3,8 +3,8 @@ import { ORDER_STATUS_TAG } from "@/constants/referenceData";
 import { onMounted, reactive, ref } from "vue";
 
 import EditorIcon from "@/components/EditorIcon.vue";
-import { ApiError } from "@/composables/useApi";
 import { useI18n } from "@/i18n";
+import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
 import type { OrderLine, OrderStatus } from "@/types";
 
@@ -32,7 +32,11 @@ function removeLine(i: number) {
 
 const showForm = ref(false);
 
+const submitting = ref(false);
+
 async function submit() {
+  if (submitting.value) return;
+  submitting.value = true;
   formError.value = "";
   try {
     await store.createOrder(form);
@@ -42,7 +46,9 @@ async function submit() {
     form.lines = [];
     showForm.value = false;
   } catch (err) {
-    formError.value = err instanceof ApiError ? err.message : t("common.error");
+    formError.value = errorMessage(err, t, "common.error");
+  } finally {
+    submitting.value = false;
   }
 }
 
@@ -92,7 +98,7 @@ const statusColor: Record<OrderStatus, string> = ORDER_STATUS_TAG;
         </div>
         <p v-if="formError" role="alert" class="text-sm text-red-700">{{ formError }}</p>
         <div class="flex gap-2">
-          <button type="submit" class="btn btn-primary">{{ t("orders.createOrder") }}</button>
+          <button type="submit" class="btn btn-primary" :disabled="submitting">{{ t("orders.createOrder") }}</button>
           <button type="button" class="btn btn-outline" @click="showForm = false">{{ t("common.cancel") }}</button>
         </div>
       </form>
@@ -102,7 +108,7 @@ const statusColor: Record<OrderStatus, string> = ORDER_STATUS_TAG;
       <p v-if="!store.orders.length" class="sheet p-6 text-sm text-slate-600">{{ t("orders.empty") }}</p>
       <router-link v-for="o in store.orders" :key="o.id" :to="`/orders/${o.id}`" class="block sheet p-4 transition-colors hover:border-slate-300 hover:bg-white">
         <div class="flex items-center justify-between gap-4">
-          <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center gap-2 flex-wrap min-w-0">
             <span class="font-semibold text-slate-900">{{ o.customer_name }}</span>
             <span class="text-xs text-slate-500 tabular-nums">#{{ o.id }}</span>
             <span v-if="o.is_mock" class="tag tag-neutral">{{ t("common.demo") }}</span>

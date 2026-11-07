@@ -2,8 +2,8 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 
-import { ApiError } from "@/composables/useApi";
 import { useI18n } from "@/i18n";
+import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
 
 const { t } = useI18n();
@@ -22,7 +22,7 @@ async function submit() {
     await store.login(email.value, password.value);
     router.push("/");
   } catch (err) {
-    error.value = err instanceof ApiError ? err.message : t("login.failed");
+    error.value = errorMessage(err, t, "login.failed");
   } finally {
     loading.value = false;
   }

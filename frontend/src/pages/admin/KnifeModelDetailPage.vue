@@ -2,8 +2,8 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { ApiError } from "@/composables/useApi";
 import { formatDecimal, useI18n } from "@/i18n";
+import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
 import type { CostBreakdown, DesignSummary } from "@/types";
 
@@ -38,7 +38,7 @@ async function setDesignModel(id: number, knifeModelId: number | null) {
     await loadDesigns();
     attachId.value = 0;
   } catch (err) {
-    designError.value = err instanceof ApiError ? err.message : t("common.error");
+    designError.value = errorMessage(err, t, "common.error");
   }
 }
 
@@ -77,7 +77,7 @@ async function deleteModel() {
     await store.deleteKnifeModel(modelId);
     router.push("/knife-models");
   } catch (err) {
-    deleteError.value = err instanceof ApiError ? err.message : t("common.deleteFailed");
+    deleteError.value = errorMessage(err, t, "common.deleteFailed");
   }
 }
 </script>
@@ -101,6 +101,7 @@ async function deleteModel() {
 
     <div class="sheet p-4 mt-6">
       <h2 class="sheet-title mb-2">{{ t("knifeModels.materialsRequired") }}</h2>
+      <div class="-mx-1 overflow-x-auto">
       <table class="w-full text-sm">
         <tbody>
           <tr v-for="m in model.materials" :key="m.id" class="border-t border-slate-100 first:border-0">
@@ -113,6 +114,7 @@ async function deleteModel() {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
 
@@ -154,6 +156,7 @@ async function deleteModel() {
     <div v-if="cost" class="sheet p-4 mt-4">
       <h2 class="sheet-title mb-1">{{ t("costing.title") }}</h2>
       <p class="text-xs text-slate-500 mb-2">{{ t("costing.hint") }}</p>
+      <div class="-mx-1 overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
           <tr class="text-left text-slate-500">
@@ -178,6 +181,7 @@ async function deleteModel() {
           </tr>
         </tbody>
       </table>
+      </div>
 
       <div class="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
         <span class="font-semibold text-slate-900">{{ t("costing.costPrice") }}</span>

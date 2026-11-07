@@ -26,7 +26,8 @@ onMounted(async () => {
     <div class="sheet p-4 mb-6">
       <h2 class="sheet-title mb-3">{{ t("production.demandTitle") }}</h2>
       <div v-if="overview.materials.length === 0" class="text-sm text-slate-500">{{ t("production.noDrafts") }}</div>
-      <table v-else class="w-full text-sm">
+      <div v-else class="-mx-1 overflow-x-auto">
+      <table class="w-full text-sm">
         <thead>
           <tr class="text-left text-slate-500">
             <th class="font-normal pb-1">{{ t("production.material") }}</th>
@@ -47,6 +48,7 @@ onMounted(async () => {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <div class="sheet p-4">
@@ -63,7 +65,7 @@ onMounted(async () => {
             <span class="text-sm font-medium text-slate-800">{{ o.customer_name }}</span>
             <span class="text-sm text-slate-500 ml-2">{{ o.lines.join(", ") }}</span>
           </div>
-          <span class="text-xs font-medium rounded px-2 py-1" :class="o.feasible ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
+          <span class="tag font-medium" :class="o.feasible ? 'tag-success' : 'tag-danger'">
             {{ o.feasible ? t("production.feasible") : t("production.short") }}
           </span>
         </router-link>

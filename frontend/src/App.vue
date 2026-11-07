@@ -42,6 +42,7 @@ function logout() {
 
 <template>
   <div class="min-h-screen bg-slate-50 bench">
+    <a v-if="showChrome" href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-1.5 btn btn-primary">{{ t("nav.skip") }}</a>
     <nav v-if="showChrome" class="h-14 bg-white/95 border-b border-slate-200 px-5 flex items-center gap-6 sticky top-0 z-40">
       <router-link to="/" class="flex items-center gap-2 shrink-0 text-slate-900" :aria-label="t('app.title')">
         <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
@@ -79,12 +80,17 @@ function logout() {
         <button class="text-slate-500 hover:text-slate-900" @click="logout">{{ t("nav.signOut") }}</button>
       </div>
     </nav>
-    <router-view />
+    <main id="main" tabindex="-1" class="outline-none"><router-view /></main>
     <p v-if="showFooter" class="text-center text-xs text-slate-500 py-10">{{ t("app.footer") }}</p>
   </div>
 </template>
 
 <style scoped>
+/* the link strip scrolls horizontally, which clips an outside ring: draw it inside */
+nav a:focus-visible {
+  outline-offset: -2px;
+}
+
 /* the active section is underlined in the action colour, flush with the bar's bottom rule */
 .nav-active::after {
   content: "";

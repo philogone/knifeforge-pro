@@ -2,9 +2,10 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { ApiError, saveBlob } from "@/composables/useApi";
+import { saveBlob } from "@/composables/useApi";
 import { documentToSvg } from "@/editor/svgPreview";
 import { useI18n } from "@/i18n";
+import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
 import type { DesignKind, DesignSummary, DesignTemplate } from "@/types";
 
@@ -66,7 +67,7 @@ onMounted(async () => {
     }
     await load();
   } catch (err) {
-    error.value = err instanceof ApiError ? err.message : t("common.error");
+    error.value = errorMessage(err, t, "common.error");
   } finally {
     loading.value = false;
   }
@@ -98,7 +99,7 @@ async function create() {
     });
     router.push(`/designs/${created.id}`);
   } catch (err) {
-    error.value = err instanceof ApiError ? err.message : t("common.error");
+    error.value = errorMessage(err, t, "common.error");
   }
 }
 
@@ -118,7 +119,7 @@ async function download(d: DesignSummary, kind: "export.svg" | "export.dxf") {
     const blob = await store.downloadDesignFile(d.id, kind);
     saveBlob(blob, `${d.name.replace(/[^\w.-]+/g, "_")}.${kind.split(".")[1]}`);
   } catch (err) {
-    alert(t("designs.exportFailed", { error: err instanceof ApiError ? err.message : "?" }));
+    alert(t("designs.exportFailed", { error: errorMessage(err, t) }));
   }
 }
 
@@ -162,25 +163,25 @@ function fmtDate(iso: string) {
       </div>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div>
-          <label class="field-label">{{ t("common.name") }}</label>
-          <input v-model="form.name" class="input w-full" />
+          <label class="field-label" for="designs-f1">{{ t("common.name") }}</label>
+          <input id="designs-f1" v-model="form.name" class="input w-full" />
         </div>
         <div>
-          <label class="field-label">{{ t("designs.kind") }}</label>
-          <select v-model="form.kind" class="input w-full">
+          <label class="field-label" for="designs-f2">{{ t("designs.kind") }}</label>
+          <select id="designs-f2" v-model="form.kind" class="input w-full">
             <option v-for="k in kinds" :key="k" :value="k">{{ t(`designs.kind.${k}`) }}</option>
           </select>
         </div>
         <div>
-          <label class="field-label">{{ t("designs.knifeModel") }}</label>
-          <select v-model.number="form.knife_model_id" class="input w-full">
+          <label class="field-label" for="designs-f3">{{ t("designs.knifeModel") }}</label>
+          <select id="designs-f3" v-model.number="form.knife_model_id" class="input w-full">
             <option :value="0">{{ t("designs.none") }}</option>
             <option v-for="m in store.knifeModels" :key="m.id" :value="m.id">{{ m.name }}</option>
           </select>
         </div>
         <div>
-          <label class="field-label">{{ t("designs.material") }}</label>
-          <select v-model.number="form.material_id" class="input w-full">
+          <label class="field-label" for="designs-f4">{{ t("designs.material") }}</label>
+          <select id="designs-f4" v-model.number="form.material_id" class="input w-full">
             <option :value="0">{{ t("designs.none") }}</option>
             <option v-for="m in store.materials" :key="m.id" :value="m.id">{{ m.name }}</option>
           </select>
@@ -195,15 +196,15 @@ function fmtDate(iso: string) {
     <p v-if="error" class="text-sm text-red-600 mb-4">{{ error }}</p>
 
     <div class="flex flex-wrap gap-3 mb-4 text-sm">
-      <select v-model="filter.kind" class="input-sm">
+      <select v-model="filter.kind" :aria-label="t('designs.kind')" class="input-sm">
         <option value="">{{ t("designs.kind") }} : {{ t("designs.filterAll") }}</option>
         <option v-for="k in kinds" :key="k" :value="k">{{ t(`designs.kind.${k}`) }}</option>
       </select>
-      <select v-model.number="filter.knife_model_id" class="input-sm">
+      <select v-model.number="filter.knife_model_id" :aria-label="t('designs.knifeModel')" class="input-sm">
         <option :value="0">{{ t("designs.knifeModel") }} : {{ t("designs.filterAll") }}</option>
         <option v-for="m in store.knifeModels" :key="m.id" :value="m.id">{{ m.name }}</option>
       </select>
-      <select v-model.number="filter.material_id" class="input-sm">
+      <select v-model.number="filter.material_id" :aria-label="t('designs.material')" class="input-sm">
         <option :value="0">{{ t("designs.material") }} : {{ t("designs.filterAll") }}</option>
         <option v-for="m in store.materials" :key="m.id" :value="m.id">{{ m.name }}</option>
       </select>

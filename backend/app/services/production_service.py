@@ -66,7 +66,7 @@ def build_overview(db: Session) -> ProductionOverview:
                 order_id=order.id,
                 customer_name=order.customer_name,
                 feasible=result.feasible if result else True,
-                lines=[f"{line.quantity}x {line.knife_model.name}" for line in order.lines],
+                lines=[f"{line.quantity} × {line.knife_model.name}" for line in order.lines],
             )
         )
 

@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowR
 import { onBeforeRouteLeave, useRoute } from "vue-router";
 
 import EditorIcon, { type EditorIconName } from "@/components/EditorIcon.vue";
-import { ApiError, saveBlob } from "@/composables/useApi";
+import { saveBlob } from "@/composables/useApi";
 import { useSnapshotDirty } from "@/composables/useSnapshotDirty";
 import { initialPlacement, loadImageFile, mmPerPixel, type BackgroundState, type Straighten } from "@/editor/background";
 import { ROLE_STYLE } from "@/editor/constants";
@@ -16,6 +16,7 @@ import type { AlignKind, BooleanOp, CornerReport, Measurement, SnapKind, SnapOpt
 import type { DocLayer, Guide, LayerRole, SelectionInfo, ToolName } from "@/editor/types";
 import { RULER_SIZE, drawGrid, drawRulers, screenToWorld } from "@/editor/view";
 import { useI18n } from "@/i18n";
+import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
 import type { Design, DesignKind, DesignSummary } from "@/types";
 
@@ -281,7 +282,7 @@ async function load() {
     engine.value?.setBackground(d.background ? { ...d.background } : null);
     markBgClean();
   } catch (err) {
-    loadError.value = err instanceof ApiError ? err.message : t("common.error");
+    loadError.value = errorMessage(err, t, "common.error");
   }
 }
 
@@ -360,7 +361,7 @@ async function save(): Promise<boolean> {
     setStatus(t("editor.saved"));
     return true;
   } catch (err) {
-    setStatus(t("editor.saveFailed", { error: err instanceof ApiError ? err.message : "?" }), true);
+    setStatus(t("editor.saveFailed", { error: errorMessage(err, t) }), true);
     return false;
   } finally {
     saving.value = false;
@@ -373,7 +374,7 @@ async function exportFile(kind: "export.svg" | "export.dxf") {
     const blob = await store.downloadDesignFile(designId.value, kind);
     saveBlob(blob, `${meta.name.replace(/[^\w.-]+/g, "_")}.${kind.split(".")[1]}`);
   } catch (err) {
-    setStatus(t("designs.exportFailed", { error: err instanceof ApiError ? err.message : "?" }), true);
+    setStatus(t("designs.exportFailed", { error: errorMessage(err, t) }), true);
   }
 }
 
@@ -652,7 +653,7 @@ async function pickLibraryDesign(id: number) {
     designParts.value = new Map(designParts.value).set(id, documentParts(d.document));
     centreLibraryPlacement();
   } catch (err) {
-    setStatus(err instanceof ApiError ? err.message : String(err), true);
+    setStatus(errorMessage(err, t), true);
   } finally {
     library.loading = false;
   }
@@ -770,7 +771,21 @@ const TOOL_KEYS: Record<string, ToolName> = { v: "select", n: "node", p: "pen", 
 
 function onKeyDown(ev: KeyboardEvent) {
   const e = engine.value;
-  if (!e || isTyping(ev) || planOpen.value || calib.open || persp.open || holes.open || textForm.open || library.open) return;
+  if (!e) return;
+  // a dialog is open: Esc closes it (even from a field inside), nothing else reaches the canvas
+  if (planOpen.value || calib.open || persp.open || holes.open || textForm.open || library.open) {
+    if (ev.key === "Escape") {
+      ev.preventDefault();
+      planOpen.value = false;
+      calib.open = false;
+      persp.open = false;
+      holes.open = false;
+      textForm.open = false;
+      library.open = false;
+    }
+    return;
+  }
+  if (isTyping(ev)) return;
   const mod = ev.ctrlKey || ev.metaKey;
   const key = ev.key.toLowerCase();
 
@@ -866,7 +881,7 @@ async function applyOffset() {
     e.replaceSelectionWithContours(result, offsetForm.keep);
     setStatus("");
   } catch (err) {
-    setStatus(t("editor.offsetFailed", { error: err instanceof ApiError ? err.message : "?" }), true);
+    setStatus(t("editor.offsetFailed", { error: errorMessage(err, t) }), true);
   }
 }
 
@@ -968,7 +983,7 @@ async function refreshPlan() {
     if (planUrl.value) URL.revokeObjectURL(planUrl.value);
     planUrl.value = URL.createObjectURL(blob);
   } catch (err) {
-    planError.value = t("plan.failed", { error: err instanceof ApiError ? err.message : "?" });
+    planError.value = t("plan.failed", { error: errorMessage(err, t) });
   } finally {
     planBusy.value = false;
   }
@@ -979,7 +994,7 @@ async function downloadPlan() {
     const blob = await store.designPlan(designId.value, planParams(), true);
     saveBlob(blob, `plan_${meta.name.replace(/[^\w.-]+/g, "_")}.svg`);
   } catch (err) {
-    planError.value = t("plan.failed", { error: err instanceof ApiError ? err.message : "?" });
+    planError.value = t("plan.failed", { error: errorMessage(err, t) });
   }
 }
 
@@ -1086,7 +1101,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
             <input ref="lengthInput" v-model.number="numeric.length" type="number" min="0" step="any" class="w-16 input-sm px-1 py-0.5 text-xs" @keydown.enter.prevent="applyNumeric" @keydown.esc.prevent="cancelNumeric" />
             {{ t("num.angle") }}
             <input v-model.number="numeric.angle" type="number" step="any" class="w-14 input-sm px-1 py-0.5 text-xs" @keydown.enter.prevent="applyNumeric" />
-            <button class="px-1.5 rounded bg-accent-600 text-white" @click="applyNumeric">↵</button>
+            <button class="px-1.5 rounded bg-accent-600 text-white text-xs" @click="applyNumeric">{{ t("num.apply") }}</button>
           </span>
         </template>
         <label v-if="tool === 'polygon'" class="flex items-center gap-1">
@@ -1145,13 +1160,13 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <div class="flex-1 overflow-y-auto p-3 space-y-4 text-sm">
             <!-- OBJECT TAB -->
             <template v-if="tab === 'object'">
-              <div v-if="tool === 'measure'" class="bg-sky-50 border border-sky-200 rounded-lg p-2 text-xs text-slate-700 space-y-0.5">
-                <p class="font-medium text-sky-800">{{ t("measure.title") }}</p>
+              <div v-if="tool === 'measure'" class="bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-700 space-y-0.5" aria-live="polite">
+                <p class="font-medium text-slate-900">{{ t("measure.title") }}</p>
                 <template v-if="measurement">
                   <p>{{ t("measure.distance") }} : <b class="font-mono">{{ formatMm(measurement.distance) }} mm</b></p>
                   <p class="font-mono">ΔX {{ formatMm(measurement.dx) }} · ΔY {{ formatMm(measurement.dy) }} mm</p>
                   <p>{{ t("measure.angle") }} : <span class="font-mono">{{ measurement.angle }}°</span></p>
-                  <button class="mt-1 w-full px-2 py-1 rounded border border-sky-300 bg-white" @click="engine?.measurementToDimension()">{{ t("measure.toDimension") }}</button>
+                  <button class="mt-1 w-full btn btn-outline btn-sm" @click="engine?.measurementToDimension()">{{ t("measure.toDimension") }}</button>
                 </template>
                 <p v-else class="text-slate-500">{{ t("measure.empty") }}</p>
               </div>
@@ -1161,13 +1176,13 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                 <p class="text-xs text-slate-500">{{ t("editor.selectedCount", { n: sel.count }) }}</p>
 
                 <div v-if="sel.count === 1">
-                  <label class="field-label">{{ t("editor.objectName") }}</label>
-                  <input :value="sel.name ?? ''" class="input-sm w-full" @change="setName" />
+                  <label class="field-label" for="designeditor-f1">{{ t("editor.objectName") }}</label>
+                  <input id="designeditor-f1" :value="sel.name ?? ''" class="input-sm w-full" @change="setName" />
                 </div>
 
                 <div>
-                  <label class="field-label">{{ t("editor.layer") }}</label>
-                  <select :value="sel.layerId ?? ''" class="input-sm w-full" @change="moveToLayer">
+                  <label class="field-label" for="designeditor-f2">{{ t("editor.layer") }}</label>
+                  <select id="designeditor-f2" :value="sel.layerId ?? ''" class="input-sm w-full" @change="moveToLayer">
                     <option v-if="sel.mixedLayers" value="">{{ t("editor.mixedLayers") }}</option>
                     <option v-for="l in layers" :key="l.id" :value="l.id">{{ l.name }}</option>
                   </select>
@@ -1281,8 +1296,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                   <div class="flex items-center gap-1">
                     <input v-model.number="cornerSize" type="number" min="0" step="any" class="w-16 input-sm px-1 py-0.5 text-xs text-sm" />
                     <span class="text-xs text-slate-500">mm</span>
-                    <button class="flex-1 px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="roundCorners('fillet')">◜ {{ t("corner.fillet") }}</button>
-                    <button class="flex-1 px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="roundCorners('chamfer')">◸ {{ t("corner.chamfer") }}</button>
+                    <button class="flex-1 px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="roundCorners('fillet')">{{ t("corner.fillet") }}</button>
+                    <button class="flex-1 px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="roundCorners('chamfer')">{{ t("corner.chamfer") }}</button>
                   </div>
                   <p class="text-xs text-slate-500">{{ t("corner.help") }}</p>
                 </div>
@@ -1309,8 +1324,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                     <select :value="l.role" class="flex-1 min-w-0 input-sm px-1 py-0.5 text-xs text-xs" @change="patchLayer(l, { role: ($event.target as HTMLSelectElement).value as LayerRole })">
                       <option v-for="r in roles" :key="r" :value="r">{{ t(`editor.role.${r}`) }}</option>
                     </select>
-                    <button class="px-1 text-xs" :title="t('editor.layerUp')" :disabled="i === 0" @click="moveLayer(l, 1)">▲</button>
-                    <button class="px-1 text-xs" :title="t('editor.layerDown')" :disabled="i === layers.length - 1" @click="moveLayer(l, -1)">▼</button>
+                    <button class="p-0.5 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-30" :title="t('editor.layerUp')" :aria-label="t('editor.layerUp')" :disabled="i === 0" @click="moveLayer(l, 1)"><EditorIcon name="chevron-up" :size="14" /></button>
+                    <button class="p-0.5 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-30" :title="t('editor.layerDown')" :aria-label="t('editor.layerDown')" :disabled="i === layers.length - 1" @click="moveLayer(l, -1)"><EditorIcon name="chevron-down" :size="14" /></button>
                     <button class="p-0.5 rounded text-slate-400 hover:text-red-700 hover:bg-slate-100 disabled:opacity-30" :title="t('editor.layerDelete')" :aria-label="t('editor.layerDelete')" :disabled="layers.length <= 1" @click="removeLayer(l)"><EditorIcon name="close" :size="14" /></button>
                   </div>
                   <button
@@ -1341,10 +1356,10 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                     <input type="range" min="5" max="100" :value="Math.round(bg.opacity * 100)" class="flex-1" @input="engine?.updateBackground({ opacity: Number(($event.target as HTMLInputElement).value) / 100 })" />
                   </label>
                 </div>
-                <button class="w-full px-2 py-1.5 rounded-lg border border-rose-300 text-rose-700 bg-rose-50" @click="engine?.setTool('calibrate')">📐 {{ t("bg.calibrate") }}</button>
-                <button class="w-full px-2 py-1.5 rounded-lg border border-rose-300 text-rose-700 bg-white" :title="t('persp.help')" @click="engine?.setTool('perspective')">⬚ {{ t("bg.perspective") }}</button>
-                <button v-if="bgBeforeRectify" class="w-full px-2 py-1 rounded border border-slate-300 text-xs" @click="undoPerspective">↶ {{ t("persp.undo") }}</button>
-                <div class="rounded-lg p-2 text-xs space-y-1" :class="bg.calibrated ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'">
+                <button class="w-full btn btn-outline btn-sm" @click="engine?.setTool('calibrate')"><EditorIcon name="measure" :size="16" /> {{ t("bg.calibrate") }}</button>
+                <button class="w-full btn btn-outline btn-sm" :title="t('persp.help')" @click="engine?.setTool('perspective')"><EditorIcon name="fit" :size="16" /> {{ t("bg.perspective") }}</button>
+                <button v-if="bgBeforeRectify" class="w-full btn btn-outline btn-sm" @click="undoPerspective"><EditorIcon name="undo" :size="16" /> {{ t("persp.undo") }}</button>
+                <div class="rounded-lg p-2 text-xs space-y-1" :class="bg.calibrated ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-800'">
                   <p>{{ bg.calibrated ? `✓ ${t("bg.calibrated")}` : `⚠ ${t("bg.notCalibrated")}` }}</p>
                   <p v-if="bg.calibrated && bgResolution">{{ t("bg.resolution", { mm: formatMm(bgResolution) }) }}</p>
                   <p v-if="bg.calibrated && bgResolution && bgResolution > 0.1" class="text-amber-700">{{ t("bg.resolutionWarn") }}</p>
@@ -1374,28 +1389,28 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
             <!-- DOCUMENT TAB -->
             <template v-else>
               <div>
-                <label class="field-label">{{ t("editor.docKind") }}</label>
-                <select v-model="meta.kind" class="input-sm w-full">
+                <label class="field-label" for="designeditor-f3">{{ t("editor.docKind") }}</label>
+                <select id="designeditor-f3" v-model="meta.kind" class="input-sm w-full">
                   <option v-for="k in kinds" :key="k" :value="k">{{ t(`designs.kind.${k}`) }}</option>
                 </select>
               </div>
               <div>
-                <label class="field-label">{{ t("designs.knifeModel") }}</label>
-                <select v-model.number="meta.knife_model_id" class="input-sm w-full">
+                <label class="field-label" for="designeditor-f4">{{ t("designs.knifeModel") }}</label>
+                <select id="designeditor-f4" v-model.number="meta.knife_model_id" class="input-sm w-full">
                   <option :value="0">{{ t("designs.none") }}</option>
                   <option v-for="m in store.knifeModels" :key="m.id" :value="m.id">{{ m.name }}</option>
                 </select>
               </div>
               <div>
-                <label class="field-label">{{ t("designs.material") }}</label>
-                <select v-model.number="meta.material_id" class="input-sm w-full">
+                <label class="field-label" for="designeditor-f5">{{ t("designs.material") }}</label>
+                <select id="designeditor-f5" v-model.number="meta.material_id" class="input-sm w-full">
                   <option :value="0">{{ t("designs.none") }}</option>
                   <option v-for="m in store.materials" :key="m.id" :value="m.id">{{ m.name }}</option>
                 </select>
               </div>
               <div>
-                <label class="field-label">{{ t("editor.docNotes") }}</label>
-                <textarea v-model="meta.notes" rows="3" class="input-sm w-full"></textarea>
+                <label class="field-label" for="designeditor-f6">{{ t("editor.docNotes") }}</label>
+                <textarea id="designeditor-f6" v-model="meta.notes" rows="3" class="input-sm w-full"></textarea>
               </div>
               <div v-if="design" class="bg-slate-50 rounded-lg p-2 text-xs text-slate-600 space-y-0.5">
                 <p class="font-medium text-slate-700">{{ t("editor.docMetrics") }}</p>
@@ -1442,7 +1457,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
     </template>
 
     <!-- shape library dialog -->
-    <div v-if="library.open" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" @click.self="library.open = false">
+    <div v-if="library.open" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="library.open = false">
       <form class="bg-white rounded-xl shadow-xl w-full max-w-2xl p-4 space-y-3 text-sm" @submit.prevent="insertLibrary">
         <div class="flex items-center gap-3">
           <h2 class="sheet-title flex-1">{{ t("library.title") }}</h2>
@@ -1486,7 +1501,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
     </div>
 
     <!-- holes dialog -->
-    <div v-if="holes.open" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" @click.self="holes.open = false">
+    <div v-if="holes.open" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="holes.open = false">
       <form class="bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="addHoles">
         <h2 class="sheet-title">{{ t("holes.title") }}</h2>
         <label class="field-label">{{ t("holes.diameter") }}
@@ -1512,7 +1527,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
     </div>
 
     <!-- text dialog -->
-    <div v-if="textForm.open" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" @click.self="textForm.open = false">
+    <div v-if="textForm.open" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="textForm.open = false">
       <form class="bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="addText">
         <h2 class="sheet-title">{{ t("text.title") }}</h2>
         <label class="field-label">{{ t("text.text") }}
@@ -1544,7 +1559,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
     </div>
 
     <!-- perspective dialog -->
-    <div v-if="persp.open" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" @click.self="cancelPerspective">
+    <div v-if="persp.open" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="cancelPerspective">
       <form class="bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="applyPerspective">
         <h2 class="sheet-title">{{ t("persp.title") }}</h2>
         <p class="text-xs text-slate-500">{{ t("persp.intro") }}</p>
@@ -1558,7 +1573,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <label class="text-xs text-slate-500">{{ t("persp.side12") }}
             <input v-model.number="persp.width" type="number" min="0.01" step="any" required class="input-sm w-full" />
           </label>
-          <button type="button" class="px-2 py-1 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" :title="t('persp.swap')" @click="[persp.width, persp.height] = [persp.height, persp.width]">⇄</button>
+          <button type="button" class="px-2 py-1 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" :title="t('persp.swap')" :aria-label="t('persp.swap')" @click="[persp.width, persp.height] = [persp.height, persp.width]"><EditorIcon name="swap" :size="16" /></button>
           <label class="text-xs text-slate-500">{{ t("persp.side23") }}
             <input v-model.number="persp.height" type="number" min="0.01" step="any" required class="input-sm w-full" />
           </label>
@@ -1574,12 +1589,12 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
     </div>
 
     <!-- calibration dialog -->
-    <div v-if="calib.open" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" @click.self="cancelCalibration">
+    <div v-if="calib.open" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="cancelCalibration">
       <form class="bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="applyCalibration">
         <h2 class="sheet-title">{{ t("calib.title") }}</h2>
         <p class="text-xs text-slate-500">{{ t("calib.measured", { d: formatMm(Math.hypot(calib.b[0] - calib.a[0], calib.b[1] - calib.a[1])) }) }}</p>
         <label class="field-label">{{ t("calib.real") }}
-          <input v-model.number="calib.real" type="number" min="0.01" step="any" required autofocus placeholder="ex. 100" class="input-sm w-full" />
+          <input v-model.number="calib.real" type="number" min="0.01" step="any" required autofocus :placeholder="t('calib.example')" class="input-sm w-full" />
         </label>
         <label class="field-label">{{ t("calib.straighten") }}
           <select v-model="calib.straighten" class="input-sm w-full">
@@ -1626,7 +1641,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         </div>
         <div class="flex-1 bg-slate-100 p-4 overflow-auto min-h-[320px] flex items-start justify-center">
           <p v-if="planError" class="text-sm text-red-600">{{ planError }}</p>
-          <img v-else-if="planUrl" :src="planUrl" alt="plan" class="max-w-full bg-white shadow" />
+          <img v-else-if="planUrl" :src="planUrl" :alt="t('plan.previewAlt')" class="max-w-full bg-white shadow" />
         </div>
       </div>
     </div>

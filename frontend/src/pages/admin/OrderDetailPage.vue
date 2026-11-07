@@ -5,6 +5,7 @@ import { useRoute, useRouter } from "vue-router";
 
 import { ApiError } from "@/composables/useApi";
 import { useI18n } from "@/i18n";
+import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
 import type { FeasibilityResult, Order } from "@/types";
 
@@ -43,12 +44,12 @@ async function runAction(action: "confirm" | "cancel" | "complete") {
       const detail = err.detail as { message?: string; feasibility?: FeasibilityResult } | string;
       if (typeof detail === "object" && detail.feasibility) {
         feasibility.value = detail.feasibility;
-        actionError.value = detail.message ?? "Insufficient stock";
+        actionError.value = t("orderDetail.insufficientStock");
       } else {
-        actionError.value = String(detail);
+        actionError.value = errorMessage(err, t);
       }
     } else {
-      actionError.value = "Action failed";
+      actionError.value = errorMessage(err, t);
     }
   } finally {
     loading.value = false;
@@ -76,8 +77,7 @@ async function remove() {
       <h2 class="sheet-title mb-2">{{ t("orderDetail.lines") }}</h2>
       <ul class="text-sm text-slate-700 space-y-1">
         <li v-for="line in order.lines" :key="line.id">
-          <span class="tabular-nums text-slate-500">{{ line.quantity }} ×</span>
-          <router-link :to="`/knife-models/${line.knife_model_id}`" class="link-action">{{ line.knife_model_name }}</router-link>
+          <span class="tabular-nums text-slate-500">{{ line.quantity }} ×</span>{{ " " }}<router-link :to="`/knife-models/${line.knife_model_id}`" class="link-action">{{ line.knife_model_name }}</router-link>
         </li>
       </ul>
       <p v-if="order.notes" class="text-sm text-slate-500 mt-3">{{ t("common.notes") }}{{ t("common.colon") }} {{ order.notes }}</p>
@@ -85,6 +85,7 @@ async function remove() {
 
     <div v-if="feasibility" class="sheet p-4 mt-4">
       <h2 class="sheet-title mb-2">{{ t("orderDetail.feasibility") }}</h2>
+      <div class="-mx-1 overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
           <tr class="text-left text-slate-500">
@@ -106,6 +107,7 @@ async function remove() {
           </tr>
         </tbody>
       </table>
+      </div>
       <p class="mt-3 text-sm font-medium" :class="feasibility.feasible ? 'text-green-700' : 'text-red-700'">
         {{ feasibility.feasible ? t("orderDetail.feasibleYes") : t("orderDetail.feasibleNo") }}
       </p>

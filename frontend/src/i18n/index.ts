@@ -23,6 +23,13 @@ export function setLocale(next: Locale): void {
 
 export function useI18n() {
   const t = (key: string, vars?: Record<string, string | number>): string => {
+    // counted messages: "{n} pièce" / "{n} pièces" (French treats 0 and 1 as singular)
+    const count = typeof vars?.n === "number" ? vars.n : typeof vars?.parts === "number" ? vars.parts : null;
+    if (count !== null) {
+      const one = locale.value === "fr" ? Math.abs(count) < 2 : Math.abs(count) === 1;
+      const form = `${key}.${one ? "one" : "many"}`;
+      if (dictionaries[locale.value][form] ?? dictionaries.en[form]) key = form;
+    }
     let text = dictionaries[locale.value][key] ?? dictionaries.en[key] ?? key;
     if (vars) {
       for (const [k, v] of Object.entries(vars)) {

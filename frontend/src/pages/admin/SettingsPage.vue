@@ -101,12 +101,12 @@ async function exportData() {
       <p class="sheet-hint text-sm mt-1 max-w-prose">{{ t("settings.shop.hint") }}</p>
       <div class="mt-3 flex items-end gap-3 flex-wrap">
         <div>
-          <label class="field-label">{{ t("settings.shop.hourlyRate") }}</label>
-          <input v-model.number="shop.hourly_rate" type="number" step="any" min="0" class="w-36 input" />
+          <label class="field-label" for="settings-f1">{{ t("settings.shop.hourlyRate") }}</label>
+          <input id="settings-f1" v-model.number="shop.hourly_rate" type="number" step="any" min="0" class="w-36 input" />
         </div>
         <div>
-          <label class="field-label">{{ t("settings.shop.defaultMargin") }}</label>
-          <input v-model.number="shop.default_margin_percent" type="number" step="any" min="0" max="99" class="w-36 input" />
+          <label class="field-label" for="settings-f2">{{ t("settings.shop.defaultMargin") }}</label>
+          <input id="settings-f2" v-model.number="shop.default_margin_percent" type="number" step="any" min="0" max="99" class="w-36 input" />
         </div>
         <button class="btn btn-primary" @click="saveShop">{{ t("common.save") }}</button>
         <span v-if="shopSaved" class="text-sm text-green-700">{{ t("settings.shop.saved") }}</span>

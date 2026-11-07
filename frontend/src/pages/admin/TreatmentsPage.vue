@@ -2,8 +2,8 @@
 import { onMounted, reactive, ref } from "vue";
 
 import EditorIcon from "@/components/EditorIcon.vue";
-import { ApiError } from "@/composables/useApi";
 import { useI18n } from "@/i18n";
+import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
 import type { TreatmentRecipe, TreatmentStep, TreatmentType } from "@/types";
 
@@ -53,7 +53,11 @@ function cancelEdit() {
   Object.assign(form, emptyForm());
 }
 
+const submitting = ref(false);
+
 async function submit() {
+  if (submitting.value) return;
+  submitting.value = true;
   formError.value = "";
   try {
     if (editingId.value) {
@@ -65,7 +69,9 @@ async function submit() {
       showForm.value = false;
     }
   } catch (err) {
-    formError.value = err instanceof ApiError ? err.message : t("common.error");
+    formError.value = errorMessage(err, t, "common.error");
+  } finally {
+    submitting.value = false;
   }
 }
 
@@ -77,7 +83,7 @@ async function remove(id: number, name: string) {
   try {
     await store.deleteTreatmentRecipe(id);
   } catch (err) {
-    deleteError.value = err instanceof ApiError ? err.message : t("common.deleteFailed");
+    deleteError.value = errorMessage(err, t, "common.deleteFailed");
   }
 }
 </script>
@@ -137,7 +143,7 @@ async function remove(id: number, name: string) {
 
         <p v-if="formError" role="alert" class="text-sm text-red-700">{{ formError }}</p>
         <div class="flex gap-2">
-          <button type="submit" class="btn btn-primary">
+          <button type="submit" class="btn btn-primary" :disabled="submitting">
             {{ editingId ? t("common.saveChanges") : t("treatments.saveRecipe") }}
           </button>
           <button type="button" class="btn btn-outline" @click="cancelEdit">{{ t("common.cancel") }}</button>
@@ -148,7 +154,7 @@ async function remove(id: number, name: string) {
     <div class="space-y-3">
       <div v-for="r in store.treatmentRecipes" :key="r.id" class="sheet p-4">
         <div class="flex items-start justify-between gap-4">
-          <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center gap-2 flex-wrap min-w-0">
             <span class="font-semibold text-slate-900">{{ r.name }}</span>
             <span class="tag tag-accent">{{ t(`treatments.type.${r.treatment_type}`) }}</span>
             <span v-if="r.is_mock" class="tag tag-neutral">{{ t("common.demo") }}</span>

@@ -2,8 +2,9 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 
 import NestingSheetVisual from "@/components/NestingSheetVisual.vue";
-import { ApiError, saveBlob } from "@/composables/useApi";
+import { saveBlob } from "@/composables/useApi";
 import { formatDecimal, useI18n } from "@/i18n";
+import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
 import type { NestingCandidates, NestingRequest, NestingResult } from "@/types";
 
@@ -43,7 +44,7 @@ watch(materialId, async (id) => {
     candidates.value = await store.nestingCandidates(id);
     selectedOrders.value = candidates.value.orders.map((o) => o.order_id);
   } catch (err) {
-    error.value = err instanceof ApiError ? err.message : t("common.error");
+    error.value = errorMessage(err, t, "common.error");
   }
 });
 
@@ -80,7 +81,7 @@ async function run() {
     lastRequest.value = req;
     activeSheet.value = 0;
   } catch (err) {
-    error.value = t("nesting.failed", { error: err instanceof ApiError ? err.message : "?" });
+    error.value = t("nesting.failed", { error: errorMessage(err, t) });
   } finally {
     busy.value = false;
   }
@@ -93,7 +94,7 @@ async function exportSheet(format: "svg" | "dxf") {
     const base = (result.value?.material_name ?? "nesting").replace(/[^\w.-]+/g, "_");
     saveBlob(blob, `${base}_${activeSheet.value + 1}.${format}`);
   } catch (err) {
-    error.value = t("nesting.failed", { error: err instanceof ApiError ? err.message : "?" });
+    error.value = t("nesting.failed", { error: errorMessage(err, t) });
   }
 }
 
@@ -216,7 +217,7 @@ const wastePct = computed(() => (result.value ? Math.round((100 - result.value.u
           </div>
 
           <div v-if="sheet" class="sheet p-4 space-y-3">
-            <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-2 flex-wrap min-w-0">
               <button
                 v-for="s in result.sheets"
                 :key="s.index"

@@ -4,8 +4,8 @@ import { computed, onMounted, reactive, ref } from "vue";
 import CuttingBarsVisual from "@/components/CuttingBarsVisual.vue";
 import SheetGridVisual from "@/components/SheetGridVisual.vue";
 import { PIECE_TYPE_SUGGESTIONS, STEEL_GRADE_SUGGESTIONS, WOOD_GRADE_SUGGESTIONS, WOOD_SPECIES_SUGGESTIONS } from "@/constants/referenceData";
-import { ApiError } from "@/composables/useApi";
 import { formatDecimal, useI18n } from "@/i18n";
+import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
 import type { CandidateOrder, CuttingPlan, DimensionType, Material, MaterialCategory, MetalType, SawType, YieldCalcResult } from "@/types";
 
@@ -81,7 +81,11 @@ function cancelEdit() {
   Object.assign(form, emptyForm());
 }
 
+const submitting = ref(false);
+
 async function submit() {
+  if (submitting.value) return;
+  submitting.value = true;
   formError.value = "";
   try {
     if (editingId.value) {
@@ -94,7 +98,9 @@ async function submit() {
       showForm.value = false;
     }
   } catch (err) {
-    formError.value = err instanceof ApiError ? err.message : t("common.error");
+    formError.value = errorMessage(err, t, "common.error");
+  } finally {
+    submitting.value = false;
   }
 }
 
@@ -106,7 +112,7 @@ async function removeMaterial(id: number, name: string) {
   try {
     await store.deleteMaterial(id);
   } catch (err) {
-    deleteError.value = err instanceof ApiError ? err.message : t("common.deleteFailed");
+    deleteError.value = errorMessage(err, t, "common.deleteFailed");
   }
 }
 
@@ -126,7 +132,7 @@ async function submitRestock(id: number) {
     await store.restockMaterial(id, restockForm.quantity_delta, restockForm.purchase_price, restockForm.shipping_cost);
     restockOpenFor.value = null;
   } catch (err) {
-    restockError.value = err instanceof ApiError ? err.message : t("common.error");
+    restockError.value = errorMessage(err, t, "common.error");
   }
 }
 
@@ -162,7 +168,7 @@ async function runYieldCalc() {
   try {
     yieldResult.value = await store.yieldCalc(yieldForm.materialId, yieldForm.blank_length_mm, yieldForm.blank_width_mm, yieldForm.quantity_needed);
   } catch (err) {
-    yieldError.value = err instanceof ApiError ? err.message : "Calculation failed";
+    yieldError.value = errorMessage(err, t);
   }
 }
 
@@ -214,7 +220,7 @@ async function runOptimizer(materialId: number) {
   try {
     cutPlan.value = await store.cuttingOptimizer(materialId, Array.from(selectedOrderIds.value));
   } catch (err) {
-    cutError.value = err instanceof ApiError ? err.message : "Optimization failed";
+    cutError.value = errorMessage(err, t);
   }
 }
 const cutBarsForVisual = computed(() => {
@@ -252,12 +258,12 @@ function unitFor(dimension_type: DimensionType, n = 2) {
       <form class="space-y-3" @submit.prevent="submit">
         <div class="field-grid grid grid-cols-2 md:grid-cols-3 gap-3">
           <div class="col-span-2">
-            <label class="field-label">{{ t("materials.name") }}</label>
-            <input v-model="form.name" required class="input w-full" />
+            <label class="field-label" for="materials-f1">{{ t("materials.name") }}</label>
+            <input id="materials-f1" v-model="form.name" required class="input w-full" />
           </div>
           <div>
-            <label class="field-label">{{ t("materials.category") }}</label>
-            <select v-model="form.category" class="input w-full">
+            <label class="field-label" for="materials-f2">{{ t("materials.category") }}</label>
+            <select id="materials-f2" v-model="form.category" class="input w-full">
               <option value="blade_steel">{{ t("materials.category.blade_steel") }}</option>
               <option value="handle_material">{{ t("materials.category.handle_material") }}</option>
               <option value="fitting">{{ t("materials.category.fitting") }}</option>
@@ -266,23 +272,23 @@ function unitFor(dimension_type: DimensionType, n = 2) {
             </select>
           </div>
           <div>
-            <label class="field-label">{{ t("materials.dimensionType") }}</label>
-            <select v-model="form.dimension_type" class="input w-full">
+            <label class="field-label" for="materials-f3">{{ t("materials.dimensionType") }}</label>
+            <select id="materials-f3" v-model="form.dimension_type" class="input w-full">
               <option value="length">{{ t("materials.dimensionType.length") }}</option>
               <option value="area">{{ t("materials.dimensionType.area") }}</option>
               <option value="count">{{ t("materials.dimensionType.count") }}</option>
             </select>
           </div>
           <div>
-            <label class="field-label">{{ t("materials.pieceType") }}</label>
-            <input v-model="form.piece_type" list="piece-types" :placeholder="t('materials.pieceType.example')" class="input w-full" />
+            <label class="field-label" for="materials-f4">{{ t("materials.pieceType") }}</label>
+            <input id="materials-f4" v-model="form.piece_type" list="piece-types" :placeholder="t('materials.pieceType.example')" class="input w-full" />
             <datalist id="piece-types"><option v-for="p in PIECE_TYPE_SUGGESTIONS" :key="p" :value="p" /></datalist>
           </div>
 
           <template v-if="isMetalCategory">
             <div>
-              <label class="field-label">{{ t("materials.metalType") }}</label>
-              <select v-model="form.metal_type" class="input w-full">
+              <label class="field-label" for="materials-f5">{{ t("materials.metalType") }}</label>
+              <select id="materials-f5" v-model="form.metal_type" class="input w-full">
                 <option :value="null">{{ t("materials.metalType.none") }}</option>
                 <option value="stainless_steel">{{ t("materials.metalType.stainless_steel") }}</option>
                 <option value="carbon_steel">{{ t("materials.metalType.carbon_steel") }}</option>
@@ -295,67 +301,67 @@ function unitFor(dimension_type: DimensionType, n = 2) {
               </select>
             </div>
             <div>
-              <label class="field-label">{{ t("materials.steelGrade") }}</label>
-              <input v-model="form.steel_grade" list="steel-grades" :placeholder="t('materials.steelGrade.example')" class="input w-full" />
+              <label class="field-label" for="materials-f6">{{ t("materials.steelGrade") }}</label>
+              <input id="materials-f6" v-model="form.steel_grade" list="steel-grades" :placeholder="t('materials.steelGrade.example')" class="input w-full" />
               <datalist id="steel-grades"><option v-for="g in STEEL_GRADE_SUGGESTIONS" :key="g" :value="g" /></datalist>
             </div>
           </template>
 
           <template v-if="isWoodCategory">
             <div>
-              <label class="field-label">{{ t("materials.woodSpecies") }}</label>
-              <input v-model="form.wood_species" list="wood-species" class="input w-full" />
+              <label class="field-label" for="materials-f7">{{ t("materials.woodSpecies") }}</label>
+              <input id="materials-f7" v-model="form.wood_species" list="wood-species" class="input w-full" />
               <datalist id="wood-species"><option v-for="s in WOOD_SPECIES_SUGGESTIONS" :key="s" :value="s" /></datalist>
             </div>
             <div>
-              <label class="field-label">{{ t("materials.woodGrade") }}</label>
-              <input v-model="form.wood_grade" list="wood-grades" class="input w-full" />
+              <label class="field-label" for="materials-f8">{{ t("materials.woodGrade") }}</label>
+              <input id="materials-f8" v-model="form.wood_grade" list="wood-grades" class="input w-full" />
               <datalist id="wood-grades"><option v-for="g in WOOD_GRADE_SUGGESTIONS" :key="g" :value="g" /></datalist>
             </div>
           </template>
 
           <div>
-            <label class="field-label">{{ t("materials.length") }}</label>
-            <input v-model.number="form.standard_length_mm" type="number" step="any" class="input w-full" />
+            <label class="field-label" for="materials-f9">{{ t("materials.length") }}</label>
+            <input id="materials-f9" v-model.number="form.standard_length_mm" type="number" step="any" class="input w-full" />
           </div>
           <div v-if="form.dimension_type !== 'length'">
-            <label class="field-label">{{ t("materials.width") }}</label>
-            <input v-model.number="form.standard_width_mm" type="number" step="any" class="input w-full" />
+            <label class="field-label" for="materials-f10">{{ t("materials.width") }}</label>
+            <input id="materials-f10" v-model.number="form.standard_width_mm" type="number" step="any" class="input w-full" />
           </div>
           <div>
-            <label class="field-label">{{ t("materials.thickness") }}</label>
-            <input v-model.number="form.standard_thickness_mm" type="number" step="any" class="input w-full" />
+            <label class="field-label" for="materials-f11">{{ t("materials.thickness") }}</label>
+            <input id="materials-f11" v-model.number="form.standard_thickness_mm" type="number" step="any" class="input w-full" />
           </div>
 
           <div v-if="form.dimension_type === 'length'">
-            <label class="field-label">{{ t("materials.sawBlade") }}</label>
-            <select v-model="form.saw_blade_id" class="input w-full" @change="onSawBladeChange">
+            <label class="field-label" for="materials-f12">{{ t("materials.sawBlade") }}</label>
+            <select id="materials-f12" v-model="form.saw_blade_id" class="input w-full" @change="onSawBladeChange">
               <option :value="null">{{ t("materials.sawBlade.none") }}</option>
-              <option v-for="b in store.sawBlades" :key="b.id" :value="b.id">{{ b.name }} ({{ b.kerf_mm }}mm)</option>
+              <option v-for="b in store.sawBlades" :key="b.id" :value="b.id">{{ b.name }} ({{ formatDecimal(b.kerf_mm, locale) }} mm)</option>
             </select>
           </div>
           <div v-if="form.dimension_type === 'length'">
-            <label class="field-label">{{ t("materials.kerf") }}</label>
-            <input v-model.number="form.kerf_mm" type="number" step="any" class="input w-full" />
+            <label class="field-label" for="materials-f13">{{ t("materials.kerf") }}</label>
+            <input id="materials-f13" v-model.number="form.kerf_mm" type="number" step="any" class="input w-full" />
           </div>
 
           <div v-if="!editingId">
-            <label class="field-label">{{ t("materials.initialStock") }}</label>
-            <input v-model.number="form.quantity_in_stock" type="number" step="any" class="input w-full" />
+            <label class="field-label" for="materials-f14">{{ t("materials.initialStock") }}</label>
+            <input id="materials-f14" v-model.number="form.quantity_in_stock" type="number" step="any" class="input w-full" />
           </div>
           <div>
-            <label class="field-label">{{ t("materials.lowStockThreshold") }}</label>
-            <input v-model.number="form.low_stock_threshold" type="number" step="any" class="input w-full" />
+            <label class="field-label" for="materials-f15">{{ t("materials.lowStockThreshold") }}</label>
+            <input id="materials-f15" v-model.number="form.low_stock_threshold" type="number" step="any" class="input w-full" />
           </div>
           <div>
-            <label class="field-label">{{ t("materials.unitCost", { unit: unitFor(form.dimension_type) }) }}</label>
-            <input v-model.number="form.unit_cost" type="number" step="any" aria-describedby="unit-cost-hint" class="input w-full" />
+            <label class="field-label" for="materials-f16">{{ t("materials.unitCost", { unit: unitFor(form.dimension_type) }) }}</label>
+            <input id="materials-f16" v-model.number="form.unit_cost" type="number" step="any" aria-describedby="unit-cost-hint" class="input w-full" />
           </div>
         </div>
         <p id="unit-cost-hint" class="sheet-hint max-w-prose">{{ t("materials.unitCost.hint") }}</p>
         <p v-if="formError" role="alert" class="text-sm text-red-700">{{ formError }}</p>
         <div class="flex gap-2">
-          <button type="submit" class="btn btn-primary">
+          <button type="submit" class="btn btn-primary" :disabled="submitting">
             {{ editingId ? t("common.saveChanges") : t("common.add") }}
           </button>
           <button type="button" class="btn btn-outline" @click="cancelEdit">{{ t("common.cancel") }}</button>
@@ -366,7 +372,7 @@ function unitFor(dimension_type: DimensionType, n = 2) {
     <div class="space-y-3">
       <div v-for="m in store.materials" :key="m.id" class="sheet p-4">
         <div class="flex items-start justify-between gap-4">
-          <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center gap-2 flex-wrap min-w-0">
             <span class="font-semibold text-slate-900">{{ m.name }}</span>
             <span class="tag tag-accent">{{ t(`materials.category.${m.category}`) }}</span>
             <span v-if="m.is_mock" class="tag tag-neutral">{{ t("common.demo") }}</span>
@@ -420,16 +426,16 @@ function unitFor(dimension_type: DimensionType, n = 2) {
           <p class="text-xs text-slate-500 mb-2">{{ t("materials.restock.hint") }}</p>
           <div class="flex items-end gap-2 flex-wrap">
             <div>
-              <label class="field-label">{{ t("materials.restock.quantity", { unit: unitFor(m.dimension_type) }) }}</label>
-              <input v-model.number="restockForm.quantity_delta" type="number" step="any" class="w-36 input-sm" />
+              <label class="field-label" for="materials-f17">{{ t("materials.restock.quantity", { unit: unitFor(m.dimension_type) }) }}</label>
+              <input id="materials-f17" v-model.number="restockForm.quantity_delta" type="number" step="any" class="w-36 input-sm" />
             </div>
             <div>
-              <label class="field-label">{{ t("materials.restock.purchasePrice") }}</label>
-              <input v-model.number="restockForm.purchase_price" type="number" step="any" min="0" class="w-32 input-sm" />
+              <label class="field-label" for="materials-f18">{{ t("materials.restock.purchasePrice") }}</label>
+              <input id="materials-f18" v-model.number="restockForm.purchase_price" type="number" step="any" min="0" class="w-32 input-sm" />
             </div>
             <div>
-              <label class="field-label">{{ t("materials.restock.shippingCost") }}</label>
-              <input v-model.number="restockForm.shipping_cost" type="number" step="any" min="0" class="w-32 input-sm" />
+              <label class="field-label" for="materials-f19">{{ t("materials.restock.shippingCost") }}</label>
+              <input id="materials-f19" v-model.number="restockForm.shipping_cost" type="number" step="any" min="0" class="w-32 input-sm" />
             </div>
             <button class="btn btn-secondary btn-sm" @click="submitRestock(m.id)">{{ t("materials.restock.confirm") }}</button>
           </div>
@@ -439,16 +445,16 @@ function unitFor(dimension_type: DimensionType, n = 2) {
         <div v-if="yieldForm.materialId === m.id" class="mt-3 border-t border-slate-100 pt-3">
           <div class="flex items-end gap-2 flex-wrap">
             <div>
-              <label class="field-label">{{ t("materials.blankLength") }}</label>
-              <input v-model.number="yieldForm.blank_length_mm" type="number" step="any" class="w-40 input-sm" />
+              <label class="field-label" for="materials-f20">{{ t("materials.blankLength") }}</label>
+              <input id="materials-f20" v-model.number="yieldForm.blank_length_mm" type="number" step="any" class="w-40 input-sm" />
             </div>
             <div v-if="m.dimension_type === 'area'">
-              <label class="field-label">{{ t("materials.blankWidth") }}</label>
-              <input v-model.number="yieldForm.blank_width_mm" type="number" step="any" class="w-40 input-sm" />
+              <label class="field-label" for="materials-f21">{{ t("materials.blankWidth") }}</label>
+              <input id="materials-f21" v-model.number="yieldForm.blank_width_mm" type="number" step="any" class="w-40 input-sm" />
             </div>
             <div>
-              <label class="field-label">{{ t("materials.quantityNeeded") }}</label>
-              <input v-model.number="yieldForm.quantity_needed" type="number" min="1" class="w-32 input-sm" />
+              <label class="field-label" for="materials-f22">{{ t("materials.quantityNeeded") }}</label>
+              <input id="materials-f22" v-model.number="yieldForm.quantity_needed" type="number" min="1" class="w-32 input-sm" />
             </div>
             <button class="text-sm bg-slate-800 text-white rounded-lg px-3 py-1.5" @click="runYieldCalc">{{ t("materials.calculate") }}</button>
           </div>
@@ -457,8 +463,8 @@ function unitFor(dimension_type: DimensionType, n = 2) {
             <div class="text-sm text-slate-700 grid grid-cols-2 gap-x-6 gap-y-1 mb-3">
               <span>{{ t("materials.piecesPerStockUnit") }}{{ t("common.colon") }} <strong>{{ yieldResult.pieces_per_stock_unit }}</strong></span>
               <span>{{ t("materials.stockUnitsNeeded") }}{{ t("common.colon") }} <strong>{{ yieldResult.stock_units_needed }}</strong></span>
-              <span>{{ t("materials.wastePerStockUnit") }}{{ t("common.colon") }} <strong>{{ yieldResult.waste_per_stock_unit }} {{ yieldResult.unit }}</strong></span>
-              <span>{{ t("materials.wastePercentage") }}{{ t("common.colon") }} <strong>{{ yieldResult.waste_percentage }}%</strong></span>
+              <span>{{ t("materials.wastePerStockUnit") }}{{ t("common.colon") }} <strong class="tabular-nums">{{ formatDecimal(yieldResult.waste_per_stock_unit, locale) }} {{ yieldResult.unit }}</strong></span>
+              <span>{{ t("materials.wastePercentage") }}{{ t("common.colon") }} <strong class="tabular-nums">{{ formatDecimal(yieldResult.waste_percentage, locale, 1) }} %</strong></span>
             </div>
             <CuttingBarsVisual
               v-if="m.dimension_type === 'length' && m.standard_length_mm"
@@ -492,7 +498,7 @@ function unitFor(dimension_type: DimensionType, n = 2) {
                 />
                 <span class="text-slate-800">{{ c.customer_name }}</span>
                 <span class="text-xs rounded px-1.5 py-0.5" :class="c.status === 'confirmed' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'">{{ t(`orders.status.${c.status}`) }}</span>
-                <span class="text-slate-500">{{ c.piece_count }} {{ t("materials.optimizer.pieces") }}, {{ c.total_length_mm }}mm</span>
+                <span class="text-slate-500">{{ c.piece_count }} {{ t("materials.optimizer.pieces") }}, {{ formatDecimal(c.total_length_mm, locale) }} mm</span>
               </li>
             </ul>
             <button class="text-sm bg-slate-800 text-white rounded-lg px-3 py-1.5" @click="runOptimizer(m.id)">{{ t("materials.optimizer.run") }}</button>
@@ -503,7 +509,7 @@ function unitFor(dimension_type: DimensionType, n = 2) {
             <div class="text-sm text-slate-700 grid grid-cols-3 gap-x-6 gap-y-1 mb-3">
               <span>{{ t("materials.optimizer.barsNeeded") }}{{ t("common.colon") }} <strong>{{ cutPlan.bars_needed }}</strong></span>
               <span>{{ t("materials.optimizer.totalPieces") }}{{ t("common.colon") }} <strong>{{ cutPlan.total_pieces }}</strong></span>
-              <span>{{ t("materials.optimizer.totalWaste") }}{{ t("common.colon") }} <strong>{{ cutPlan.total_waste_mm }}mm ({{ cutPlan.waste_percentage }}%)</strong></span>
+              <span>{{ t("materials.optimizer.totalWaste") }}{{ t("common.colon") }} <strong class="tabular-nums">{{ formatDecimal(cutPlan.total_waste_mm, locale) }} mm ({{ formatDecimal(cutPlan.waste_percentage, locale, 1) }} %)</strong></span>
             </div>
             <CuttingBarsVisual :stock-length="cutPlan.stock_length_mm" :kerf="cutPlan.kerf_mm" :bars="cutBarsForVisual" />
           </div>
@@ -520,16 +526,16 @@ function unitFor(dimension_type: DimensionType, n = 2) {
       <div v-if="showSawCatalog" class="mt-3">
         <p class="text-xs text-slate-500 mb-3">{{ t("materials.sawBladeCatalog.hint") }}</p>
         <form class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3" @submit.prevent="addSawBlade">
-          <input v-model="sawForm.name" :placeholder="t('common.name')" required class="input-sm" />
-          <select v-model="sawForm.saw_type" class="input-sm">
+          <input v-model="sawForm.name" :placeholder="t('common.name')" :aria-label="t('common.name')" required class="input-sm" />
+          <select v-model="sawForm.saw_type" :aria-label="t('materials.sawTypeLabel')" class="input-sm">
             <option value="band_saw">{{ t("materials.sawType.band_saw") }}</option>
             <option value="circular_saw">{{ t("materials.sawType.circular_saw") }}</option>
             <option value="abrasive_cutoff">{{ t("materials.sawType.abrasive_cutoff") }}</option>
             <option value="hacksaw">{{ t("materials.sawType.hacksaw") }}</option>
             <option value="other">{{ t("materials.sawType.other") }}</option>
           </select>
-          <input v-model.number="sawForm.diameter_mm" type="number" step="any" :placeholder="t('materials.diameter')" class="input-sm" />
-          <input v-model.number="sawForm.kerf_mm" type="number" step="any" required :placeholder="t('materials.kerf')" class="input-sm" />
+          <input v-model.number="sawForm.diameter_mm" type="number" step="any" :placeholder="t('materials.diameter')" :aria-label="t('materials.diameter')" class="input-sm" />
+          <input v-model.number="sawForm.kerf_mm" type="number" step="any" required :placeholder="t('materials.kerf')" :aria-label="t('materials.kerf')" class="input-sm" />
           <button type="submit" class="btn btn-secondary btn-sm">{{ t("materials.addSawBlade") }}</button>
         </form>
         <ul class="text-sm text-slate-700 divide-y divide-slate-100">

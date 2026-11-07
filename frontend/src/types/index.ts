@@ -176,6 +176,10 @@ export interface CostBreakdown {
 export interface ShopSettings {
   hourly_rate: number;
   default_margin_percent: number;
+  workshop_name: string | null;
+  workshop_contact: string | null;
+  /** data URL (PNG, JPEG or SVG) printed on client plans */
+  workshop_logo: string | null;
 }
 
 export interface CandidateOrder {

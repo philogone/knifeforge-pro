@@ -37,7 +37,8 @@ def get_shop(db: Session = Depends(get_db)):
 def update_shop(payload: ShopSettingsUpdate, db: Session = Depends(get_db)):
     settings = get_shop_settings(db)
     for field, value in payload.model_dump(exclude_unset=True).items():
-        setattr(settings, field, value)
+        # an emptied text field clears the value instead of storing ""
+        setattr(settings, field, value if value != "" else None)
     db.commit()
     db.refresh(settings)
     return settings

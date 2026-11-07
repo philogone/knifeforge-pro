@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import { documentToSvg } from "@/editor/svgPreview";
 import { formatDecimal, useI18n } from "@/i18n";
 import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
@@ -31,6 +32,8 @@ async function loadDesigns() {
   allDesigns.value = store.designs;
 }
 
+
+
 async function setDesignModel(id: number, knifeModelId: number | null) {
   designError.value = "";
   try {
@@ -50,6 +53,14 @@ const uncoveredMaterials = computed(() =>
 );
 
 const model = computed(() => store.knifeModels.find((m) => m.id === modelId));
+
+// Client view: what the maker turns towards a customer. No cost, margin, build time or
+// shop tools; the knife, its materials, its process and its plans. Kept in the URL
+// (?view=client) so the view survives a reload and can be bookmarked.
+const clientView = computed(() => route.query.view === "client");
+function setClientView(on: boolean) {
+  router.replace({ query: { ...route.query, view: on ? "client" : undefined } });
+}
 const recipesByModel = computed(() =>
   (model.value?.treatments ?? [])
     .slice()
@@ -80,21 +91,82 @@ async function deleteModel() {
     deleteError.value = errorMessage(err, t, "common.deleteFailed");
   }
 }
+
+// drawings of the linked templates, for the client view
+const thumbs = reactive<Record<number, string>>({});
+watch(
+  () => [clientView.value, linkedDesigns.value.map((d) => d.id).join(",")],
+  () => {
+    if (!clientView.value) return;
+    for (const d of linkedDesigns.value) {
+      if (thumbs[d.id] !== undefined || !d.part_count) continue;
+      thumbs[d.id] = "";
+      store
+        .fetchDesign(d.id)
+        .then((full) => (thumbs[d.id] = documentToSvg(full.document)))
+        .catch(() => undefined);
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
   <div v-if="model" class="page max-w-3xl">
     <router-link to="/knife-models" class="back-link">&larr; {{ t("common.backToList") }}</router-link>
-    <div class="flex items-center justify-between mt-1">
-      <div class="flex items-center gap-2">
+    <div class="flex items-start justify-between gap-4 mt-1 flex-wrap">
+      <div class="flex items-center gap-2 flex-wrap min-w-0">
         <h1 class="page-title">{{ model.name }}</h1>
         <span class="tag tag-accent">{{ t(`knifeModels.knifeType.${model.knife_type}`) }}</span>
       </div>
-      <div class="flex gap-3">
-        <button class="link-action" @click="editModel">{{ t("common.edit") }}</button>
-        <button class="link-danger" @click="deleteModel">{{ t("common.delete") }}</button>
+      <div class="flex items-center gap-4">
+        <div class="inline-flex rounded-lg border border-slate-300 bg-white p-0.5 text-sm" role="group" :aria-label="t('clientView.toggle')">
+          <button class="px-3 py-1 rounded-md transition-colors" :class="!clientView ? 'bg-slate-800 text-white' : 'text-slate-600 hover:text-slate-900'" :aria-pressed="!clientView" @click="setClientView(false)">{{ t("clientView.workshop") }}</button>
+          <button class="px-3 py-1 rounded-md transition-colors" :class="clientView ? 'bg-accent-600 text-white' : 'text-slate-600 hover:text-slate-900'" :aria-pressed="clientView" @click="setClientView(true)">{{ t("clientView.client") }}</button>
+        </div>
+        <template v-if="!clientView">
+          <button class="link-action" @click="editModel">{{ t("common.edit") }}</button>
+          <button class="link-danger" @click="deleteModel">{{ t("common.delete") }}</button>
+        </template>
       </div>
     </div>
+
+    <!-- client view: the knife as the customer sees it -->
+    <template v-if="clientView">
+      <p class="mt-3 text-3xl font-semibold tabular-nums text-slate-900">{{ money(model.sale_price) }}</p>
+
+      <section v-if="linkedDesigns.length" class="mt-6 grid sm:grid-cols-2 gap-4" :aria-label="t('modelDesigns.title')">
+        <article v-for="d in linkedDesigns" :key="d.id" class="sheet overflow-hidden">
+          <div class="h-44 bg-slate-50 border-b border-slate-100 p-5 [&>svg]:w-full [&>svg]:h-full" v-html="thumbs[d.id] ?? ''"></div>
+          <div class="p-4 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <p class="font-semibold text-slate-900 truncate">{{ d.name }}</p>
+              <p class="text-xs text-slate-500 tabular-nums">{{ num(d.width_mm) }} × {{ num(d.height_mm) }} mm<span v-if="d.material_name"> · {{ d.material_name }}</span></p>
+            </div>
+            <router-link :to="{ path: `/designs/${d.id}`, query: { plan: '1' } }" class="btn btn-outline btn-sm shrink-0">{{ t("clientView.plan") }}</router-link>
+          </div>
+        </article>
+      </section>
+
+      <section class="sheet p-5 mt-4">
+        <h2 class="sheet-title mb-3">{{ t("clientView.materials") }}</h2>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+          <template v-for="m in model.materials" :key="m.id">
+            <dt class="text-slate-500">{{ t(`knifeModels.role.${m.role}`) }}</dt>
+            <dd class="text-slate-900">{{ m.material_name }}</dd>
+          </template>
+        </dl>
+      </section>
+
+      <section v-if="recipesByModel.length" class="sheet p-5 mt-4">
+        <h2 class="sheet-title mb-3">{{ t("clientView.process") }}</h2>
+        <ol class="space-y-1.5 text-sm text-slate-800 list-decimal list-inside">
+          <li v-for="recipe in recipesByModel" :key="recipe!.id">{{ recipe!.name }}</li>
+        </ol>
+      </section>
+    </template>
+
+    <template v-else>
     <p class="text-sm text-slate-500 mt-1">{{ t("knifeModels.buildTime") }}{{ t("common.colon") }} {{ t("knifeModels.hours", { n: model.base_labor_hours }) }} &middot; {{ money(model.sale_price) }}</p>
 
     <p v-if="deleteError" role="alert" class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ deleteError }}</p>
@@ -131,7 +203,8 @@ async function deleteModel() {
         <li v-for="d in linkedDesigns" :key="d.id" class="flex items-center gap-3 py-2 text-sm">
           <router-link :to="`/designs/${d.id}`" class="font-medium text-slate-800 hover:text-accent-700">{{ d.name }}</router-link>
           <span class="text-slate-500">{{ d.material_name ?? t("modelDesigns.noMaterial") }}</span>
-          <button class="ml-auto text-xs text-slate-500 hover:text-red-700" @click="setDesignModel(d.id, null)">{{ t("modelDesigns.detach") }}</button>
+          <router-link :to="{ path: `/designs/${d.id}`, query: { plan: '1' } }" class="ml-auto text-xs link-action">{{ t("clientView.plan") }}</router-link>
+          <button class="text-xs text-slate-500 hover:text-red-700" @click="setDesignModel(d.id, null)">{{ t("modelDesigns.detach") }}</button>
         </li>
       </ul>
       <p v-else class="mt-3 text-sm text-slate-600">{{ t("modelDesigns.empty") }}</p>
@@ -217,5 +290,6 @@ async function deleteModel() {
         </li>
       </ol>
     </div>
+    </template>
   </div>
 </template>

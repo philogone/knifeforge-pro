@@ -206,6 +206,9 @@ def nesting_to_dxf(result: NestingResult, sheet_index: int) -> bytes:
 PAPER_SIZES_MM = {"A4": (297.0, 210.0), "A3": (420.0, 297.0)}  # landscape (w, h)
 _STANDARD_SCALES = [1, 2, 2.5, 4, 5, 10, 20, 25, 50, 100]
 TITLE_BLOCK_H = 32.0
+SCALE_CHECK_MM = 100.0
+FONT = "IBM Plex Sans, Helvetica, Arial, sans-serif"
+MUTED = "#6f6a60"
 SHEET_MARGIN = 10.0
 
 
@@ -271,6 +274,9 @@ def plan_svg(
     knife_model: str | None = None,
     material: str | None = None,
     notes: str | None = None,
+    workshop_name: str | None = None,
+    workshop_contact: str | None = None,
+    workshop_logo: str | None = None,
 ) -> str:
     if paper not in PAPER_SIZES_MM:
         raise ValueError(f"Unknown paper size {paper!r}")
@@ -364,24 +370,30 @@ def plan_svg(
         ("Matière", material or "—"),
         ("Échelle", scale_label),
         ("Dimensions", f"{_fmt_mm(dw)} × {_fmt_mm(dh)}"),
-        ("Date", date.today().isoformat()),
+        ("Date", date.today().strftime("%d/%m/%Y")),
         ("Papier", f"{paper} paysage"),
     ]
+    title_x = tb_x + 3
     tb: list[str] = [
         f'<rect x="{_num(tb_x)}" y="{_num(tb_y)}" width="{_num(tb_w)}" height="{_num(TITLE_BLOCK_H)}" fill="none" stroke="{INK}" stroke-width="0.5"/>',
-        f'<text x="{_num(tb_x + 3)}" y="{_num(tb_y + 7)}" font-size="6" font-weight="bold" fill="{INK}" font-family="sans-serif">{escape(title)}</text>',
     ]
-    if grind_lines:
-        # legend: a short dash-dot sample, then its meaning, top right of the title block
-        lx = tb_x + tb_w - 3
+    if workshop_logo:
+        # the maker's mark, top left of the title block, fitted into 24 x 8 mm
+        href = escape(workshop_logo, {'"': "&quot;"})
         tb.append(
-            f'<text x="{_num(lx)}" y="{_num(tb_y + 4.2)}" font-size="2.6" text-anchor="end" fill="{INK}" font-family="sans-serif">Ligne d’émouture</text>'
-            f'<line x1="{_num(lx - 44)}" y1="{_num(tb_y + 3.3)}" x2="{_num(lx - 32)}" y2="{_num(tb_y + 3.3)}" stroke="{INK}" stroke-width="0.3" stroke-dasharray="{GRIND_DASH}"/>'
+            f'<image x="{_num(tb_x + 2)}" y="{_num(tb_y + 1.5)}" width="24" height="8" preserveAspectRatio="xMinYMid meet" href="{href}"/>'
         )
+        title_x = tb_x + 28
+    tb.append(f'<text x="{_num(title_x)}" y="{_num(tb_y + 7)}" font-size="6" font-weight="bold" fill="{INK}" font-family="{FONT}">{escape(title)}</text>')
+    if workshop_name or workshop_contact:
+        rx = tb_x + tb_w - 3
+        if workshop_name:
+            tb.append(f'<text x="{_num(rx)}" y="{_num(tb_y + 5)}" font-size="3.6" font-weight="bold" text-anchor="end" fill="{INK}" font-family="{FONT}">{escape(workshop_name)}</text>')
+        if workshop_contact:
+            tb.append(f'<text x="{_num(rx)}" y="{_num(tb_y + 9)}" font-size="2.6" text-anchor="end" fill="{MUTED}" font-family="{FONT}">{escape(workshop_contact)}</text>')
     if notes:
-        notes_y = tb_y + 8.6 if grind_lines else tb_y + 7
         tb.append(
-            f'<text x="{_num(tb_x + tb_w - 3)}" y="{_num(notes_y)}" font-size="3.2" text-anchor="end" fill="{INK}" font-family="sans-serif">{escape(notes[:120])}</text>'
+            f'<text x="{_num(title_x)}" y="{_num(tb_y + 10.2)}" font-size="2.6" fill="{MUTED}" font-family="{FONT}">{escape(notes[:120])}</text>'
         )
     row_h = (TITLE_BLOCK_H - 11) / 2
     for i, (label, value) in enumerate(fields):
@@ -389,9 +401,34 @@ def plan_svg(
         cy = tb_y + 11 + (i // 4) * row_h
         tb.append(
             f'<rect x="{_num(cx)}" y="{_num(cy)}" width="{_num(cell)}" height="{_num(row_h)}" fill="none" stroke="{INK}" stroke-width="0.25"/>'
-            f'<text x="{_num(cx + 2)}" y="{_num(cy + 3.6)}" font-size="2.4" fill="#64748b" font-family="sans-serif">{escape(label)}</text>'
-            f'<text x="{_num(cx + 2)}" y="{_num(cy + row_h - 2)}" font-size="3.6" fill="{INK}" font-family="sans-serif">{escape(value)}</text>'
+            f'<text x="{_num(cx + 2)}" y="{_num(cy + 3.6)}" font-size="2.4" fill="{MUTED}" font-family="{FONT}">{escape(label)}</text>'
+            f'<text x="{_num(cx + 2)}" y="{_num(cy + row_h - 2)}" font-size="3.6" fill="{INK}" font-family="{FONT}">{escape(value)}</text>'
         )
+
+    # Print check, in the strip under the title block: a bar that must measure exactly 100 mm on
+    # paper. 1 SVG unit = 1 mm (width/height in mm match the viewBox), so it is 100 units long
+    # whatever the drawing's scale. If a ruler reads anything else, the printer scaled the page.
+    bar_x, bar_y = SHEET_MARGIN, page_h - SHEET_MARGIN / 2 - 2.2
+    check = [
+        f'<g data-role="scale-check">',
+        f'<rect x="{_num(bar_x)}" y="{_num(bar_y)}" width="{_num(SCALE_CHECK_MM)}" height="1.2" fill="none" stroke="{INK}" stroke-width="0.2"/>',
+    ]
+    for i in range(0, int(SCALE_CHECK_MM), 20):
+        # alternate filled 10 mm blocks, like a surveyor's bar
+        check.append(f'<rect x="{_num(bar_x + i)}" y="{_num(bar_y)}" width="10" height="1.2" fill="{INK}"/>')
+    check.append(
+        f'<text x="{_num(bar_x + SCALE_CHECK_MM + 2)}" y="{_num(bar_y + 1.1)}" font-size="2.4" fill="{INK}" font-family="{FONT}">'
+        f'Contrôle d’impression : cette barre doit mesurer 100 mm</text>'
+    )
+    if grind_lines:
+        # legend: a short dash-dot sample, then its meaning, at the right of the same strip
+        lx = tb_x + tb_w
+        check.append(
+            f'<text x="{_num(lx)}" y="{_num(bar_y + 1.1)}" font-size="2.4" text-anchor="end" fill="{INK}" font-family="{FONT}">Ligne d’émouture</text>'
+            f'<line x1="{_num(lx - 34)}" y1="{_num(bar_y + 0.4)}" x2="{_num(lx - 22)}" y2="{_num(bar_y + 0.4)}" stroke="{INK}" stroke-width="0.3" stroke-dasharray="{GRIND_DASH}"/>'
+        )
+    check.append("</g>")
+    tb.extend(check)
 
     frame = (
         f'<rect x="{_num(SHEET_MARGIN / 2)}" y="{_num(SHEET_MARGIN / 2)}" width="{_num(page_w - SHEET_MARGIN)}" '

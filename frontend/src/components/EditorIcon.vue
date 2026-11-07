@@ -6,7 +6,8 @@ import { computed } from "vue";
 export type EditorIconName =
   | "select" | "node" | "pen" | "rect" | "ellipse" | "line" | "polygon" | "arc" | "dimension" | "measure" | "pan"
   | "library" | "holes" | "text" | "undo" | "redo" | "fit" | "magnet" | "eye" | "eye-off" | "lock" | "unlock"
-  | "close" | "chevron-down" | "chevron-up" | "warning" | "swap";
+  | "close" | "chevron-down" | "chevron-up" | "warning" | "swap"
+  | "flip-h" | "flip-v" | "mirror-h" | "mirror-v" | "rotate" | "duplicate";
 
 const props = defineProps<{ name: EditorIconName; size?: number }>();
 
@@ -37,6 +38,12 @@ const PATHS: Record<EditorIconName, string> = {
   "chevron-down": "M5.5 8l4.5 4.5L14.5 8",
   "chevron-up": "M5.5 12l4.5-4.5 4.5 4.5",
   swap: "M4 7h11l-3-3M16 13H5l3 3",
+  "flip-h": "M10 2.5v15M7.5 5L3 15h4.5zM12.5 5L17 15h-4.5z",
+  "flip-v": "M2.5 10h15M5 7.5L15 3v4.5zM5 12.5L15 17v-4.5z",
+  "mirror-h": "M10 2.5v15M7.5 5L3 15h4.5zM12.5 5L17 15h-4.5zM14 3.5h3v3",
+  "mirror-v": "M2.5 10h15M5 7.5L15 3v4.5zM5 12.5L15 17v-4.5zM16.5 14v3h-3",
+  rotate: "M15.5 7.5A6 6 0 1 0 16 12M16 3.5v4h-4",
+  duplicate: "M7 7h9.5v9.5H7zM4 13V4h9",
   warning: "M10 3l7.5 13.5h-15zM10 8v4M10 14.5h0",
 };
 

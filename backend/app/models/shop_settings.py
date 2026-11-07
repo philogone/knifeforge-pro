@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Float
+from sqlalchemy import CheckConstraint, Float, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -18,3 +18,8 @@ class ShopSettings(Base):
     # on first visit to Settings — not a real recommendation.
     hourly_rate: Mapped[float] = mapped_column(Float, default=35.0)
     default_margin_percent: Mapped[float] = mapped_column(Float, default=30.0)
+    # Who made the knife, printed in the client plan's title block.
+    workshop_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    workshop_contact: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # A small PNG / JPEG / SVG as a data URL (kept with the row: one image, no file store).
+    workshop_logo: Mapped[str | None] = mapped_column(Text, nullable=True)

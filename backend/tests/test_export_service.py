@@ -1,3 +1,4 @@
+import re
 import io
 import xml.etree.ElementTree as ET
 
@@ -119,3 +120,30 @@ def test_plan_draws_grind_lines_dash_dot_with_a_legend_but_never_cuts_them():
 def test_plan_has_no_grind_legend_without_grind_lines():
     svg = plan_svg(doc([]).model_copy(update={"objects": blade_doc().objects[:1]}), title="x")
     assert "émouture" not in svg and 'data-layer="grind"' not in svg
+
+
+def test_plan_prints_a_100_mm_scale_check_and_the_workshop_identity():
+    svg = plan_svg(
+        blade_doc(),
+        title="x",
+        workshop_name="Atelier Dupont & fils",
+        workshop_contact="06 00 00 00 00 · atelier@example.com",
+        workshop_logo="data:image/png;base64,iVBORw0KGgo=",
+    )
+    root = ET.fromstring(svg)
+    ns = "{http://www.w3.org/2000/svg}"
+    # 1 SVG unit is 1 mm on paper: the page size in mm equals the viewBox
+    page_w = float(root.attrib["width"].removesuffix("mm"))
+    assert root.attrib["viewBox"].split()[2] == f"{page_w:g}"
+    check = next(g for g in root.iter(f"{ns}g") if g.attrib.get("data-role") == "scale-check")
+    frame = next(r for r in check.iter(f"{ns}rect") if r.attrib.get("fill") == "none")
+    assert float(frame.attrib["width"]) == 100.0
+    text = " ".join(t.text or "" for t in root.iter(f"{ns}text"))
+    assert "100 mm" in text and "Atelier Dupont & fils" in text and "atelier@example.com" in text
+    assert root.find(f"{ns}image") is not None
+    assert re.search(r"\d{2}/\d{2}/\d{4}", text)  # date as a French reader writes it
+
+
+def test_plan_without_workshop_identity_has_no_logo():
+    root = ET.fromstring(plan_svg(blade_doc(), title="x"))
+    assert root.find("{http://www.w3.org/2000/svg}image") is None

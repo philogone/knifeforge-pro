@@ -27,6 +27,14 @@ const route = useRoute();
 const kinds: DesignKind[] = ["blade", "handle_scale", "guard", "bolster", "sheath", "template", "other"];
 const roles: LayerRole[] = ["cut", "hole", "engrave", "grind", "construction", "dimension"];
 const tools: (ToolName & EditorIconName)[] = ["select", "node", "pen", "rect", "ellipse", "line", "polygon", "arc", "dimension", "measure", "pan"];
+const transforms: { key: string; icon: EditorIconName; label: string; run: () => void }[] = [
+  { key: "fh", icon: "flip-h", label: "editor.flipH", run: () => engine.value?.flipSelection("h") },
+  { key: "fv", icon: "flip-v", label: "editor.flipV", run: () => engine.value?.flipSelection("v") },
+  { key: "mh", icon: "mirror-h", label: "editor.mirrorH", run: () => engine.value?.mirrorCopy("h") },
+  { key: "mv", icon: "mirror-v", label: "editor.mirrorV", run: () => engine.value?.mirrorCopy("v") },
+  { key: "r90", icon: "rotate", label: "editor.rotate90", run: () => engine.value?.rotateSelection(90) },
+  { key: "dup", icon: "duplicate", label: "editor.duplicate", run: () => engine.value?.duplicateSelection() },
+];
 const alignKinds: AlignKind[] = ["left", "centerH", "right", "top", "middleV", "bottom"];
 const booleanOps: BooleanOp[] = ["unite", "subtract", "intersect", "exclude"];
 
@@ -297,6 +305,8 @@ onMounted(async () => {
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
   window.addEventListener("beforeunload", onBeforeUnload);
+  // arriving from a model or an order to print its plan
+  if (route.query.plan === "1" && design.value) void openPlan();
 });
 
 onBeforeUnmount(() => {
@@ -773,9 +783,10 @@ function onKeyDown(ev: KeyboardEvent) {
   const e = engine.value;
   if (!e) return;
   // a dialog is open: Esc closes it (even from a field inside), nothing else reaches the canvas
-  if (planOpen.value || calib.open || persp.open || holes.open || textForm.open || library.open) {
+  if (shortcutsOpen.value || planOpen.value || calib.open || persp.open || holes.open || textForm.open || library.open) {
     if (ev.key === "Escape") {
       ev.preventDefault();
+      shortcutsOpen.value = false;
       planOpen.value = false;
       calib.open = false;
       persp.open = false;
@@ -786,6 +797,11 @@ function onKeyDown(ev: KeyboardEvent) {
     return;
   }
   if (isTyping(ev)) return;
+  if (ev.key === "?") {
+    ev.preventDefault();
+    shortcutsOpen.value = true;
+    return;
+  }
   const mod = ev.ctrlKey || ev.metaKey;
   const key = ev.key.toLowerCase();
 
@@ -932,11 +948,15 @@ const activeLayerBlocked = computed(() => {
 
 // ------------------------------------------------------------- client plan
 const planOpen = ref(false);
+// keyboard reference, one keystroke away ("?") instead of buried in the Document tab
+const shortcutsOpen = ref(false);
+const shortcutItems = computed(() => t("editor.shortcutsList").split(" · "));
 // keyboard focus lands in the dialog when it opens (Esc closes it)
 const vFocus = { mounted: (el: HTMLElement) => el.focus() };
 const planBusy = ref(false);
 const planError = ref("");
 const planUrl = ref("");
+const planZoom = ref(false);
 const planForm = reactive({ paper: "A4", scale: "", customer: "", order_ref: "", title: "", notes: "" });
 
 async function openPlan() {
@@ -1201,20 +1221,17 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                   </div>
                 </div>
 
-                <div class="flex items-end gap-2">
-                  <label class="text-xs text-slate-500 flex-1">{{ t("editor.rotateBy") }}
-                    <input v-model.number="rotateBy" type="number" step="any" class="input-sm w-full" @keydown.enter="applyRotation" @change="applyRotation" />
-                  </label>
-                  <button class="px-2 py-1 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.rotateSelection(90)">{{ t("editor.rotate90") }}</button>
-                </div>
+                <label class="block text-xs text-slate-500">{{ t("editor.rotateBy") }}
+                  <input v-model.number="rotateBy" type="number" step="any" class="input-sm w-full" @keydown.enter="applyRotation" @change="applyRotation" />
+                </label>
 
-                <div class="grid grid-cols-2 gap-2">
-                  <button class="px-2 py-1 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.flipSelection('h')">{{ t("editor.flipH") }}</button>
-                  <button class="px-2 py-1 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.flipSelection('v')">{{ t("editor.flipV") }}</button>
-                  <button class="px-2 py-1 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.mirrorCopy('h')">{{ t("editor.mirrorH") }}</button>
-                  <button class="px-2 py-1 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.mirrorCopy('v')">{{ t("editor.mirrorV") }}</button>
-                  <button class="px-2 py-1 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.duplicateSelection()">{{ t("editor.duplicate") }}</button>
-                  <button class="px-2 py-1 rounded border border-red-300 text-red-600" @click="engine?.deleteSelection()">{{ t("editor.delete") }}</button>
+                <div>
+                  <p class="text-xs text-slate-500 mb-1">{{ t("editor.transform") }}</p>
+                  <div class="grid grid-cols-6 gap-1">
+                    <button v-for="tr in transforms" :key="tr.key" class="h-8 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors flex items-center justify-center" :title="t(tr.label)" :aria-label="t(tr.label)" @click="tr.run()">
+                      <EditorIcon :name="tr.icon" :size="18" />
+                    </button>
+                  </div>
                 </div>
 
                 <div v-if="sel.count > 1">
@@ -1228,15 +1245,15 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                   </div>
                 </div>
 
-                <div>
+                <div v-if="sel.count > 1">
                   <p class="text-xs text-slate-500 mb-1">{{ t("editor.boolean") }}</p>
                   <div class="grid grid-cols-2 gap-1">
                     <button v-for="op in booleanOps" :key="op" class="px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.booleanOp(op)">{{ t(`editor.boolean.${op}`) }}</button>
-                    <button class="px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.combine()">{{ t("editor.combine") }}</button>
-                    <button class="px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.breakApart()">{{ t("editor.breakApart") }}</button>
+                    <button class="col-span-2 px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.combine()">{{ t("editor.combine") }}</button>
                   </div>
                   <p class="text-xs text-slate-500 mt-1">{{ t("editor.booleanHelp") }}</p>
                 </div>
+                <button v-else-if="sel.path?.compound" class="w-full px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.breakApart()">{{ t("editor.breakApart") }}</button>
 
                 <div v-if="sel.path" class="bg-slate-50 rounded-lg p-2 text-xs text-slate-600 space-y-0.5">
                   <p class="font-medium text-slate-700">{{ t("editor.shapeInfo") }}</p>
@@ -1272,6 +1289,9 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                     <input v-model="dimForm.label" class="input-sm w-full" @change="applyDimension" />
                   </label>
                 </div>
+                <button class="w-full mt-1 py-1.5 rounded-md text-sm text-red-700 hover:bg-red-50 flex items-center justify-center gap-1.5" @click="engine?.deleteSelection()">
+                  <EditorIcon name="close" :size="14" /> {{ t("editor.delete") }}
+                </button>
               </template>
 
               <div v-if="tool === 'node' || sel.selectedNodes" class="space-y-2 border-t border-slate-100 pt-3">
@@ -1453,6 +1473,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         <span v-if="status" :class="statusIsError ? 'text-red-600' : 'text-green-700'">{{ status }}</span>
         <span>{{ t("editor.cursor") }} : {{ cursorText }}</span>
         <span>{{ t("editor.zoom") }} : {{ zoomPct }} %</span>
+        <button class="ml-3 w-5 h-5 rounded-full border border-slate-300 text-slate-600 hover:text-slate-900 hover:border-slate-400 leading-none" :title="t('editor.shortcutsOpen')" :aria-label="t('editor.shortcutsOpen')" @click="shortcutsOpen = true">?</button>
       </div>
     </template>
 
@@ -1610,6 +1631,17 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
     </div>
 
     <!-- plan modal -->
+    <div v-if="shortcutsOpen" class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4" @click.self="shortcutsOpen = false">
+      <div role="dialog" aria-modal="true" aria-labelledby="shortcuts-title" class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 id="shortcuts-title" class="sheet-title">{{ t("editor.shortcuts") }}</h2>
+          <button v-focus class="p-1 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100" :aria-label="t('common.close')" @click="shortcutsOpen = false"><EditorIcon name="close" :size="16" /></button>
+        </div>
+        <ul class="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-slate-700">
+          <li v-for="item in shortcutItems" :key="item" class="border-b border-slate-100 pb-1.5">{{ item }}</li>
+        </ul>
+      </div>
+    </div>
     <div v-if="planOpen" class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4" @click.self="planOpen = false" @keydown="onPlanKey">
       <div role="dialog" aria-modal="true" aria-labelledby="plan-title" class="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[92vh] flex flex-col md:flex-row overflow-hidden">
         <div class="md:w-72 p-5 space-y-3 overflow-y-auto border-b md:border-b-0 md:border-r border-slate-200 text-sm">
@@ -1638,10 +1670,19 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
             <button class="btn btn-outline btn-sm w-full" :disabled="planBusy" @click="downloadPlan">{{ t("plan.download") }}</button>
           </div>
           <p class="text-xs text-slate-500" aria-live="polite">{{ planBusy ? t("plan.generating") : t("plan.printHint") }}</p>
+          <router-link to="/settings" class="block text-xs link-action">{{ t("plan.workshopLink") }}</router-link>
         </div>
         <div class="flex-1 bg-slate-100 p-4 overflow-auto min-h-[320px] flex items-start justify-center">
           <p v-if="planError" class="text-sm text-red-600">{{ planError }}</p>
-          <img v-else-if="planUrl" :src="planUrl" :alt="t('plan.previewAlt')" class="max-w-full bg-white shadow" />
+          <img
+            v-else-if="planUrl"
+            :src="planUrl"
+            :alt="t('plan.previewAlt')"
+            class="bg-white shadow"
+            :class="planZoom ? 'max-w-none w-[220%] cursor-zoom-out' : 'max-w-full cursor-zoom-in'"
+            :title="t(planZoom ? 'plan.zoomOut' : 'plan.zoomIn')"
+            @click="planZoom = !planZoom"
+          />
         </div>
       </div>
     </div>

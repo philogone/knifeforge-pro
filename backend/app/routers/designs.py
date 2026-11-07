@@ -16,6 +16,7 @@ from app.schemas.design import (
     OffsetRequest,
     OffsetResult,
 )
+from app.services.shop_settings_service import get_shop_settings
 from app.services import design_templates, export_service
 from app.services.geometry_service import compute_metrics, offset_contours
 
@@ -196,6 +197,7 @@ def plan(
     db: Session = Depends(get_db),
 ):
     design = _get_or_404(db, design_id)
+    shop = get_shop_settings(db)
     try:
         svg = export_service.plan_svg(
             _document(design),
@@ -207,6 +209,9 @@ def plan(
             knife_model=design.knife_model_name,
             material=design.material_name,
             notes=notes or design.notes,
+            workshop_name=shop.workshop_name,
+            workshop_contact=shop.workshop_contact,
+            workshop_logo=shop.workshop_logo,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

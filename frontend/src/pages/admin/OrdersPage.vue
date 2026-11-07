@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import ListToolbar from "@/components/ListToolbar.vue";
+import { byText, useListSearch } from "@/composables/useListSearch";
 import { ORDER_STATUS_TAG } from "@/constants/referenceData";
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 
 import EditorIcon from "@/components/EditorIcon.vue";
 import { useI18n } from "@/i18n";
@@ -53,6 +55,24 @@ async function submit() {
 }
 
 const statusColor: Record<OrderStatus, string> = ORDER_STATUS_TAG;
+
+// ---- search, status filter and sort
+const statusFilter = ref<"" | OrderStatus>("");
+const list = useListSearch(
+  () => store.orders.filter((o) => !statusFilter.value || o.status === statusFilter.value),
+  (o) => [o.customer_name, o.customer_email, `#${o.id}`, ...o.lines.map((l) => l.knife_model_name)],
+  [
+    { key: "recent", label: "", compare: (a, b) => b.created_at.localeCompare(a.created_at) },
+    { key: "oldest", label: "", compare: (a, b) => a.created_at.localeCompare(b.created_at) },
+    { key: "customer", label: "", compare: (a, b) => byText(a.customer_name, b.customer_name) },
+  ],
+);
+const sortOptions = computed(() => [
+  { key: "recent", label: t("list.sort.recent") },
+  { key: "oldest", label: t("list.sort.oldest") },
+  { key: "customer", label: t("list.sort.customer") },
+]);
+const statuses: OrderStatus[] = ["draft", "confirmed", "completed", "cancelled"];
 </script>
 
 <template>
@@ -104,9 +124,27 @@ const statusColor: Record<OrderStatus, string> = ORDER_STATUS_TAG;
       </form>
     </div>
 
+    <ListToolbar
+      v-if="list.total.value"
+      v-model:query="list.query.value"
+      v-model:sort="list.sortKey.value"
+      :placeholder="t('list.search.orders')"
+      :sorts="sortOptions"
+      :shown="list.visible.value.length"
+      :total="list.total.value"
+    >
+      <label class="flex items-center gap-2 text-sm text-slate-600">
+        {{ t("list.status") }}
+        <select v-model="statusFilter" class="input-sm">
+          <option value="">{{ t("designs.filterAll") }}</option>
+          <option v-for="st in statuses" :key="st" :value="st">{{ t(`orders.status.${st}`) }}</option>
+        </select>
+      </label>
+    </ListToolbar>
     <div class="space-y-3">
       <p v-if="!store.orders.length" class="sheet p-6 text-sm text-slate-600">{{ t("orders.empty") }}</p>
-      <router-link v-for="o in store.orders" :key="o.id" :to="`/orders/${o.id}`" class="block sheet p-4 transition-colors hover:border-slate-300 hover:bg-white">
+      <p v-if="list.total.value && !list.visible.value.length" class="sheet p-6 text-sm text-slate-600">{{ t("list.noMatch") }}</p>
+      <router-link v-for="o in list.visible.value" :key="o.id" :to="`/orders/${o.id}`" class="block sheet p-4 transition-colors hover:border-slate-300 hover:bg-white">
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-2 flex-wrap min-w-0">
             <span class="font-semibold text-slate-900">{{ o.customer_name }}</span>

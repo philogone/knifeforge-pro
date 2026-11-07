@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref } from "vue";
 
 import { type Locale, useI18n } from "@/i18n";
+import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
 
 const { t, locale, setLocale } = useI18n();
@@ -11,10 +12,48 @@ const busy = ref(false);
 const exporting = ref(false);
 
 const shop = reactive({ hourly_rate: 0, default_margin_percent: 0 });
+
+// ---- workshop identity, printed in the client plan's title block
+const workshop = reactive({ workshop_name: "", workshop_contact: "", workshop_logo: "" });
+const workshopSaved = ref(false);
+const workshopError = ref("");
+const LOGO_MAX_BYTES = 250_000;
+
+function onLogo(ev: Event) {
+  workshopError.value = "";
+  const file = (ev.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  if (!["image/png", "image/jpeg", "image/svg+xml"].includes(file.type)) {
+    workshopError.value = t("settings.workshop.logoType");
+    return;
+  }
+  if (file.size > LOGO_MAX_BYTES) {
+    workshopError.value = t("settings.workshop.logoSize");
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => (workshop.workshop_logo = String(reader.result));
+  reader.readAsDataURL(file);
+}
+
+async function saveWorkshop() {
+  workshopSaved.value = false;
+  workshopError.value = "";
+  try {
+    await store.updateShopSettings({ ...workshop });
+    workshopSaved.value = true;
+  } catch (err) {
+    workshopError.value = errorMessage(err, t);
+  }
+}
 const shopSaved = ref(false);
 async function refreshShop() {
   const s = await store.fetchShopSettings();
-  Object.assign(shop, s);
+  shop.hourly_rate = s.hourly_rate;
+  shop.default_margin_percent = s.default_margin_percent;
+  workshop.workshop_name = s.workshop_name ?? "";
+  workshop.workshop_contact = s.workshop_contact ?? "";
+  workshop.workshop_logo = s.workshop_logo ?? "";
 }
 async function saveShop() {
   shopSaved.value = false;
@@ -95,6 +134,42 @@ async function exportData() {
         </button>
       </div>
     </div>
+
+    <section class="sheet p-5 mb-6" aria-labelledby="workshop-title">
+      <h2 id="workshop-title" class="sheet-title">{{ t("settings.workshop") }}</h2>
+      <p class="sheet-hint text-sm mt-1 max-w-prose">{{ t("settings.workshop.hint") }}</p>
+      <div class="mt-4 grid sm:grid-cols-[1fr_auto] gap-5">
+        <div class="space-y-3">
+          <label class="block">
+            <span class="field-label">{{ t("settings.workshop.name") }}</span>
+            <input v-model="workshop.workshop_name" maxlength="120" autocomplete="organization" class="input w-full" />
+          </label>
+          <label class="block">
+            <span class="field-label">{{ t("settings.workshop.contact") }}</span>
+            <input v-model="workshop.workshop_contact" maxlength="200" :placeholder="t('settings.workshop.contactExample')" class="input w-full" />
+          </label>
+        </div>
+        <div>
+          <span class="field-label">{{ t("settings.workshop.logo") }}</span>
+          <div class="w-44 h-20 rounded-lg border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden">
+            <img v-if="workshop.workshop_logo" :src="workshop.workshop_logo" :alt="t('settings.workshop.logoAlt')" class="max-w-full max-h-full object-contain" />
+            <span v-else class="text-xs text-slate-500 px-2 text-center">{{ t("settings.workshop.noLogo") }}</span>
+          </div>
+          <div class="mt-2 flex items-center gap-3">
+            <label class="link-action cursor-pointer">
+              {{ workshop.workshop_logo ? t("settings.workshop.replaceLogo") : t("settings.workshop.addLogo") }}
+              <input type="file" accept="image/png,image/jpeg,image/svg+xml" class="sr-only" @change="onLogo" />
+            </label>
+            <button v-if="workshop.workshop_logo" type="button" class="link-danger" @click="workshop.workshop_logo = ''">{{ t("common.delete") }}</button>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 flex items-center gap-3">
+        <button class="btn btn-primary" @click="saveWorkshop">{{ t("common.save") }}</button>
+        <span v-if="workshopSaved" class="text-sm text-green-700" role="status">{{ t("settings.shop.saved") }}</span>
+        <span v-if="workshopError" class="text-sm text-red-700" role="alert">{{ workshopError }}</span>
+      </div>
+    </section>
 
     <div class="sheet p-5 mb-6">
       <h2 class="sheet-title">{{ t("settings.shop") }}</h2>

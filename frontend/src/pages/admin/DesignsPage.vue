@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ListToolbar from "@/components/ListToolbar.vue";
+import { byText, useListSearch } from "@/composables/useListSearch";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
@@ -132,6 +134,22 @@ function templateLabel(key: string, fallback: string) {
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString();
 }
+
+// ---- search and sort, on top of the server-side model / material filters
+const list = useListSearch(
+  () => visible.value,
+  (d) => [d.name, d.knife_model_name, d.material_name, t(`designs.kind.${d.kind}`)],
+  [
+    { key: "recent", label: "", compare: (a, b) => b.updated_at.localeCompare(a.updated_at) },
+    { key: "name", label: "", compare: (a, b) => byText(a.name, b.name) },
+    { key: "unlinked", label: "", compare: (a, b) => Number(!!a.knife_model_id && !!a.material_id) - Number(!!b.knife_model_id && !!b.material_id) || byText(a.name, b.name) },
+  ],
+);
+const sortOptions = computed(() => [
+  { key: "recent", label: t("list.sort.recentlyEdited") },
+  { key: "name", label: t("list.sort.name") },
+  { key: "unlinked", label: t("list.sort.unlinkedFirst") },
+]);
 </script>
 
 <template>
@@ -195,6 +213,14 @@ function fmtDate(iso: string) {
 
     <p v-if="error" class="text-sm text-red-600 mb-4">{{ error }}</p>
 
+    <ListToolbar
+      v-model:query="list.query.value"
+      v-model:sort="list.sortKey.value"
+      :placeholder="t('list.search.designs')"
+      :sorts="sortOptions"
+      :shown="list.visible.value.length"
+      :total="designs.length"
+    />
     <div class="flex flex-wrap gap-3 mb-4 text-sm">
       <select v-model="filter.kind" :aria-label="t('designs.kind')" class="input-sm">
         <option value="">{{ t("designs.kind") }} : {{ t("designs.filterAll") }}</option>
@@ -211,10 +237,11 @@ function fmtDate(iso: string) {
     </div>
 
     <p v-if="loading" class="text-sm text-slate-500">{{ t("common.loading") }}</p>
-    <p v-else-if="!visible.length" class="text-sm text-slate-500">{{ t("designs.empty") }}</p>
+    <p v-else-if="!designs.length" class="text-sm text-slate-500">{{ t("designs.empty") }}</p>
+    <p v-else-if="!list.visible.value.length" class="sheet p-6 text-sm text-slate-600">{{ t("list.noMatch") }}</p>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div v-for="d in visible" :key="d.id" class="sheet overflow-hidden flex flex-col">
+      <div v-for="d in list.visible.value" :key="d.id" class="sheet overflow-hidden flex flex-col">
         <router-link
           v-if="d.part_count"
           :to="`/designs/${d.id}`"

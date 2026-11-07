@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import ListToolbar from "@/components/ListToolbar.vue";
+import { byText, useListSearch } from "@/composables/useListSearch";
+import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import EditorIcon from "@/components/EditorIcon.vue";
@@ -113,6 +115,22 @@ async function remove(id: number, name: string) {
     deleteError.value = errorMessage(err, t, "common.deleteFailed");
   }
 }
+
+// ---- search and sort
+const list = useListSearch(
+  () => store.knifeModels,
+  (km) => [km.name, t(`knifeModels.knifeType.${km.knife_type}`), ...km.materials.map((m) => m.material_name)],
+  [
+    { key: "name", label: "", compare: (a, b) => byText(a.name, b.name) },
+    { key: "price", label: "", compare: (a, b) => b.sale_price - a.sale_price },
+    { key: "type", label: "", compare: (a, b) => byText(a.knife_type, b.knife_type) || byText(a.name, b.name) },
+  ],
+);
+const sortOptions = computed(() => [
+  { key: "name", label: t("list.sort.name") },
+  { key: "price", label: t("list.sort.price") },
+  { key: "type", label: t("list.sort.type") },
+]);
 </script>
 
 <template>
@@ -218,8 +236,18 @@ async function remove(id: number, name: string) {
       </form>
     </div>
 
+    <ListToolbar
+      v-if="list.total.value"
+      v-model:query="list.query.value"
+      v-model:sort="list.sortKey.value"
+      :placeholder="t('list.search.models')"
+      :sorts="sortOptions"
+      :shown="list.visible.value.length"
+      :total="list.total.value"
+    ></ListToolbar>
     <div class="space-y-3">
-      <div v-for="km in store.knifeModels" :key="km.id" class="sheet p-4">
+      <p v-if="list.total.value && !list.visible.value.length" class="sheet p-6 text-sm text-slate-600">{{ t("list.noMatch") }}</p>
+      <div v-for="km in list.visible.value" :key="km.id" class="sheet p-4">
         <div class="flex items-start justify-between gap-4">
           <div class="flex items-center gap-2 flex-wrap min-w-0">
             <router-link :to="`/knife-models/${km.id}`" class="font-semibold text-slate-900 hover:text-accent-700 hover:underline underline-offset-2">{{ km.name }}</router-link>

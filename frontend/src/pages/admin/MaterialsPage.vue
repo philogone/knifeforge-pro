@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ListToolbar from "@/components/ListToolbar.vue";
+import { byText, useListSearch } from "@/composables/useListSearch";
 import { computed, onMounted, reactive, ref } from "vue";
 
 import CuttingBarsVisual from "@/components/CuttingBarsVisual.vue";
@@ -239,6 +241,22 @@ function isLow(m: Material) {
 function unitFor(dimension_type: DimensionType, n = 2) {
   return dimension_type === "length" ? "mm" : dimension_type === "area" ? "mm²" : t(n > 1 ? "common.unitMany" : "common.unitOne");
 }
+
+// ---- search and sort
+const list = useListSearch(
+  () => store.materials,
+  (m) => [m.name, m.steel_grade, m.wood_species, m.wood_grade, m.piece_type, t(`materials.category.${m.category}`)],
+  [
+    { key: "name", label: "", compare: (a, b) => byText(a.name, b.name) },
+    { key: "low", label: "", compare: (a, b) => Number(isLow(b)) - Number(isLow(a)) || byText(a.name, b.name) },
+    { key: "category", label: "", compare: (a, b) => byText(t(`materials.category.${a.category}`), t(`materials.category.${b.category}`)) || byText(a.name, b.name) },
+  ],
+);
+const sortOptions = computed(() => [
+  { key: "name", label: t("list.sort.name") },
+  { key: "low", label: t("list.sort.lowStockFirst") },
+  { key: "category", label: t("list.sort.category") },
+]);
 </script>
 
 <template>
@@ -369,8 +387,18 @@ function unitFor(dimension_type: DimensionType, n = 2) {
       </form>
     </div>
 
+    <ListToolbar
+      v-if="list.total.value"
+      v-model:query="list.query.value"
+      v-model:sort="list.sortKey.value"
+      :placeholder="t('list.search.materials')"
+      :sorts="sortOptions"
+      :shown="list.visible.value.length"
+      :total="list.total.value"
+    ></ListToolbar>
     <div class="space-y-3">
-      <div v-for="m in store.materials" :key="m.id" class="sheet p-4">
+      <p v-if="list.total.value && !list.visible.value.length" class="sheet p-6 text-sm text-slate-600">{{ t("list.noMatch") }}</p>
+      <div v-for="m in list.visible.value" :key="m.id" class="sheet p-4">
         <div class="flex items-start justify-between gap-4">
           <div class="flex items-center gap-2 flex-wrap min-w-0">
             <span class="font-semibold text-slate-900">{{ m.name }}</span>

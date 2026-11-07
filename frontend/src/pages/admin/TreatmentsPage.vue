@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import ListToolbar from "@/components/ListToolbar.vue";
+import { byText, useListSearch } from "@/composables/useListSearch";
+import { computed, onMounted, reactive, ref } from "vue";
 
 import EditorIcon from "@/components/EditorIcon.vue";
 import { useI18n } from "@/i18n";
@@ -86,6 +88,20 @@ async function remove(id: number, name: string) {
     deleteError.value = errorMessage(err, t, "common.deleteFailed");
   }
 }
+
+// ---- search and sort
+const list = useListSearch(
+  () => store.treatmentRecipes,
+  (r) => [r.name, r.applies_to, t(`treatments.type.${r.treatment_type}`), ...r.steps.map((st) => `${st.description} ${st.medium ?? ""}`)],
+  [
+    { key: "name", label: "", compare: (a, b) => byText(a.name, b.name) },
+    { key: "type", label: "", compare: (a, b) => byText(a.treatment_type, b.treatment_type) || byText(a.name, b.name) },
+  ],
+);
+const sortOptions = computed(() => [
+  { key: "name", label: t("list.sort.name") },
+  { key: "type", label: t("list.sort.type") },
+]);
 </script>
 
 <template>
@@ -151,8 +167,18 @@ async function remove(id: number, name: string) {
       </form>
     </div>
 
+    <ListToolbar
+      v-if="list.total.value"
+      v-model:query="list.query.value"
+      v-model:sort="list.sortKey.value"
+      :placeholder="t('list.search.recipes')"
+      :sorts="sortOptions"
+      :shown="list.visible.value.length"
+      :total="list.total.value"
+    ></ListToolbar>
     <div class="space-y-3">
-      <div v-for="r in store.treatmentRecipes" :key="r.id" class="sheet p-4">
+      <p v-if="list.total.value && !list.visible.value.length" class="sheet p-6 text-sm text-slate-600">{{ t("list.noMatch") }}</p>
+      <div v-for="r in list.visible.value" :key="r.id" class="sheet p-4">
         <div class="flex items-start justify-between gap-4">
           <div class="flex items-center gap-2 flex-wrap min-w-0">
             <span class="font-semibold text-slate-900">{{ r.name }}</span>

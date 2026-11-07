@@ -78,6 +78,10 @@ const statusColor: Record<OrderStatus, string> = ORDER_STATUS_TAG;
             <span class="text-sm font-medium text-slate-700">{{ t("orders.lines") }}</span>
             <button type="button" class="link-action" @click="addLine">{{ t("orders.addLine") }}</button>
           </div>
+          <div v-if="form.lines.length" class="grid grid-cols-12 gap-2 mb-1 items-end text-xs font-medium text-slate-500" aria-hidden="true">
+            <span class="col-span-8">{{ t("orders.model") }}</span>
+            <span class="col-span-3">{{ t("orders.quantity") }}</span>
+          </div>
           <div v-for="(line, i) in form.lines" :key="i" class="grid grid-cols-12 gap-2 mb-2 items-center">
             <select v-model.number="line.knife_model_id" :aria-label="t('orders.model')" class="col-span-8 input-sm">
               <option v-for="km in store.knifeModels" :key="km.id" :value="km.id">{{ km.name }}</option>

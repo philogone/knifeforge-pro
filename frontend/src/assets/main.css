@@ -102,10 +102,23 @@
     @apply block text-xs font-medium text-slate-600 mb-1;
   }
   .input {
-    @apply rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors hover:border-slate-400;
+    @apply rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-5 text-slate-900 transition-colors hover:border-slate-400;
   }
   .input-sm {
-    @apply rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 transition-colors hover:border-slate-400;
+    @apply rounded-md border border-slate-300 bg-white px-2 py-1 text-sm leading-5 text-slate-900 transition-colors hover:border-slate-400;
+  }
+  /* a select and a text field side by side are the same height, whatever the browser */
+  input.input,
+  select.input {
+    @apply h-9;
+  }
+  input.input-sm,
+  select.input-sm {
+    @apply h-8;
+  }
+  select.input,
+  select.input-sm {
+    @apply py-0;
   }
 
   .tag {
@@ -128,5 +141,15 @@
   }
   .tag-danger {
     @apply bg-red-50 text-red-800;
+  }
+}
+
+@layer components {
+  /* form grids: when one label wraps, its neighbours' fields still line up on the same baseline */
+  .field-grid > div {
+    @apply flex flex-col;
+  }
+  .field-grid > div > .field-label {
+    @apply flex-1 flex items-end;
   }
 }

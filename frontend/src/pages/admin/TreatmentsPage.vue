@@ -106,7 +106,7 @@ async function remove(id: number, name: string) {
             </select>
           </label>
           <label class="block col-span-2"><span class="field-label">{{ t("treatments.appliesTo") }}</span>
-            <input v-model="form.applies_to" required class="input w-full" />
+            <input v-model="form.applies_to" required :placeholder="t('treatments.appliesTo.example')" class="input w-full" />
           </label>
           <label class="block col-span-2"><span class="field-label">{{ t("common.notes") }}</span>
             <textarea v-model="form.notes" class="input w-full" rows="2"></textarea>
@@ -118,12 +118,19 @@ async function remove(id: number, name: string) {
             <span class="text-sm font-medium text-slate-700">{{ t("treatments.steps") }}</span>
             <button type="button" class="link-action" @click="addStep">{{ t("treatments.addStep") }}</button>
           </div>
+          <div v-if="form.steps.length" class="grid grid-cols-12 gap-2 mb-1 items-end text-xs font-medium text-slate-500" aria-hidden="true">
+            <span class="col-span-1">#</span>
+            <span class="col-span-4">{{ t("treatments.step.description") }}</span>
+            <span class="col-span-2">{{ t("treatments.col.temp") }}</span>
+            <span class="col-span-2">{{ t("treatments.col.time") }}</span>
+            <span class="col-span-2">{{ t("treatments.col.medium") }}</span>
+          </div>
           <div v-for="(step, i) in form.steps" :key="i" class="grid grid-cols-12 gap-2 mb-2 items-center">
             <input v-model.number="step.step_order" type="number" aria-label="#" class="col-span-1 input-sm" />
-            <input v-model="step.description" :placeholder="t('treatments.step.description')" :aria-label="t('treatments.step.description')" required class="col-span-5 input-sm" />
+            <input v-model="step.description" :placeholder="t('treatments.step.descriptionExample')" :aria-label="t('treatments.step.description')" required class="col-span-4 input-sm" />
             <input v-model.number="step.temperature_c" type="number" step="any" placeholder="°C" aria-label="°C" class="col-span-2 input-sm" />
-            <input v-model.number="step.duration_minutes" type="number" step="any" placeholder="min" aria-label="min" class="col-span-1 input-sm" />
-            <input v-model="step.medium" :placeholder="t('treatments.step.medium')" :aria-label="t('treatments.step.medium')" class="col-span-2 input-sm" />
+            <input v-model.number="step.duration_minutes" type="number" step="any" placeholder="min" aria-label="min" class="col-span-2 input-sm" />
+            <input v-model="step.medium" :placeholder="t('treatments.step.mediumExample')" :aria-label="t('treatments.col.medium')" class="col-span-2 input-sm" />
             <button type="button" class="col-span-1 justify-self-center p-1 rounded text-slate-500 hover:text-red-700 hover:bg-slate-100" :aria-label="t('common.delete')" @click="removeStep(i)"><EditorIcon name="close" :size="14" /></button>
           </div>
         </div>

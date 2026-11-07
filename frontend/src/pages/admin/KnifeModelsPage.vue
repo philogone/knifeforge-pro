@@ -123,7 +123,7 @@ async function remove(id: number, name: string) {
     <div v-if="showForm || editingId" class="sheet p-5 mb-8">
       <h2 class="sheet-title mb-4">{{ editingId ? t("knifeModels.editTitle") : t("knifeModels.addTitle") }}</h2>
       <form class="space-y-4" @submit.prevent="submit">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="field-grid grid grid-cols-2 md:grid-cols-4 gap-3">
           <div class="col-span-2 md:col-span-4">
             <label class="field-label">{{ t("knifeModels.name") }}</label>
             <input v-model="form.name" required class="input w-full" />
@@ -158,22 +158,29 @@ async function remove(id: number, name: string) {
             <span class="text-sm font-medium text-slate-700">{{ t("knifeModels.materialsRequired") }}</span>
             <button type="button" class="link-action" @click="addMaterialLine">{{ t("knifeModels.addMaterial") }}</button>
           </div>
+          <div v-if="form.materials.length" class="grid grid-cols-12 gap-2 mb-1 items-end text-xs font-medium text-slate-500" aria-hidden="true">
+            <span class="col-span-3">{{ t("costing.material") }}</span>
+            <span class="col-span-2">{{ t("knifeModels.roleLabel") }}</span>
+            <span class="col-span-2">{{ t("knifeModels.col.length") }}</span>
+            <span class="col-span-2">{{ t("knifeModels.col.width") }}</span>
+            <span class="col-span-2">{{ t("knifeModels.col.thickness") }}</span>
+          </div>
           <div v-for="(line, i) in form.materials" :key="i" class="grid grid-cols-12 gap-2 mb-2 items-center">
-            <select v-model.number="line.material_id" class="col-span-4 input-sm">
+            <select v-model.number="line.material_id" :aria-label="t('costing.material')" class="col-span-3 input-sm">
               <option v-for="m in store.materials" :key="m.id" :value="m.id">{{ m.name }}</option>
             </select>
-            <select v-model="line.role" class="col-span-2 input-sm">
+            <select v-model="line.role" :aria-label="t('knifeModels.roleLabel')" class="col-span-2 input-sm">
               <option value="blade">{{ t("knifeModels.role.blade") }}</option>
               <option value="handle">{{ t("knifeModels.role.handle") }}</option>
               <option value="fitting">{{ t("knifeModels.role.fitting") }}</option>
               <option value="hardware">{{ t("knifeModels.role.hardware") }}</option>
               <option value="other">{{ t("knifeModels.role.other") }}</option>
             </select>
-            <input v-if="dimensionTypeOf(line.material_id) !== 'count'" v-model.number="line.blank_length_mm" type="number" step="any" :placeholder="t('materials.blankLength')" class="col-span-2 input-sm" />
-            <input v-if="dimensionTypeOf(line.material_id) === 'area'" v-model.number="line.blank_width_mm" type="number" step="any" :placeholder="t('materials.blankWidth')" class="col-span-2 input-sm" />
-            <input v-if="dimensionTypeOf(line.material_id) !== 'count'" v-model.number="line.blank_thickness_mm" type="number" step="any" :placeholder="t('materials.thickness')" class="col-span-2 input-sm" />
-            <input v-if="dimensionTypeOf(line.material_id) === 'count'" v-model.number="line.quantity" type="number" step="any" placeholder="Qty" class="col-span-2 input-sm" />
-            <button type="button" class="col-span-1 justify-self-center p-1 rounded text-slate-500 hover:text-red-700 hover:bg-slate-100" :aria-label="t('common.delete')" @click="removeMaterialLine(i)"><EditorIcon name="close" :size="14" /></button>
+            <input v-if="dimensionTypeOf(line.material_id) !== 'count'" v-model.number="line.blank_length_mm" type="number" step="any" :placeholder="t('materials.blankLength')" :aria-label="t('materials.blankLength')" class="col-start-6 col-span-2 input-sm" />
+            <input v-if="dimensionTypeOf(line.material_id) === 'area'" v-model.number="line.blank_width_mm" type="number" step="any" :placeholder="t('materials.blankWidth')" :aria-label="t('materials.blankWidth')" class="col-start-8 col-span-2 input-sm" />
+            <input v-if="dimensionTypeOf(line.material_id) !== 'count'" v-model.number="line.blank_thickness_mm" type="number" step="any" :placeholder="t('materials.thickness')" :aria-label="t('materials.thickness')" class="col-start-10 col-span-2 input-sm" />
+            <input v-if="dimensionTypeOf(line.material_id) === 'count'" v-model.number="line.quantity" type="number" step="any" :placeholder="t('orders.quantity')" :aria-label="t('orders.quantity')" class="col-start-6 col-span-2 input-sm" />
+            <button type="button" class="col-start-12 justify-self-center p-1 rounded text-slate-500 hover:text-red-700 hover:bg-slate-100" :aria-label="t('common.delete')" @click="removeMaterialLine(i)"><EditorIcon name="close" :size="14" /></button>
           </div>
         </div>
 
@@ -182,12 +189,16 @@ async function remove(id: number, name: string) {
             <span class="text-sm font-medium text-slate-700">{{ t("knifeModels.pipeline") }}</span>
             <button type="button" class="link-action" @click="addTreatmentLine">{{ t("knifeModels.addStep") }}</button>
           </div>
+          <div v-if="form.treatments.length" class="grid grid-cols-12 gap-2 mb-1 items-end text-xs font-medium text-slate-500" aria-hidden="true">
+            <span class="col-span-1">#</span>
+            <span class="col-span-10">{{ t("knifeModels.col.recipe") }}</span>
+          </div>
           <div v-for="(line, i) in form.treatments" :key="i" class="grid grid-cols-12 gap-2 mb-2 items-center">
-            <input v-model.number="line.step_order" type="number" class="col-span-1 input-sm" />
-            <select v-model.number="line.treatment_recipe_id" class="col-span-9 input-sm">
+            <input v-model.number="line.step_order" type="number" aria-label="#" class="col-span-1 input-sm" />
+            <select v-model.number="line.treatment_recipe_id" :aria-label="t('knifeModels.process')" class="col-span-10 input-sm">
               <option v-for="r in store.treatmentRecipes" :key="r.id" :value="r.id">{{ r.name }}</option>
             </select>
-            <button type="button" class="col-span-1 justify-self-center p-1 rounded text-slate-500 hover:text-red-700 hover:bg-slate-100" :aria-label="t('common.delete')" @click="removeTreatmentLine(i)"><EditorIcon name="close" :size="14" /></button>
+            <button type="button" class="col-start-12 justify-self-center p-1 rounded text-slate-500 hover:text-red-700 hover:bg-slate-100" :aria-label="t('common.delete')" @click="removeTreatmentLine(i)"><EditorIcon name="close" :size="14" /></button>
           </div>
         </div>
 

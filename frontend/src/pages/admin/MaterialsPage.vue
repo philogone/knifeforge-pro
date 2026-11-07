@@ -250,7 +250,7 @@ function unitFor(dimension_type: DimensionType, n = 2) {
     <div v-if="showForm || editingId" class="sheet p-5 mb-8">
       <h2 class="sheet-title mb-4">{{ editingId ? t("materials.editTitle") : t("materials.addTitle") }}</h2>
       <form class="space-y-3" @submit.prevent="submit">
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div class="field-grid grid grid-cols-2 md:grid-cols-3 gap-3">
           <div class="col-span-2">
             <label class="field-label">{{ t("materials.name") }}</label>
             <input v-model="form.name" required class="input w-full" />
@@ -275,7 +275,7 @@ function unitFor(dimension_type: DimensionType, n = 2) {
           </div>
           <div>
             <label class="field-label">{{ t("materials.pieceType") }}</label>
-            <input v-model="form.piece_type" list="piece-types" class="input w-full" />
+            <input v-model="form.piece_type" list="piece-types" :placeholder="t('materials.pieceType.example')" class="input w-full" />
             <datalist id="piece-types"><option v-for="p in PIECE_TYPE_SUGGESTIONS" :key="p" :value="p" /></datalist>
           </div>
 
@@ -296,7 +296,7 @@ function unitFor(dimension_type: DimensionType, n = 2) {
             </div>
             <div>
               <label class="field-label">{{ t("materials.steelGrade") }}</label>
-              <input v-model="form.steel_grade" list="steel-grades" class="input w-full" />
+              <input v-model="form.steel_grade" list="steel-grades" :placeholder="t('materials.steelGrade.example')" class="input w-full" />
               <datalist id="steel-grades"><option v-for="g in STEEL_GRADE_SUGGESTIONS" :key="g" :value="g" /></datalist>
             </div>
           </template>
@@ -349,10 +349,10 @@ function unitFor(dimension_type: DimensionType, n = 2) {
           </div>
           <div>
             <label class="field-label">{{ t("materials.unitCost", { unit: unitFor(form.dimension_type) }) }}</label>
-            <input v-model.number="form.unit_cost" type="number" step="any" class="input w-full" />
-            <p class="text-xs text-slate-500 mt-1">{{ t("materials.unitCost.hint") }}</p>
+            <input v-model.number="form.unit_cost" type="number" step="any" aria-describedby="unit-cost-hint" class="input w-full" />
           </div>
         </div>
+        <p id="unit-cost-hint" class="sheet-hint max-w-prose">{{ t("materials.unitCost.hint") }}</p>
         <p v-if="formError" role="alert" class="text-sm text-red-700">{{ formError }}</p>
         <div class="flex gap-2">
           <button type="submit" class="btn btn-primary">

@@ -188,7 +188,7 @@ function fmtDate(iso: string) {
       </div>
       <div class="flex gap-2">
         <button type="submit" class="btn btn-primary">{{ t("designs.create") }}</button>
-        <button type="button" class="text-sm text-slate-500 px-4 py-2" @click="showNew = false">{{ t("common.cancel") }}</button>
+        <button type="button" class="btn btn-outline" @click="showNew = false">{{ t("common.cancel") }}</button>
       </div>
     </form>
 
@@ -225,8 +225,8 @@ function fmtDate(iso: string) {
           {{ t("designs.emptyThumb") }}
         </router-link>
         <div class="p-3 flex-1 flex flex-col gap-1">
-          <div class="flex items-center gap-2 flex-wrap">
-            <router-link :to="`/designs/${d.id}`" class="font-semibold text-slate-900 hover:text-accent-700">{{ d.name }}</router-link>
+          <router-link :to="`/designs/${d.id}`" class="font-semibold text-slate-900 hover:text-accent-700 truncate" :title="d.name">{{ d.name }}</router-link>
+          <div class="flex items-center gap-1.5">
             <span class="tag tag-accent">{{ t(`designs.kind.${d.kind}`) }}</span>
             <span v-if="d.is_mock" class="tag tag-neutral">{{ t("common.demo") }}</span>
           </div>

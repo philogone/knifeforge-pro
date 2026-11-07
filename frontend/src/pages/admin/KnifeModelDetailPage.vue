@@ -120,8 +120,8 @@ watch(
         <span class="tag tag-accent">{{ t(`knifeModels.knifeType.${model.knife_type}`) }}</span>
       </div>
       <div class="flex items-center gap-4">
-        <div class="inline-flex rounded-lg border border-slate-300 bg-white p-0.5 text-sm" role="group" :aria-label="t('clientView.toggle')">
-          <button class="px-3 py-1 rounded-md transition-colors" :class="!clientView ? 'bg-slate-800 text-white' : 'text-slate-600 hover:text-slate-900'" :aria-pressed="!clientView" @click="setClientView(false)">{{ t("clientView.workshop") }}</button>
+        <div class="inline-flex rounded-lg border border-slate-300 bg-paper p-0.5 text-sm" role="group" :aria-label="t('clientView.toggle')">
+          <button class="px-3 py-1 rounded-md transition-colors" :class="!clientView ? 'bg-slate-800 text-paper' : 'text-slate-600 hover:text-slate-900'" :aria-pressed="!clientView" @click="setClientView(false)">{{ t("clientView.workshop") }}</button>
           <button class="px-3 py-1 rounded-md transition-colors" :class="clientView ? 'bg-accent-600 text-white' : 'text-slate-600 hover:text-slate-900'" :aria-pressed="clientView" @click="setClientView(true)">{{ t("clientView.client") }}</button>
         </div>
         <template v-if="!clientView">
@@ -137,7 +137,7 @@ watch(
 
       <section v-if="linkedDesigns.length" class="mt-6 grid sm:grid-cols-2 gap-4" :aria-label="t('modelDesigns.title')">
         <article v-for="d in linkedDesigns" :key="d.id" class="sheet overflow-hidden">
-          <div class="h-44 bg-slate-50 border-b border-slate-100 p-5 [&>svg]:w-full [&>svg]:h-full" v-html="thumbs[d.id] ?? ''"></div>
+          <div class="h-44 plate border-b border-slate-100 p-5 [&>svg]:w-full [&>svg]:h-full" v-html="thumbs[d.id] ?? ''"></div>
           <div class="p-4 flex items-center justify-between gap-3">
             <div class="min-w-0">
               <p class="font-semibold text-slate-900 truncate">{{ d.name }}</p>
@@ -221,7 +221,7 @@ watch(
             {{ d.name }}{{ d.knife_model_name ? ` (${d.knife_model_name})` : "" }}
           </option>
         </select>
-        <button type="submit" :disabled="!attachId" class="rounded-lg bg-slate-800 px-3 py-1.5 text-sm text-white disabled:opacity-50">{{ t("modelDesigns.attach") }}</button>
+        <button type="submit" :disabled="!attachId" class="rounded-lg bg-slate-800 px-3 py-1.5 text-sm text-paper disabled:opacity-50">{{ t("modelDesigns.attach") }}</button>
       </form>
       <p v-if="designError" role="alert" class="mt-2 text-sm text-red-700">{{ designError }}</p>
     </section>

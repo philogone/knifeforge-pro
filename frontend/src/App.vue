@@ -3,9 +3,11 @@ import { computed } from "vue";
 import { useRoute } from "vue-router";
 
 import { clearToken } from "@/composables/useApi";
+import { useTheme } from "@/composables/useTheme";
 import { useI18n } from "@/i18n";
 
 const { t } = useI18n();
+const theme = useTheme();
 const route = useRoute();
 const showChrome = computed(() => route.name !== "login");
 // the editor fills the window: no footer under it
@@ -43,7 +45,7 @@ function logout() {
 <template>
   <div class="min-h-screen bg-slate-50 bench">
     <a v-if="showChrome" href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-1.5 btn btn-primary">{{ t("nav.skip") }}</a>
-    <nav v-if="showChrome" class="h-14 bg-white/95 border-b border-slate-200 px-5 flex items-center gap-6 sticky top-0 z-40">
+    <nav v-if="showChrome" class="h-14 bg-paper/95 border-b border-slate-200 px-5 flex items-center gap-6 sticky top-0 z-40">
       <router-link to="/" class="flex items-center gap-2 shrink-0 text-slate-900" :aria-label="t('app.title')">
         <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
           <rect width="32" height="32" rx="7" class="fill-accent-600" />
@@ -77,6 +79,19 @@ function logout() {
         >
           {{ t("nav.settings") }}
         </router-link>
+        <button
+          class="p-1.5 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+          :title="theme.isDark.value ? t('theme.toLight') : t('theme.toDark')"
+          :aria-label="theme.isDark.value ? t('theme.toLight') : t('theme.toDark')"
+          @click="theme.toggle()"
+        >
+          <svg v-if="theme.isDark.value" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+            <circle cx="10" cy="10" r="3.5" /><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.3 4.3l1.4 1.4M14.3 14.3l1.4 1.4M4.3 15.7l1.4-1.4M14.3 5.7l1.4-1.4" />
+          </svg>
+          <svg v-else width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16.5 12.5A7 7 0 0 1 7.5 3.5a7 7 0 1 0 9 9z" />
+          </svg>
+        </button>
         <button class="text-slate-500 hover:text-slate-900" @click="logout">{{ t("nav.signOut") }}</button>
       </div>
     </nav>

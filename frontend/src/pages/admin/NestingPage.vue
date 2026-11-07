@@ -223,7 +223,7 @@ const wastePct = computed(() => (result.value ? Math.round((100 - result.value.u
                 :key="s.index"
                 class="px-3 py-1 rounded-lg text-sm border tabular-nums transition-colors"
                 :aria-pressed="s.index === activeSheet"
-                :class="s.index === activeSheet ? 'bg-accent-600 text-white border-accent-600' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'"
+                :class="s.index === activeSheet ? 'bg-accent-600 text-white border-accent-600' : 'bg-paper border-slate-300 text-slate-700 hover:bg-slate-50'"
                 @click="activeSheet = s.index"
               >{{ t(material?.dimension_type === "length" ? "nesting.bar" : "nesting.sheet", { n: s.index + 1 }) }}</button>
               <span class="text-xs text-slate-500 ml-auto">{{ t("nesting.sheetStats", { parts: sheet.placements.length, pct: num(sheet.utilization_pct) }) }}</span>
@@ -237,11 +237,11 @@ const wastePct = computed(() => (result.value ? Math.round((100 - result.value.u
           </div>
           <p class="text-xs text-slate-500">{{ t("nesting.note") }}</p>
         </template>
-        <div v-else class="sheet border-dashed bg-white/70 min-h-[22rem] p-8 flex flex-col items-center justify-center text-center">
+        <div v-else class="sheet border-dashed bg-paper/70 min-h-[22rem] p-8 flex flex-col items-center justify-center text-center">
           <svg width="220" height="110" viewBox="0 0 220 110" fill="none" aria-hidden="true" class="mb-5">
-            <rect x="1" y="1" width="218" height="108" rx="3" stroke="#cdc7ba" stroke-dasharray="4 4" />
-            <path d="M14 24h70l8-8h40c14 0 24 6 32 16-8 10-20 14-34 14H92l-8-8H14z" fill="rgb(111 106 96 / 0.10)" stroke="#57534b" stroke-width="1.2" />
-            <path d="M206 86h-70l-8 8H88c-14 0-24-6-32-16 8-10 20-14 34-14h38l8 8h70z" fill="rgb(111 106 96 / 0.10)" stroke="#57534b" stroke-width="1.2" />
+            <rect x="1" y="1" width="218" height="108" rx="3" stroke="rgb(var(--slate-300))" stroke-dasharray="4 4" />
+            <path d="M14 24h70l8-8h40c14 0 24 6 32 16-8 10-20 14-34 14H92l-8-8H14z" fill="rgb(var(--slate-500) / 0.12)" stroke="rgb(var(--slate-600))" stroke-width="1.2" />
+            <path d="M206 86h-70l-8 8H88c-14 0-24-6-32-16 8-10 20-14 34-14h38l8 8h70z" fill="rgb(var(--slate-500) / 0.12)" stroke="rgb(var(--slate-600))" stroke-width="1.2" />
           </svg>
           <p class="sheet-title">{{ t("nesting.emptyTitle") }}</p>
           <p class="mt-1 text-sm text-slate-600 max-w-sm">{{ t(materialId ? "nesting.emptyRun" : "nesting.emptyPick") }}</p>

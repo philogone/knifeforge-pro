@@ -17,6 +17,7 @@ import type { DocLayer, Guide, LayerRole, SelectionInfo, ToolName } from "@/edit
 import { RULER_SIZE, drawGrid, drawRulers, screenToWorld } from "@/editor/view";
 import { useI18n } from "@/i18n";
 import { errorMessage } from "@/i18n/apiErrors";
+import { useTheme } from "@/composables/useTheme";
 import { useAppStore } from "@/stores/app.store";
 import type { Design, DesignKind, DesignSummary } from "@/types";
 
@@ -302,6 +303,12 @@ onMounted(async () => {
     resizeObserver = new ResizeObserver(() => sizeCanvases());
     resizeObserver.observe(stage.value);
   }
+  offs.push(
+    useTheme().onChange(() => {
+      paintBackground();
+      paintRulers();
+    }) as () => void,
+  );
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
   window.addEventListener("beforeunload", onBeforeUnload);
@@ -1036,7 +1043,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
 
     <template v-else>
       <!-- top bar -->
-      <div class="bg-white border-b border-slate-200 px-3 py-2 flex items-center gap-2 flex-wrap text-sm">
+      <div class="bg-paper border-b border-slate-200 px-3 py-2 flex items-center gap-2 flex-wrap text-sm">
         <router-link to="/designs" class="text-slate-500 hover:text-slate-900">← {{ t("editor.back") }}</router-link>
         <input
           v-model="meta.name"
@@ -1061,10 +1068,10 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         <button class="px-2 py-1 rounded border border-slate-300 text-slate-700 hover:bg-slate-50 tabular-nums" :title="t('editor.zoomActual')" @click="engine?.zoomActual()">1:1</button>
         <input ref="fileInput" type="file" accept=".svg,image/svg+xml" class="hidden" @change="onImport" />
         <details ref="exportMenu" class="relative">
-          <summary class="list-none cursor-pointer select-none flex items-center gap-1 px-2 py-1 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors">
+          <summary class="list-none cursor-pointer select-none flex items-center gap-1 px-2 py-1 rounded-md border border-slate-300 bg-paper text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors">
             {{ t("editor.file") }} <EditorIcon name="chevron-down" :size="14" />
           </summary>
-          <div class="absolute right-0 z-30 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg py-1">
+          <div class="absolute right-0 z-30 mt-1 w-48 bg-paper border border-slate-200 rounded-lg shadow-lg py-1">
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" @click="importFrom">{{ t("editor.importSvg") }}</button>
             <div class="my-1 border-t border-slate-100"></div>
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" @click="exportFrom('export.svg')">{{ t("editor.exportSvg") }}</button>
@@ -1082,7 +1089,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
       </div>
 
       <!-- options bar -->
-      <div class="bg-white border-b border-slate-200 px-3 py-1.5 flex items-center gap-4 flex-wrap text-xs text-slate-600">
+      <div class="bg-paper border-b border-slate-200 px-3 py-1.5 flex items-center gap-4 flex-wrap text-xs text-slate-600">
         <label class="flex items-center gap-1"><input v-model="snapOpts.grid" type="checkbox" /> {{ t("editor.snapGrid") }}</label>
         <label class="flex items-center gap-1"><input v-model="snapOpts.nodes" type="checkbox" /> {{ t("editor.snapNodes") }}</label>
         <label class="flex items-center gap-1">
@@ -1093,7 +1100,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         <label class="flex items-center gap-1"><input v-model="opts.showGrid" type="checkbox" /> {{ t("editor.showGrid") }}</label>
         <details class="relative">
           <summary class="cursor-pointer select-none text-slate-700 inline-flex items-center gap-1"><EditorIcon name="magnet" :size="14" /> {{ t("editor.snapMenu") }}</summary>
-          <div class="absolute z-20 mt-1 w-72 bg-white border border-slate-200 rounded-lg shadow-lg p-3 space-y-1">
+          <div class="absolute z-20 mt-1 w-72 bg-paper border border-slate-200 rounded-lg shadow-lg p-3 space-y-1">
             <label v-for="k in snapKinds" :key="k" class="flex items-center gap-2"><input v-model="snapOpts[k]" type="checkbox" /> {{ t(`snap.opt.${k}`) }}</label>
             <label class="flex items-center gap-2 pt-1">{{ t("editor.snapRadius") }}
               <input v-model.number="opts.snapRadius" type="number" min="2" max="40" class="w-14 input-sm px-1 py-0.5 text-xs" />
@@ -1133,7 +1140,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
 
       <div class="flex-1 flex min-h-0">
         <!-- toolbar -->
-        <div class="w-12 bg-white border-r border-slate-200 flex flex-col items-center py-2 gap-1">
+        <div class="w-12 bg-paper border-r border-slate-200 flex flex-col items-center py-2 gap-1">
           <button
             v-for="name in tools"
             :key="name"
@@ -1164,7 +1171,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         </div>
 
         <!-- right panel -->
-        <aside class="w-80 bg-white border-l border-slate-200 flex flex-col min-h-0">
+        <aside class="w-80 bg-paper border-l border-slate-200 flex flex-col min-h-0">
           <div class="flex border-b border-slate-200 text-sm">
             <button
               v-for="id in ['object', 'layers', 'background', 'document'] as const"
@@ -1228,7 +1235,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                 <div>
                   <p class="text-xs text-slate-500 mb-1">{{ t("editor.transform") }}</p>
                   <div class="grid grid-cols-6 gap-1">
-                    <button v-for="tr in transforms" :key="tr.key" class="h-8 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors flex items-center justify-center" :title="t(tr.label)" :aria-label="t(tr.label)" @click="tr.run()">
+                    <button v-for="tr in transforms" :key="tr.key" class="h-8 rounded-md border border-slate-300 bg-paper text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors flex items-center justify-center" :title="t(tr.label)" :aria-label="t(tr.label)" @click="tr.run()">
                       <EditorIcon :name="tr.icon" :size="18" />
                     </button>
                   </div>
@@ -1237,25 +1244,25 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                 <div v-if="sel.count > 1">
                   <p class="text-xs text-slate-500 mb-1">{{ t("editor.align") }}</p>
                   <div class="grid grid-cols-3 gap-1">
-                    <button v-for="k in alignKinds" :key="k" class="px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.align(k)">{{ t(`editor.align.${k}`) }}</button>
+                    <button v-for="k in alignKinds" :key="k" class="px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.align(k)">{{ t(`editor.align.${k}`) }}</button>
                   </div>
                   <div v-if="sel.count > 2" class="grid grid-cols-2 gap-1 mt-1">
-                    <button class="px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.distribute('h')">{{ t("editor.distributeH") }}</button>
-                    <button class="px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.distribute('v')">{{ t("editor.distributeV") }}</button>
+                    <button class="px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.distribute('h')">{{ t("editor.distributeH") }}</button>
+                    <button class="px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.distribute('v')">{{ t("editor.distributeV") }}</button>
                   </div>
                 </div>
 
                 <div v-if="sel.count > 1">
                   <p class="text-xs text-slate-500 mb-1">{{ t("editor.boolean") }}</p>
                   <div class="grid grid-cols-2 gap-1">
-                    <button v-for="op in booleanOps" :key="op" class="px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.booleanOp(op)">{{ t(`editor.boolean.${op}`) }}</button>
-                    <button class="col-span-2 px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.combine()">{{ t("editor.combine") }}</button>
+                    <button v-for="op in booleanOps" :key="op" class="px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.booleanOp(op)">{{ t(`editor.boolean.${op}`) }}</button>
+                    <button class="col-span-2 px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.combine()">{{ t("editor.combine") }}</button>
                   </div>
                   <p class="text-xs text-slate-500 mt-1">{{ t("editor.booleanHelp") }}</p>
                 </div>
-                <button v-else-if="sel.path?.compound" class="w-full px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.breakApart()">{{ t("editor.breakApart") }}</button>
+                <button v-else-if="sel.path?.compound" class="w-full px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.breakApart()">{{ t("editor.breakApart") }}</button>
 
-                <div v-if="sel.path" class="bg-slate-50 rounded-lg p-2 text-xs text-slate-600 space-y-0.5">
+                <div v-if="sel.path" class="bg-slate-100 rounded-lg p-2 text-xs text-slate-600 space-y-0.5">
                   <p class="font-medium text-slate-700">{{ t("editor.shapeInfo") }}</p>
                   <p>{{ sel.path.closed ? t("editor.closedShape") : t("editor.openPath") }}</p>
                   <p>{{ t("editor.nodeCount") }} : {{ sel.path.nodeCount }}</p>
@@ -1302,22 +1309,22 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                   <label class="text-xs text-slate-500">{{ t("editor.nodeY") }} <input v-model.number="nodeXY.y" type="number" step="any" class="input-sm w-full" @change="applyNodeXY" /></label>
                 </div>
                 <div class="grid grid-cols-2 gap-1">
-                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.deleteSelectedNodes()">{{ t("editor.nodeDelete") }}</button>
-                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.insertNodes()">{{ t("editor.nodeInsert") }}</button>
-                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.setNodeType('smooth')">{{ t("editor.nodeSmooth") }}</button>
-                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.setNodeType('corner')">{{ t("editor.nodeCorner") }}</button>
-                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.toggleClosed()">{{ t("editor.nodeToggleClosed") }}</button>
-                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.reversePaths()">{{ t("editor.nodeReverse") }}</button>
-                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.simplifyPaths()">{{ t("editor.nodeSimplify") }}</button>
-                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.flattenPaths()">{{ t("editor.nodeFlatten") }}</button>
+                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.deleteSelectedNodes()">{{ t("editor.nodeDelete") }}</button>
+                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.insertNodes()">{{ t("editor.nodeInsert") }}</button>
+                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.setNodeType('smooth')">{{ t("editor.nodeSmooth") }}</button>
+                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.setNodeType('corner')">{{ t("editor.nodeCorner") }}</button>
+                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.toggleClosed()">{{ t("editor.nodeToggleClosed") }}</button>
+                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.reversePaths()">{{ t("editor.nodeReverse") }}</button>
+                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.simplifyPaths()">{{ t("editor.nodeSimplify") }}</button>
+                  <button class="px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="engine?.flattenPaths()">{{ t("editor.nodeFlatten") }}</button>
                 </div>
                 <div class="space-y-1">
                   <p class="text-xs font-medium text-slate-700">{{ t("corner.title") }}</p>
                   <div class="flex items-center gap-1">
                     <input v-model.number="cornerSize" type="number" min="0" step="any" class="w-16 input-sm px-1 py-0.5 text-xs text-sm" />
                     <span class="text-xs text-slate-500">mm</span>
-                    <button class="flex-1 px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="roundCorners('fillet')">{{ t("corner.fillet") }}</button>
-                    <button class="flex-1 px-1 py-1 rounded-md border border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="roundCorners('chamfer')">{{ t("corner.chamfer") }}</button>
+                    <button class="flex-1 px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="roundCorners('fillet')">{{ t("corner.fillet") }}</button>
+                    <button class="flex-1 px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="roundCorners('chamfer')">{{ t("corner.chamfer") }}</button>
                   </div>
                   <p class="text-xs text-slate-500">{{ t("corner.help") }}</p>
                 </div>
@@ -1467,7 +1474,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
       </div>
 
       <!-- status bar -->
-      <div class="bg-white border-t border-slate-200 px-3 py-1 text-xs text-slate-500 flex items-center gap-4">
+      <div class="bg-paper border-t border-slate-200 px-3 py-1 text-xs text-slate-500 flex items-center gap-4">
         <span class="flex-1 truncate">{{ hintText }}</span>
         <span v-if="valueHint" class="font-mono text-accent-600">{{ valueHint }}</span>
         <span v-if="status" :class="statusIsError ? 'text-red-600' : 'text-green-700'">{{ status }}</span>
@@ -1478,8 +1485,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
     </template>
 
     <!-- shape library dialog -->
-    <div v-if="library.open" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="library.open = false">
-      <form class="bg-white rounded-xl shadow-xl w-full max-w-2xl p-4 space-y-3 text-sm" @submit.prevent="insertLibrary">
+    <div v-if="library.open" class="fixed inset-0 bg-black/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="library.open = false">
+      <form class="bg-paper rounded-xl shadow-xl w-full max-w-2xl p-4 space-y-3 text-sm" @submit.prevent="insertLibrary">
         <div class="flex items-center gap-3">
           <h2 class="sheet-title flex-1">{{ t("library.title") }}</h2>
           <div class="flex rounded-lg border border-slate-300 overflow-hidden text-xs">
@@ -1522,8 +1529,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
     </div>
 
     <!-- holes dialog -->
-    <div v-if="holes.open" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="holes.open = false">
-      <form class="bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="addHoles">
+    <div v-if="holes.open" class="fixed inset-0 bg-black/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="holes.open = false">
+      <form class="bg-paper rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="addHoles">
         <h2 class="sheet-title">{{ t("holes.title") }}</h2>
         <label class="field-label">{{ t("holes.diameter") }}
           <input v-model.number="holes.diameter" type="number" min="0.1" step="any" list="hole-sizes" required class="input-sm w-full" />
@@ -1548,8 +1555,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
     </div>
 
     <!-- text dialog -->
-    <div v-if="textForm.open" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="textForm.open = false">
-      <form class="bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="addText">
+    <div v-if="textForm.open" class="fixed inset-0 bg-black/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="textForm.open = false">
+      <form class="bg-paper rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="addText">
         <h2 class="sheet-title">{{ t("text.title") }}</h2>
         <label class="field-label">{{ t("text.text") }}
           <input v-model="textForm.text" maxlength="100" required autofocus class="input-sm w-full" />
@@ -1580,8 +1587,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
     </div>
 
     <!-- perspective dialog -->
-    <div v-if="persp.open" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="cancelPerspective">
-      <form class="bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="applyPerspective">
+    <div v-if="persp.open" class="fixed inset-0 bg-black/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="cancelPerspective">
+      <form class="bg-paper rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="applyPerspective">
         <h2 class="sheet-title">{{ t("persp.title") }}</h2>
         <p class="text-xs text-slate-500">{{ t("persp.intro") }}</p>
         <label class="field-label">{{ t("persp.preset") }}
@@ -1594,7 +1601,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <label class="text-xs text-slate-500">{{ t("persp.side12") }}
             <input v-model.number="persp.width" type="number" min="0.01" step="any" required class="input-sm w-full" />
           </label>
-          <button type="button" class="px-2 py-1 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" :title="t('persp.swap')" :aria-label="t('persp.swap')" @click="[persp.width, persp.height] = [persp.height, persp.width]"><EditorIcon name="swap" :size="16" /></button>
+          <button type="button" class="px-2 py-1 rounded-md border border-slate-300 bg-paper text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" :title="t('persp.swap')" :aria-label="t('persp.swap')" @click="[persp.width, persp.height] = [persp.height, persp.width]"><EditorIcon name="swap" :size="16" /></button>
           <label class="text-xs text-slate-500">{{ t("persp.side23") }}
             <input v-model.number="persp.height" type="number" min="0.01" step="any" required class="input-sm w-full" />
           </label>
@@ -1610,8 +1617,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
     </div>
 
     <!-- calibration dialog -->
-    <div v-if="calib.open" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="cancelCalibration">
-      <form class="bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="applyCalibration">
+    <div v-if="calib.open" class="fixed inset-0 bg-black/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="cancelCalibration">
+      <form class="bg-paper rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="applyCalibration">
         <h2 class="sheet-title">{{ t("calib.title") }}</h2>
         <p class="text-xs text-slate-500">{{ t("calib.measured", { d: formatMm(Math.hypot(calib.b[0] - calib.a[0], calib.b[1] - calib.a[1])) }) }}</p>
         <label class="field-label">{{ t("calib.real") }}
@@ -1631,8 +1638,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
     </div>
 
     <!-- plan modal -->
-    <div v-if="shortcutsOpen" class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4" @click.self="shortcutsOpen = false">
-      <div role="dialog" aria-modal="true" aria-labelledby="shortcuts-title" class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-5">
+    <div v-if="shortcutsOpen" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" @click.self="shortcutsOpen = false">
+      <div role="dialog" aria-modal="true" aria-labelledby="shortcuts-title" class="bg-paper rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-5">
         <div class="flex items-center justify-between mb-3">
           <h2 id="shortcuts-title" class="sheet-title">{{ t("editor.shortcuts") }}</h2>
           <button v-focus class="p-1 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100" :aria-label="t('common.close')" @click="shortcutsOpen = false"><EditorIcon name="close" :size="16" /></button>
@@ -1642,8 +1649,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         </ul>
       </div>
     </div>
-    <div v-if="planOpen" class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4" @click.self="planOpen = false" @keydown="onPlanKey">
-      <div role="dialog" aria-modal="true" aria-labelledby="plan-title" class="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[92vh] flex flex-col md:flex-row overflow-hidden">
+    <div v-if="planOpen" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" @click.self="planOpen = false" @keydown="onPlanKey">
+      <div role="dialog" aria-modal="true" aria-labelledby="plan-title" class="bg-paper rounded-xl shadow-xl w-full max-w-5xl max-h-[92vh] flex flex-col md:flex-row overflow-hidden">
         <div class="md:w-72 p-5 space-y-3 overflow-y-auto border-b md:border-b-0 md:border-r border-slate-200 text-sm">
           <div class="flex items-center justify-between">
             <h2 id="plan-title" class="sheet-title">{{ t("plan.title") }}</h2>
@@ -1678,7 +1685,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
             v-else-if="planUrl"
             :src="planUrl"
             :alt="t('plan.previewAlt')"
-            class="bg-white shadow"
+            class="bg-paper shadow"
             :class="planZoom ? 'max-w-none w-[220%] cursor-zoom-out' : 'max-w-full cursor-zoom-in'"
             :title="t(planZoom ? 'plan.zoomOut' : 'plan.zoomIn')"
             @click="planZoom = !planZoom"

@@ -484,7 +484,7 @@ const sortOptions = computed(() => [
               <label class="field-label" for="materials-f22">{{ t("materials.quantityNeeded") }}</label>
               <input id="materials-f22" v-model.number="yieldForm.quantity_needed" type="number" min="1" class="w-32 input-sm" />
             </div>
-            <button class="text-sm bg-slate-800 text-white rounded-lg px-3 py-1.5" @click="runYieldCalc">{{ t("materials.calculate") }}</button>
+            <button class="text-sm bg-slate-800 text-paper rounded-lg px-3 py-1.5" @click="runYieldCalc">{{ t("materials.calculate") }}</button>
           </div>
           <p v-if="yieldError" class="text-sm text-red-600 mt-2">{{ yieldError }}</p>
           <div v-if="yieldResult" class="mt-3">
@@ -529,7 +529,7 @@ const sortOptions = computed(() => [
                 <span class="text-slate-500">{{ c.piece_count }} {{ t("materials.optimizer.pieces") }}, {{ formatDecimal(c.total_length_mm, locale) }} mm</span>
               </li>
             </ul>
-            <button class="text-sm bg-slate-800 text-white rounded-lg px-3 py-1.5" @click="runOptimizer(m.id)">{{ t("materials.optimizer.run") }}</button>
+            <button class="text-sm bg-slate-800 text-paper rounded-lg px-3 py-1.5" @click="runOptimizer(m.id)">{{ t("materials.optimizer.run") }}</button>
           </template>
 
           <p v-if="cutError" class="text-sm text-red-600 mt-2">{{ cutError }}</p>

@@ -1,5 +1,11 @@
 import { UI_COLOR } from "./constants";
 
+/** theme colours of the drawing surface, from the CSS variables in main.css */
+function cssVar(name: string, fallback: string): string {
+  if (typeof document === "undefined") return fallback;
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+}
+
 /** Pure canvas drawing for the editor background (grid) and rulers. They are
  *  drawn on 2D canvases layered under / over the Paper.js canvas, driven by
  *  the engine's view transform, so Paper never has to redraw thousands of lines. */
@@ -64,7 +70,7 @@ export interface GridStyle {
 export function drawGrid(ctx: CanvasRenderingContext2D, v: ViewTransform, style: GridStyle = {}): void {
   const dark = !!style.dark;
   ctx.clearRect(0, 0, v.width, v.height);
-  ctx.fillStyle = dark ? "#0b1220" : "#ffffff";
+  ctx.fillStyle = dark ? "#0b1220" : cssVar("--plate", "#ffffff");
   ctx.fillRect(0, 0, v.width, v.height);
   if (style.show === false) return;
 
@@ -88,8 +94,8 @@ export function drawGrid(ctx: CanvasRenderingContext2D, v: ViewTransform, style:
     }
     ctx.stroke();
   };
-  lines(minor, dark ? "#16213a" : "#f0ede6", 1);
-  lines(major, dark ? "#24324f" : "#e3dfd5", 1);
+  lines(minor, dark ? "#16213a" : cssVar("--plate-grid-minor", "#f0ede6"), 1);
+  lines(major, dark ? "#24324f" : cssVar("--plate-grid-major", "#e3dfd5"), 1);
 
   // origin axes
   const [ox, oy] = worldToScreen(v, 0, 0);
@@ -157,15 +163,15 @@ export function drawRulers(
     ctx.setLineDash([]);
   }
 
-  ctx.fillStyle = "rgba(248,250,252,0.96)";
+  ctx.fillStyle = cssVar("--ruler-bg", "#f8f6f1");
   ctx.fillRect(0, 0, v.width, RULER_SIZE);
   ctx.fillRect(0, 0, RULER_SIZE, v.height);
-  ctx.strokeStyle = "#cdc7ba";
+  ctx.strokeStyle = cssVar("--ruler-line", "#cdc7ba");
   ctx.lineWidth = 1;
   ctx.strokeRect(0.5, 0.5, v.width - 1, RULER_SIZE);
   ctx.strokeRect(0.5, 0.5, RULER_SIZE, v.height - 1);
 
-  ctx.fillStyle = "#57534b";
+  ctx.fillStyle = cssVar("--ruler-text", "#57534b");
   ctx.font = "10px \"IBM Plex Mono\", ui-monospace, monospace";
   const minor = niceStep(v.zoom, 8);
   const label = niceStep(v.zoom, 60);
@@ -173,7 +179,7 @@ export function drawRulers(
   const [wx1, wy1] = screenToWorld(v, v.width, v.height);
 
   ctx.beginPath();
-  ctx.strokeStyle = "#a39d90";
+  ctx.strokeStyle = cssVar("--ruler-tick", "#a39d90");
   for (let x = Math.floor(wx0 / minor) * minor; x <= wx1; x += minor) {
     const sx = Math.round((x - v.centerX) * v.zoom + v.width / 2) + 0.5;
     const isLabel = Math.abs(x / label - Math.round(x / label)) < 1e-6;
@@ -202,9 +208,9 @@ export function drawRulers(
     ctx.fillRect(Math.round(cx), 0, 1, RULER_SIZE);
     ctx.fillRect(0, Math.round(cy), RULER_SIZE, 1);
   }
-  ctx.fillStyle = "#e3dfd5";
+  ctx.fillStyle = cssVar("--ruler-corner", "#e3dfd5");
   ctx.fillRect(0, 0, RULER_SIZE, RULER_SIZE);
-  ctx.fillStyle = "#6f6a60";
+  ctx.fillStyle = cssVar("--ruler-corner-text", "#6f6a60");
   ctx.fillText("mm", 2, 13);
 }
 

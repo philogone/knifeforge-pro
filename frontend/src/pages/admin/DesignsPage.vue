@@ -174,7 +174,7 @@ const sortOptions = computed(() => [
             :class="form.template === tpl.key ? 'border-accent-500 ring-2 ring-accent-200' : 'border-slate-200 hover:border-slate-300'"
             @click="form.template = tpl.key"
           >
-            <div class="h-20 mb-1 [&>svg]:w-full [&>svg]:h-full" v-html="documentToSvg(tpl.document)"></div>
+            <div class="h-20 mb-1 rounded plate [&>svg]:w-full [&>svg]:h-full" v-html="documentToSvg(tpl.document)"></div>
             {{ templateLabel(tpl.key, tpl.name) }}
           </button>
         </div>
@@ -246,10 +246,10 @@ const sortOptions = computed(() => [
           v-if="d.part_count"
           :to="`/designs/${d.id}`"
           :aria-label="d.name"
-          class="block h-40 bg-slate-50 border-b border-slate-100 p-4 [&>svg]:w-full [&>svg]:h-full"
+          class="block h-40 plate border-b border-slate-100 p-4 [&>svg]:w-full [&>svg]:h-full"
           v-html="thumbs[d.id]"
         ></router-link>
-        <router-link v-else :to="`/designs/${d.id}`" class="h-40 bg-slate-50 border-b border-slate-100 p-4 flex items-center justify-center text-center text-sm text-slate-500">
+        <router-link v-else :to="`/designs/${d.id}`" class="h-40 plate border-b border-slate-100 p-4 flex items-center justify-center text-center text-sm text-[#6f6a60]">
           {{ t("designs.emptyThumb") }}
         </router-link>
         <div class="p-3 flex-1 flex flex-col gap-1">

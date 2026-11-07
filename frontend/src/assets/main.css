@@ -2,30 +2,101 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ------------------------------------------------------------------ */
+/* Theme tokens. Light: warm paper; dark: the same notebook at night (warm charcoal,
+   never blue-black). The drawing surfaces (canvas, thumbnails, plates) stay paper in
+   both themes so layer colours keep their meaning; see DESIGN.md.                    */
+:root {
+  color-scheme: light;
+  --slate-50: 248 246 241;
+  --slate-100: 240 237 230;
+  --slate-200: 227 223 213;
+  --slate-300: 205 199 186;
+  --slate-400: 163 157 144;
+  --slate-500: 111 106 96;
+  --slate-600: 87 83 75;
+  --slate-700: 64 61 55;
+  --slate-800: 43 41 37;
+  --slate-900: 28 27 24;
+  --paper: 255 255 255;
+  /* olive used on lines and rings (focus, active underline) */
+  --accent-line: #4d5a1c;
+  --accent-text: #3f4a17;
+  /* drawing surface and editor chrome on canvas */
+  --plate: #ffffff;
+  --plate-grid-minor: #f0ede6;
+  --plate-grid-major: #e3dfd5;
+  --ruler-bg: #f8f6f1;
+  --ruler-line: #cdc7ba;
+  --ruler-text: #57534b;
+  --ruler-tick: #a39d90;
+  --ruler-corner: #e3dfd5;
+  --ruler-corner-text: #6f6a60;
+  --grid-ink: 28 27 24;
+}
+
+.dark {
+  color-scheme: dark;
+  --slate-50: 19 18 16;
+  --slate-100: 37 35 31;
+  --slate-200: 50 47 42;
+  --slate-300: 74 70 63;
+  --slate-400: 110 105 95;
+  --slate-500: 160 154 142;
+  --slate-600: 190 184 172;
+  --slate-700: 215 210 200;
+  --slate-800: 232 228 219;
+  --slate-900: 244 241 235;
+  --paper: 29 28 25;
+  --accent-line: #a5b45c;
+  --accent-text: #c3cf8a;
+  /* the sheet stays paper, a little dimmed so it does not glare */
+  --plate: #e9e5dc;
+  --plate-grid-minor: #dcd7cc;
+  --plate-grid-major: #ccc6b9;
+  --ruler-bg: #1d1c19;
+  --ruler-line: #4a463f;
+  --ruler-text: #bdb7ab;
+  --ruler-tick: #6e695f;
+  --ruler-corner: #2a2824;
+  --ruler-corner-text: #a09a8e;
+  --grid-ink: 244 241 235;
+}
+
 @layer base {
   /* browser surfaces carry the palette too (DESIGN.md) */
   html {
-    color: theme("colors.slate.900");
-    accent-color: theme("colors.accent.600");
+    color: rgb(var(--slate-900));
+    accent-color: var(--accent-line);
   }
   ::selection {
     background: theme("colors.accent.200");
-    color: theme("colors.slate.900");
+    color: #1c1b18;
+  }
+  .dark ::selection {
+    background: #4d5a1c;
+    color: #f4f1eb;
   }
   input::placeholder,
   textarea::placeholder {
-    color: theme("colors.slate.500");
+    color: rgb(var(--slate-500));
   }
   /* one designed focus ring for every control, keyboard only */
   :focus-visible {
-    outline: 2px solid theme("colors.accent.600");
+    outline: 2px solid var(--accent-line);
     outline-offset: 2px;
   }
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible {
     outline-offset: 0;
-    border-color: theme("colors.accent.600");
+    border-color: var(--accent-line);
+  }
+  /* native controls follow the theme (date pickers, scrollbars, checkboxes) */
+  .dark select,
+  .dark input,
+  .dark textarea {
+    color-scheme: dark;
   }
   /* figures in tables and readouts line up */
   table,
@@ -38,8 +109,8 @@
   /* the notebook page: a whisper of 5 mm graph paper behind the sheets (never on the canvas) */
   .bench {
     background-image:
-      linear-gradient(to right, rgb(28 27 24 / 0.035) 1px, transparent 1px),
-      linear-gradient(to bottom, rgb(28 27 24 / 0.035) 1px, transparent 1px);
+      linear-gradient(to right, rgb(var(--grid-ink) / 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(var(--grid-ink) / 0.035) 1px, transparent 1px);
     background-size: 20px 20px;
     background-position: -1px -1px;
   }
@@ -66,7 +137,7 @@
 
   /* a sheet of the notebook: flat paper, hairline edge */
   .sheet {
-    @apply bg-white rounded-xl border border-slate-200 break-words;
+    @apply bg-paper rounded-xl border border-slate-200 break-words;
   }
   .sheet-title {
     @apply text-[0.9375rem] font-semibold text-slate-900;
@@ -82,10 +153,10 @@
     @apply bg-accent-600 text-white hover:bg-accent-700;
   }
   .btn-secondary {
-    @apply bg-slate-800 text-white hover:bg-slate-900;
+    @apply bg-slate-800 text-paper hover:bg-slate-900;
   }
   .btn-outline {
-    @apply bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400;
+    @apply bg-paper text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400;
   }
   /* disabled: a quiet paper button, not a washed-out accent (stays legible) */
   .btn-primary:disabled,
@@ -107,10 +178,10 @@
     @apply block text-xs font-medium text-slate-600 mb-1;
   }
   .input {
-    @apply rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-5 text-slate-900 transition-colors hover:border-slate-400;
+    @apply rounded-lg border border-slate-300 bg-paper px-3 py-2 text-sm leading-5 text-slate-900 transition-colors hover:border-slate-400;
   }
   .input-sm {
-    @apply rounded-md border border-slate-300 bg-white px-2 py-1 text-sm leading-5 text-slate-900 transition-colors hover:border-slate-400;
+    @apply rounded-md border border-slate-300 bg-paper px-2 py-1 text-sm leading-5 text-slate-900 transition-colors hover:border-slate-400;
   }
   /* a select and a text field side by side are the same height, whatever the browser */
   input.input,
@@ -157,4 +228,88 @@
   .field-grid > div > .field-label {
     @apply flex-1 flex items-end;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Dark theme: the few colours that are not on the slate ramp.          */
+@layer components {
+  /* drawings sit on paper in both themes */
+  .plate {
+    background-color: var(--plate);
+  }
+}
+
+.dark .btn-primary {
+  background-color: #5c6a22;
+}
+.dark .btn-primary:hover {
+  background-color: #6b7a2c;
+}
+.dark .btn-primary:disabled,
+.dark .btn-secondary:disabled {
+  background-color: rgb(var(--slate-200));
+  color: rgb(var(--slate-600));
+}
+.dark .text-accent-600,
+.dark .text-accent-700,
+.dark .text-accent-800,
+.dark .text-accent-900,
+.dark .link-action {
+  color: var(--accent-text);
+}
+.dark .bg-accent-50 {
+  background-color: #262b14;
+}
+.dark .bg-accent-100 {
+  background-color: #2f3518;
+}
+.dark .tag-accent {
+  background-color: #262b14;
+  color: var(--accent-text);
+}
+.dark .tag-success,
+.dark .bg-green-50 {
+  background-color: #16301f;
+}
+.dark .tag-warning,
+.dark .bg-amber-50 {
+  background-color: #362a10;
+}
+.dark .tag-danger,
+.dark .bg-red-50 {
+  background-color: #3a1a17;
+}
+.dark .tag-info,
+.dark .bg-sky-50,
+.dark .bg-blue-50 {
+  background-color: #132a3a;
+}
+.dark .tag-success,
+.dark .text-green-700,
+.dark .text-green-800 {
+  color: #8fdca6;
+}
+.dark .tag-warning,
+.dark .text-amber-700,
+.dark .text-amber-800 {
+  color: #f2c879;
+}
+.dark .tag-danger,
+.dark .text-red-600,
+.dark .text-red-700,
+.dark .text-red-800,
+.dark .link-danger {
+  color: #f29b93;
+}
+.dark .tag-info,
+.dark .text-sky-800,
+.dark .text-blue-700 {
+  color: #93cdf2;
+}
+.dark .border-red-200,
+.dark .border-red-300 {
+  border-color: #6b2a25;
+}
+.dark .hover\:bg-red-50:hover {
+  background-color: #3a1a17;
 }

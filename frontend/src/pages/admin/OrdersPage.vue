@@ -144,7 +144,7 @@ const statuses: OrderStatus[] = ["draft", "confirmed", "completed", "cancelled"]
     <div class="space-y-3">
       <p v-if="!store.orders.length" class="sheet p-6 text-sm text-slate-600">{{ t("orders.empty") }}</p>
       <p v-if="list.total.value && !list.visible.value.length" class="sheet p-6 text-sm text-slate-600">{{ t("list.noMatch") }}</p>
-      <router-link v-for="o in list.visible.value" :key="o.id" :to="`/orders/${o.id}`" class="block sheet p-4 transition-colors hover:border-slate-300 hover:bg-white">
+      <router-link v-for="o in list.visible.value" :key="o.id" :to="`/orders/${o.id}`" class="block sheet p-4 transition-colors hover:border-slate-300 hover:bg-paper">
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-2 flex-wrap min-w-0">
             <span class="font-semibold text-slate-900">{{ o.customer_name }}</span>

@@ -2,11 +2,14 @@
 import { onMounted, reactive, ref } from "vue";
 
 import { type Locale, useI18n } from "@/i18n";
+import { type ThemeChoice, useTheme } from "@/composables/useTheme";
 import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
 
 const { t, locale, setLocale } = useI18n();
 const store = useAppStore();
+const theme = useTheme();
+const themeChoices: ThemeChoice[] = ["system", "light", "dark"];
 const enabled = ref(false);
 const busy = ref(false);
 const exporting = ref(false);
@@ -119,7 +122,7 @@ async function exportData() {
         <button
           class="btn btn-sm border"
           :aria-pressed="locale === 'fr'"
-          :class="locale === 'fr' ? 'bg-accent-600 text-white border-accent-600' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'"
+          :class="locale === 'fr' ? 'bg-accent-600 text-white border-accent-600' : 'bg-paper border-slate-300 text-slate-700 hover:bg-slate-50'"
           @click="setLocale('fr' as Locale)"
         >
           Français
@@ -127,13 +130,31 @@ async function exportData() {
         <button
           class="btn btn-sm border"
           :aria-pressed="locale === 'en'"
-          :class="locale === 'en' ? 'bg-accent-600 text-white border-accent-600' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'"
+          :class="locale === 'en' ? 'bg-accent-600 text-white border-accent-600' : 'bg-paper border-slate-300 text-slate-700 hover:bg-slate-50'"
           @click="setLocale('en' as Locale)"
         >
           English
         </button>
       </div>
     </div>
+
+    <section class="sheet p-5 mb-6" aria-labelledby="theme-title">
+      <h2 id="theme-title" class="sheet-title">{{ t("theme.title") }}</h2>
+      <p class="sheet-hint text-sm mt-1 max-w-prose">{{ t("theme.hint") }}</p>
+      <div class="mt-3 flex gap-2" role="radiogroup" :aria-labelledby="'theme-title'">
+        <button
+          v-for="c in themeChoices"
+          :key="c"
+          role="radio"
+          :aria-checked="theme.choice.value === c"
+          class="btn btn-sm border"
+          :class="theme.choice.value === c ? 'bg-accent-600 text-white border-accent-600' : 'bg-paper border-slate-300 text-slate-700 hover:bg-slate-50'"
+          @click="theme.setTheme(c)"
+        >
+          {{ t(`theme.${c}`) }}
+        </button>
+      </div>
+    </section>
 
     <section class="sheet p-5 mb-6" aria-labelledby="workshop-title">
       <h2 id="workshop-title" class="sheet-title">{{ t("settings.workshop") }}</h2>

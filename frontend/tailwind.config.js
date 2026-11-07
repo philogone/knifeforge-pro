@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{vue,js,ts,jsx,tsx}"],
   theme: {
     extend: {
@@ -9,19 +10,13 @@ export default {
       },
       colors: {
         // "le carnet du coutelier": warm graphite neutrals on paper (see DESIGN.md).
-        // Overrides Tailwind's cool slate so every surface shares one warm ramp.
-        slate: {
-          50: "#f8f6f1",
-          100: "#f0ede6",
-          200: "#e3dfd5",
-          300: "#cdc7ba",
-          400: "#a39d90",
-          500: "#6f6a60",
-          600: "#57534b",
-          700: "#403d37",
-          800: "#2b2925",
-          900: "#1c1b18",
-        },
+        // Overrides Tailwind's cool slate so every surface shares one warm ramp; the values
+        // live in main.css as CSS variables so the dark theme swaps the whole ramp at once.
+        slate: Object.fromEntries(
+          [50, 100, 200, 300, 400, 500, 600, 700, 800, 900].map((k) => [k, `rgb(var(--slate-${k}) / <alpha-value>)`]),
+        ),
+        // the sheet colour: white by day, warm charcoal at night
+        paper: "rgb(var(--paper) / <alpha-value>)",
         // "vert olive patiné": the action and selection colour
         accent: {
           50: "#f4f6ea",

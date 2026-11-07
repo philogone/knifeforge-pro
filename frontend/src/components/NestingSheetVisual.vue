@@ -24,7 +24,7 @@ const fontSize = computed(() => Math.max(2, Math.min(props.width, props.length) 
 </script>
 
 <template>
-  <svg :viewBox="`-2 -2 ${length + 4} ${width + 4}`" class="w-full bg-white rounded border border-slate-200" preserveAspectRatio="xMidYMid meet">
+  <svg :viewBox="`-2 -2 ${length + 4} ${width + 4}`" class="w-full bg-paper rounded border border-slate-200" preserveAspectRatio="xMidYMid meet">
     <rect x="0" y="0" :width="length" :height="width" fill="#f8fafc" stroke="#64748b" stroke-width="0.4" vector-effect="non-scaling-stroke" />
     <rect
       v-if="margin > 0"

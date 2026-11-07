@@ -175,6 +175,22 @@ Each layer type has a fixed stroke colour, plus a dash pattern where shown:
 
 **The One Accent Rule.** Olive is the only accent. It means "you can act here" or "this is selected". Status colours speak only for state.
 
+### Dark theme
+The same notebook at night: warm charcoal, never blue-black. `html.dark` swaps the whole `slate` ramp and `paper` through CSS variables in `main.css`. Components keep their classes, and only the colours off the ramp (olive text, semantic washes) get dark overrides.
+
+| Token | Light | Dark |
+|---|---|---|
+| bench (slate-50) | #f8f6f1 | #131210 |
+| paper | #ffffff | #1d1c19 |
+| hairline (slate-200) | #e3dfd5 | #322f2a |
+| muted text (slate-500) | #6f6a60 | #a09a8e |
+| ink (slate-900) | #1c1b18 | #f4f1eb |
+| olive line / text | #4d5a1c / #3f4a17 | #a5b45c / #c3cf8a |
+
+**The Sheet Stays Paper Rule.** The editor canvas, design thumbnails and nesting plates stay paper in both themes (`.plate`, `--plate`), dimmed to #e9e5dc at night. The layer colours therefore keep their meaning and contrast, as an artboard stays white in a dark CAD app. The rulers and all the chrome around the sheet go dark.
+
+The choice is System, Light or Dark (Settings › Appearance, plus a sun/moon button in the nav). It is stored in `localStorage` under `knifeforge_theme` and applied before the first paint by an inline script in `index.html`.
+
 ## Typography
 
 **Body Font:** IBM Plex Sans, at weights 400, 500 and 600, self-hosted through `@fontsource`.

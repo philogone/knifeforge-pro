@@ -32,7 +32,7 @@ async function submit() {
 <template>
   <main class="min-h-screen grid lg:grid-cols-[1.15fr_1fr]">
     <!-- the drawing board: a blade plate, drawn the way the editor draws it -->
-    <section class="relative hidden lg:flex flex-col justify-between p-10 border-r border-slate-200 bg-white/60" aria-hidden="true">
+    <section class="relative hidden lg:flex flex-col justify-between p-10 border-r border-slate-200 bg-paper/60" aria-hidden="true">
       <div class="flex items-center gap-2 text-slate-900">
         <svg width="28" height="28" viewBox="0 0 32 32">
           <rect width="32" height="32" rx="7" class="fill-accent-600" />
@@ -41,32 +41,32 @@ async function submit() {
         <span class="font-semibold tracking-tight">KnifeForge <span class="text-accent-700">Pro</span></span>
       </div>
 
-      <svg viewBox="0 0 700 300" class="w-full max-w-2xl mx-auto plate" fill="none">
+      <svg viewBox="0 0 700 300" class="w-full max-w-2xl mx-auto drawing text-slate-900" fill="none">
         <!-- blade -->
         <path
           class="draw"
           d="M40 120 H250 L272 98 H470 C520 98 560 112 600 150 C560 196 500 206 430 206 H272 L250 180 H40 Z"
-          stroke="#1c1b18" stroke-width="1.6" fill="rgb(111 106 96 / 0.08)"
+          stroke="currentColor" stroke-width="1.6" fill="rgb(var(--slate-500) / 0.10)"
         />
         <!-- grind line, dash-dot -->
         <path class="fade" d="M300 160 C400 150 500 150 596 150" stroke="#0f766e" stroke-width="1.2" stroke-dasharray="9 3 2 3" />
         <!-- holes -->
-        <circle class="fade" cx="95" cy="150" r="9" stroke="#dc2626" stroke-width="1.4" fill="#fff" />
-        <circle class="fade" cx="175" cy="150" r="9" stroke="#dc2626" stroke-width="1.4" fill="#fff" />
+        <circle class="fade" cx="95" cy="150" r="9" stroke="#dc2626" stroke-width="1.4" fill="rgb(var(--paper))" />
+        <circle class="fade" cx="175" cy="150" r="9" stroke="#dc2626" stroke-width="1.4" fill="rgb(var(--paper))" />
         <!-- overall length -->
-        <g class="fade" stroke="#57534b" stroke-width="1">
+        <g class="fade" stroke="rgb(var(--slate-600))" stroke-width="1">
           <path d="M40 186 V262 M600 156 V262" stroke-dasharray="2 3" />
           <path d="M40 250 H600" />
-          <path d="M40 250 l10 -4 v8 z M600 250 l-10 -4 v8 z" fill="#57534b" />
+          <path d="M40 250 l10 -4 v8 z M600 250 l-10 -4 v8 z" fill="rgb(var(--slate-600))" />
         </g>
-        <text class="fade" x="320" y="240" text-anchor="middle" font-size="15" fill="#2b2925" font-family="IBM Plex Sans, sans-serif">182,0 mm</text>
+        <text class="fade" x="320" y="240" text-anchor="middle" font-size="15" fill="currentColor" font-family="IBM Plex Sans, sans-serif">182,0 mm</text>
         <!-- blade height -->
-        <g class="fade" stroke="#57534b" stroke-width="1">
+        <g class="fade" stroke="rgb(var(--slate-600))" stroke-width="1">
           <path d="M470 98 H628 M430 206 H628" stroke-dasharray="2 3" />
           <path d="M618 98 V206" />
-          <path d="M618 98 l-4 10 h8 z M618 206 l-4 -10 h8 z" fill="#57534b" />
+          <path d="M618 98 l-4 10 h8 z M618 206 l-4 -10 h8 z" fill="rgb(var(--slate-600))" />
         </g>
-        <text class="fade" x="632" y="157" font-size="14" fill="#2b2925" font-family="IBM Plex Sans, sans-serif">32,0</text>
+        <text class="fade" x="632" y="157" font-size="14" fill="currentColor" font-family="IBM Plex Sans, sans-serif">32,0</text>
       </svg>
 
       <div>
@@ -107,12 +107,12 @@ async function submit() {
 
 <style scoped>
 /* one authored moment: the plate draws itself, then the annotations settle in */
-.plate .draw {
+.drawing .draw {
   stroke-dasharray: 1600;
   stroke-dashoffset: 1600;
   animation: draw 1.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
 }
-.plate .fade {
+.drawing .fade {
   opacity: 0;
   animation: fade 0.6s ease-out 1.1s forwards;
 }
@@ -127,8 +127,8 @@ async function submit() {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .plate .draw,
-  .plate .fade {
+  .drawing .draw,
+  .drawing .fade {
     animation: none;
     stroke-dashoffset: 0;
     opacity: 1;

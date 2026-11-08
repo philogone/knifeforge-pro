@@ -1,114 +1,103 @@
-# Gumroad listing — KnifeForge Manager
+# Fiche de vente Gumroad — KnifeForge Pro
 
-## Title
+Décisions commerciales de référence : [`docs/decisions-commerciales.md`](docs/decisions-commerciales.md).
 
-**KnifeForge Manager — Self-Hosted Inventory & Order ERP for Knifemakers (Source Code)**
+## Titre
 
-## Price
+**KnifeForge Pro — le logiciel d'atelier des couteliers : stock, commandes, factures, et un éditeur qui dessine vos pièces au centième**
 
-**€119** one-time (single-deployment commercial license). Suggested extended license (multiple
-end products / resale-adjacent use) at **€279**.
+## Prix
 
-## Short pitch
+**99 €** — licence pour un atelier, code source auto-hébergé, **1 an de mises à jour inclus**.
+Mises à jour ensuite : **30 € par an**, facultatif (la version installée reste utilisable sans limite de durée).
 
-Stop tracking steel bars, handle blocks, and orders in a spreadsheet. KnifeForge Manager is a
-self-hosted inventory and order tool built specifically for custom knifemakers and bladesmiths —
-it knows the difference between a bar you cut lengthwise, a sheet you cut in two dimensions, and
-a box of rivets you just count. It visualizes exactly where each cut lands on your stock,
-optimizes cutting across your whole order backlog to cut fewer bars, checks whether you actually
-have enough material before you promise a customer a knife, and keeps a recipe book for both heat
-treatment and chemical finishing (damascus etching, bluing, browning, forced patina).
+## Accroche
 
-## Full description
+Le carnet du coutelier, en logiciel. KnifeForge Pro tient votre stock d'acier, de damas, de G10
+et de bois au millimètre, vérifie que vous avez la matière avant de promettre un couteau, suit
+chaque commande de la forge à la livraison, et édite des devis et des factures électroniques
+**Factur-X** conformes à la réforme française. Son éditeur vectoriel dessine vos lames, gardes et
+plaquettes à la cote, les place sur vos plaques et vos barres, et les exporte en DXF pour le
+laser, le jet d'eau ou la CNC.
 
-Generic inventory software doesn't understand what a knifemaker's stock actually looks like. A
-spreadsheet doesn't stop you from promising three damascus folders when you only have one billet
-left. KnifeForge Manager is built around the actual shape of the problem:
+## Description
 
-**What it does:**
-- **Dimensional material tracking** — bars/rods tracked in mm, sheet stock (G10, wood, carbon
-  fiber) tracked in mm², discrete items (pins, pre-cut blocks) tracked as whole units. Each
-  material type is measured the way it's actually used.
-- **Visual cutting/yield calculator** — tell it your blank size and how many you need; it shows
-  you an actual diagram of the cuts on the bar or sheet, plus how many blanks come off one
-  standard stock unit, the waste (saw kerf included), and how many to buy.
-- **Cross-order cutting optimizer** — group cutting across your whole draft-order backlog, even
-  mixing different knife models that use the same steel, and get an optimized plan (fewer bars,
-  less waste) instead of cutting each order separately.
-- **Saw/blade catalog** — kerf width belongs to the tool, not the steel. Define your saws once
-  with their real cutting width and reuse them across materials.
-- **Knife models** — define a knife once (type: fixed, folder, kitchen, table, Japanese...,
-  materials required, cut dimensions, estimated build time, sale price, and its full process
-  pipeline), then order any quantity of it.
-- **Production view** — every draft order compared against current stock in one place, so you can
-  see what's buildable right now and where the material crunch is before you promise a delivery
-  date.
-- **Rich material taxonomy** — metal type (stainless, carbon, titanium, mokume, brass, copper,
-  nickel silver), steel grade, wood species/grade, and piece designation (scale pair, guard,
-  mitre, rivet...) — free text with real-world suggestions, not a rigid list.
-- **Order feasibility & stock deduction** — before confirming an order, see exactly which
-  materials are short and by how much. Confirming deducts stock for the whole order atomically —
-  no partial deductions, no order that silently oversells your steel. Cancelling a confirmed
-  order restocks what it consumed.
-- **Treatment recipe book** — one format for both thermal treatment (quench & temper schedules)
-  and chemical/finishing treatment (ferric chloride damascus etching to reveal the pattern-weld,
-  bluing, traditional browning, forced acid patinas), each as an ordered list of steps with
-  temperature, duration, and medium. Chain several onto one knife model in sequence.
-- **Bilingual interface** — toggle French/English from Settings, plus a one-click JSON export of
-  your whole catalog, recipes, models, and order history whenever you want a backup.
-- **Real cost-price and suggested pricing** — every material's landed cost (purchase + shipping)
-  updates automatically as a weighted average each time you restock. Every knife model shows its
-  full material cost breakdown, labor cost at your hourly rate, and a suggested sale price at your
-  target margin (overridable per model) — so pricing a knife is a lookup, not a spreadsheet.
-- Ships with a full demo catalog (steel, damascus billets, G10, walnut, pins, fittings, saw
-  blades), four demo recipes, two demo knife models, and three demo orders in different states
-  (draft, confirmed, cancelled) so you can see the whole pipeline working immediately.
+Un tableur ne vous empêche pas de promettre trois pliants en damas quand il ne reste qu'une
+billette. Un logiciel de gestion générique ne sait pas ce qu'est une barre que l'on débite en
+longueur, une plaque que l'on découpe en deux dimensions, ou une boîte de rivets que l'on compte.
+KnifeForge Pro est construit autour du travail réel d'un atelier de coutellerie.
 
-**What you get:**
-- Full source code (FastAPI backend, Vue 3 + Tailwind frontend), Docker Compose setup, Alembic
-  migrations.
-- A bilingual (FR/EN) admin interface, not just bilingual docs.
-- HANDOVER.md explaining every non-obvious design decision — why area-yield is an estimate not
-  real nesting, why order confirmation is all-or-nothing, why cancelling restocks, and more — so
-  you're extending a documented system, not reverse-engineering one.
-- A commercial license: one production deployment, modify and rebrand freely, source
-  redistribution prohibited.
+**L'éditeur et la découpe**
+- Éditeur vectoriel intégré à l'échelle 1:1 en millimètres : plume Bézier, congés et chanfreins
+  au rayon saisi, symétrie en direct, réseaux de perçages, texte en contours, booléens.
+- Décalque d'une photo calibrée, ou redressée en perspective sur une feuille A4.
+- **Nesting réel** des formes (perçages compris) sur vos plaques et barres, espacement garanti.
+- Exports **SVG** (vraies courbes) et **DXF** en polylignes ou en arcs, avec **compensation du
+  trait de coupe** : la pièce sort à la cote.
+- **Plans clients cotés** A4 / A3 au nom de l'atelier, avec barre de contrôle de 100 mm.
+- **Précision meilleure que 0,1 mm** de l'écran à la machine, vérifiée par des tests.
 
-**What this is NOT:** a barcode/serial-tracked lot system (stock is tracked as aggregate totals
-per material, not per physical bar — see HANDOVER.md), an accounting/costing package (material
-cost rollup isn't automatic — sale price is entered per knife model), or a customer-facing
-storefront (this is your internal shop tool; orders are entered by you).
+**L'atelier**
+- Stock dimensionnel : barres (mm), plaques (mm²), pièces (unités), historique de chaque mouvement.
+- Commandes avec déstockage tout-ou-rien, suivi d'étape (forge, trempe, émouture, manche,
+  finition) et date promise.
+- Recettes de traitement thermique et chimique (trempe, revenu, attaque du damas, bleuissage,
+  patine), modèles de couteaux, coût de revient et prix de vente suggéré.
 
-**Stack:** FastAPI · SQLAlchemy 2 · PostgreSQL 16 · Redis 7 · Vue 3 · Tailwind CSS · Docker
-Compose. Requires only Docker to run.
+**Clients et facturation**
+- Fichier clients avec export et effacement (RGPD).
+- Devis → facture → avoir, numérotation continue, documents figés à l'émission.
+- **Factur-X EN 16931** (PDF/A-3 avec XML structuré) : prêt pour l'obligation d'émission de
+  factures électroniques des TPE et PME au 1er septembre 2027, mentions obligatoires comprises
+  (SIREN du client, nature de l'opération, adresse de livraison, TVA sur les débits).
+- Franchise en base de TVA (art. 293 B du CGI) ou régime réel, au choix.
 
-## Tags / categories
+**L'exploitation**
+- Installation en une commande avec Docker, assistant de premier lancement.
+- Sauvegarde automatique chaque nuit, sauvegarde et restauration complètes depuis l'interface.
+- Interface en français et en anglais, mode sombre pour les longues soirées au bureau.
 
-`self-hosted`, `saas-boilerplate`, `erp`, `inventory-management`, `knifemaking`, `fastapi`,
-`vue`, `docker`, `starter-kit`, `source-code`
+**Ce que vous recevez**
+- Le code source complet (FastAPI, Vue 3, PostgreSQL), Docker Compose, migrations de base.
+- Le guide d'installation (README) et le dossier de conception (HANDOVER.md).
+- Les mises à jour pendant un an.
 
-## FAQ
+**Ce que ce n'est pas**
+- Un service en ligne : vous l'installez sur votre ordinateur, votre serveur ou un VPS.
+- Une plateforme agréée de facturation électronique : vous déposez vos factures Factur-X sur la
+  plateforme de votre choix.
+- Un logiciel de comptabilité ou une boutique en ligne.
 
-**Do I need to know Python/Vue to use this?**
-To run it as-is, no — Docker Compose and a `.env` file is enough. To customize material
-categories, add new treatment types, or extend the costing model, basic FastAPI/Vue familiarity
-helps.
+**Technique :** FastAPI · SQLAlchemy 2 · PostgreSQL 16 · Vue 3 · TypeScript · Paper.js ·
+Tailwind CSS · Docker Compose. Il suffit de Docker pour le faire tourner.
 
-**Does it track exactly which physical bar a blade was cut from?**
-No — stock is tracked as an aggregate total per material (e.g. total mm of "1095 steel" on hand),
-not per serialized bar. Documented in HANDOVER.md; a shop needing full lot traceability would
-need to extend this.
+## Étiquettes
 
-**Can I use it for materials beyond knifemaking (general metalworking, woodworking)?**
-The dimensional stock model (length/area/count) and cutting calculator are generic enough to
-apply to any bar/sheet/discrete-parts inventory — the demo data and default categories are
-knife-flavored, but nothing in the schema is knife-specific.
+`coutellerie`, `knifemaking`, `atelier`, `auto-hébergé`, `self-hosted`, `facture électronique`,
+`factur-x`, `dxf`, `nesting`, `gestion de stock`
 
-**Does the cutting optimizer work for sheet materials (G10, wood) too?**
-The cross-order optimizer is for bar/rod (`length`) materials only — mixed-size 2D nesting for
-sheets is a much harder problem and out of scope. Sheet materials still get the visual yield
-calculator for a single blank size.
+## Questions fréquentes
 
-**Is there support?**
-No ongoing support/maintenance obligation is included in the base license (see LICENSE) — this
-is a source-code sale, not a subscription.
+**Faut-il savoir programmer ?**
+Non pour l'utiliser : Docker et un fichier `.env` à remplir suffisent (le README détaille chaque
+étape). Oui pour le modifier, avec des bases en Python et Vue.
+
+**Mes données partent-elles quelque part ?**
+Non. Tout reste sur la machine où vous l'installez, sauvegardes comprises.
+
+**Est-ce conforme à la facturation électronique obligatoire ?**
+Les factures sont produites au format Factur-X EN 16931, l'un des formats acceptés par la
+réforme, avec les nouvelles mentions obligatoires. La transmission passe par une plateforme
+agréée que vous choisissez ; KnifeForge Pro n'en est pas une. Vérifiez avec votre comptable les
+règles propres à votre situation.
+
+**Que se passe-t-il après un an ?**
+Votre version continue de fonctionner sans limite. Le renouvellement à 30 € par an donne accès
+aux nouvelles versions.
+
+**Y a-t-il du support ?**
+Le support est communautaire (questions et réponses entre utilisateurs). Aucun support
+individuel n'est inclus.
+
+**Puis-je l'installer dans plusieurs ateliers ?**
+Une licence couvre un atelier. Pour plusieurs, contactez l'auteur.

@@ -76,9 +76,11 @@ Placement des **vraies formes** (perçages compris) sur vos plaques et barres.
 
 ### 📐 Exports et plans clients
 - **SVG** avec de vraies courbes de Bézier, 1 unité = 1 mm
-- **DXF R2010** (polylignes, calques `CUT` / `ENGRAVE` / `SHEET`) pour la découpe laser, jet d'eau ou CNC
+- **DXF R2010** (calques `CUT` / `ENGRAVE` / `SHEET`) en polylignes ou **en arcs de cercle** (≤ 0,01 mm), pour la découpe laser, jet d'eau ou CNC
+- **Compensation du trait de coupe** à l'export : la pièce sort à la cote
 - Plaques de nesting en SVG / DXF
-- **Plans clients cotés** A4 / A3, échelle normalisée, cartouche complet, prêts à imprimer
+- **Plans clients cotés** A4 / A3, échelle normalisée, cartouche au nom et au logo de l'atelier, **barre de contrôle de 100 mm** pour vérifier l'impression
+- **Zoom 1:1 calibré** sur votre écran avec une carte bancaire
 
 </td>
 <td valign="top">
@@ -88,7 +90,30 @@ Placement des **vraies formes** (perçages compris) sur vos plaques et barres.
 - **Commandes** brouillon → confirmée → terminée, déstockage tout-ou-rien
 - **Recettes de traitement** thermiques et chimiques (trempe, revenu, attaque du damas, patine…)
 - Optimiseur de découpe multi-commandes, catalogue de scies (trait de scie)
-- Coût de revient, prix de vente suggéré, interface **FR / EN**
+- Coût de revient, prix de vente suggéré, interface **FR / EN**, **mode sombre**
+- **Suivi d'atelier** : étape de chaque commande (forge, trempe, émouture, manche, finition, prête, livrée), date promise
+- **Historique de stock** : chaque entrée et sortie, avec sa raison et sa commande
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### 🧾 Clients, devis et factures
+- **Fichier clients** (particuliers et professionnels, SIREN, TVA intracommunautaire), export et effacement RGPD
+- **Devis → facture → avoir**, numérotation continue sans trou (F-2026-0001), document figé à l'émission
+- **Factur-X EN 16931** : PDF/A-3 lisible avec le XML structuré embarqué, conforme à la **réforme de la facturation électronique** (mentions obligatoires 2026 : SIREN du client, adresse de livraison, nature de l'opération, option TVA sur les débits)
+- **Franchise en base** (art. 293 B du CGI) ou assujetti à la TVA, au choix dans les réglages
+
+</td>
+<td valign="top">
+
+### 🛠️ Installation et exploitation
+- **Docker Compose** : une commande, PostgreSQL 16, en-têtes de sécurité et CSP stricte
+- **Assistant de premier lancement** : nom, logo, données de démonstration à garder ou effacer
+- **Sauvegarde nocturne** automatique et **sauvegarde / restauration complète** depuis l'interface
+- **Migrations** appliquées seules à chaque mise à jour
+- **Intégration continue** : tests sur SQLite et PostgreSQL à chaque modification
 
 </td>
 </tr>
@@ -100,15 +125,19 @@ Placement des **vraies formes** (perçages compris) sur vos plaques et barres.
 
 <table>
 <tr>
-<td colspan="2"><img src="docs/screenshots/editor.png" alt="Éditeur vectoriel : profil de lame coté, panneau de saisie numérique"><p align="center"><sub><b>L'éditeur</b> : profil de lame à l'échelle, poignées, cote de 112 mm et saisie numérique de la position et de la taille.</sub></p></td>
+<td colspan="2"><img src="docs/screenshots/editor.png" alt="Éditeur vectoriel : profil de lame coté sur la grille millimétrée"><p align="center"><sub><b>L'éditeur</b> : profil de lame à l'échelle sur la grille millimétrée, perçages et cote de 112 mm.</sub></p></td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/screenshots/nesting-sheet.png" alt="Nesting de plaquettes G10 sur une plaque"><p align="center"><sub><b>Nesting sur plaque</b> : 6 plaquettes G10 sur une plaque de 300 × 150 mm.</sub></p></td>
-<td width="50%"><img src="docs/screenshots/plan.png" alt="Plan client coté au format A4"><p align="center"><sub><b>Plan client</b> : A4 à l'échelle 1:1, cotes hors-tout et cartouche.</sub></p></td>
+<td width="50%"><img src="docs/screenshots/nesting-sheet.png" alt="Nesting de plaquettes G10 sur une plaque"><p align="center"><sub><b>Nesting sur plaque</b> : 7 plaquettes G10 sur une plaque de 300 × 150 mm, commandes en cours comprises.</sub></p></td>
+<td width="50%"><img src="docs/screenshots/plan.png" alt="Plan client coté au format A4"><p align="center"><sub><b>Plan client</b> : A4 à l'échelle 1:1, cotes hors-tout, cartouche et barre de contrôle de 100 mm.</sub></p></td>
 </tr>
 <tr>
 <td width="50%"><img src="docs/screenshots/designs.png" alt="Bibliothèque de gabarits"><p align="center"><sub><b>Gabarits</b> : rattachés à un modèle de couteau et à une matière.</sub></p></td>
-<td width="50%"><img src="docs/screenshots/nesting-bar.png" alt="Nesting de lames sur une barre d'acier"><p align="center"><sub><b>Nesting sur barre</b> : deux lames tête-bêche sur une barre de 1095.</sub></p></td>
+<td width="50%"><img src="docs/screenshots/quote.png" alt="Devis en brouillon avec total et mention de TVA"><p align="center"><sub><b>Devis</b> : repris de la commande, total en direct, mention de franchise de TVA.</sub></p></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/order.png" alt="Fiche de commande avec suivi d'atelier"><p align="center"><sub><b>Commande</b> : client, date promise, étape d'atelier et documents liés.</sub></p></td>
+<td width="50%"><img src="docs/screenshots/editor-dark.png" alt="L'éditeur en mode sombre"><p align="center"><sub><b>Mode sombre</b> : l'interface s'assombrit, la plaque de dessin reste papier.</sub></p></td>
 </tr>
 </table>
 
@@ -329,11 +358,11 @@ la sortie actuelle.
 ## 🗺️ Limites connues et suite
 
 - Pas de style par objet (remplissage / trait), pas de groupes, pas d'objets texte
-- DXF en polylignes uniquement (les arcs ne sont pas conservés)
+- La transmission des factures à une **plateforme agréée** (obligatoire en émission au 1er septembre 2027 pour les TPE/PME) se fait en déposant le PDF Factur-X sur la plateforme choisie : pas de connexion directe
 - Les matériaux comptés à l'unité ne sont pas « nestables »
 - Le nesting n'utilise pas les chutes existantes
 - L'outil de cotation ne place que des cotes alignées
-- Volontairement hors périmètre : traçabilité lot / numéro de série, frais généraux, fournisseurs et factures, vitrine publique
+- Volontairement hors périmètre : traçabilité lot / numéro de série, comptabilité générale, factures fournisseurs, vitrine publique
 
 <a id="english"></a>
 
@@ -341,15 +370,17 @@ la sortie actuelle.
 
 **KnifeForge Pro** is a self-hosted shop manager for custom knifemakers: dimensional raw-material
 stock (bars in mm, sheets in mm², counted parts), orders with all-or-nothing stock deduction,
-heat-treatment and finishing recipes, costing, plus an **integrated vector editor** (Paper.js)
-for real-scale millimetre patterns, **true-shape nesting** on sheets and bars, **SVG / DXF export**
-and **dimensioned client plans**.
+heat-treatment and finishing recipes, costing, customers, **quotes, invoices and credit notes
+in Factur-X (EN 16931)**, workshop progress tracking and a stock ledger, plus an **integrated
+vector editor** (Paper.js) for real-scale millimetre patterns, **true-shape nesting** on sheets
+and bars, **SVG / DXF export** (polylines or arcs, optional kerf compensation) and
+**dimensioned client plans**.
 
 The precision target is **better than 0.1 mm**: coordinates are stored to 0.0001 mm, SVG keeps
 true Béziers (0.001 mm), areas / DXF / nesting flatten curves to ≤ 0.01 mm, and nesting spacing
-is a hard minimum. Caveats: the screen is not a measuring tool (print plans at 100 %), unit-less
-imported SVG is read at 96 dpi, DXF carries polylines, saw kerf is not auto-compensated, and
-nesting is a fast deterministic heuristic.
+is a hard minimum. Caveats: the screen is only true-size once calibrated (Settings, with a bank card),
+print plans at 100 % (a 100 mm check bar is printed), unit-less imported SVG is read at 96 dpi,
+and nesting is a fast deterministic heuristic.
 
 Quick start: `cp .env.example .env`, fill in the secrets (double every `$` of the bcrypt hash),
 then `docker compose up -d --build` and open http://localhost:8080. Design rationale lives in

@@ -1,4 +1,4 @@
-Commercial License / Licence commerciale
+KnifeForge Pro — Commercial License / Licence commerciale
 Copyright (c) 2026 Philogone Quénette
 
 This source code is a commercial product. It is NOT open source and is not
@@ -7,11 +7,10 @@ distributed under a permissive license (MIT, Apache, etc.).
 By purchasing a license to this codebase, the buyer ("Licensee") is granted a
 non-exclusive, non-transferable right to:
 
-  1. Use, modify, and deploy this codebase for one (1) end product per license
-     purchased (a single production deployment, e.g. one shop's internal
-     inventory/order management tool), unless a multi-use/extended license
-     was purchased.
-  2. Modify the source code freely for that end product, including rebranding
+  1. Install, use, and run this software for one (1) workshop per license
+     purchased (a single production installation serving one business),
+     unless a multi-workshop license was purchased.
+  2. Modify the source code freely for that workshop, including rebranding
      and adding features.
 
 The Licensee may NOT:
@@ -22,14 +21,22 @@ The Licensee may NOT:
      that allows third parties to obtain it without purchasing a license.
   3. Claim original authorship of the underlying codebase/architecture.
 
-NATURE OF THE PRODUCT. This is a starter kit / boilerplate codebase, not a
-finished, audited, or production-certified product. It has not undergone a
-professional security audit or legal compliance review. The Licensee is
-solely responsible for reviewing, testing, securing, and adapting the code
-before deploying it with real inventory, order, or customer data, and for
-ensuring that their specific use complies with all laws and regulations
-applicable to them (including, where relevant, data protection laws such as
-the GDPR). In particular, stock levels, cutting/yield calculations, and
+NATURE OF THE PRODUCT. This is self-hosted workshop management software
+delivered as source code. It has not undergone a certified third-party
+security audit. The Licensee installs and operates it on their own
+infrastructure and is responsible for securing that installation (secrets,
+HTTPS, access, backups) and for ensuring that their use complies with the
+laws and regulations applicable to them (including, where relevant, data
+protection laws such as the GDPR).
+
+INVOICES. The software produces quotes, invoices, and credit notes, including
+Factur-X (EN 16931) electronic invoices, from the information the Licensee
+enters (identity, VAT regime, customers, amounts). It is not an approved
+electronic invoicing platform ("plateforme agréée") and does not transmit
+invoices to the tax administration. The Licensee remains responsible for the
+accuracy of their invoices, for choosing and using an approved platform where
+the law requires it, and for keeping their accounting records; checking these
+points with an accountant is recommended. In particular, stock levels, cutting/yield calculations, and
 order feasibility results produced by this software are planning aids based
 on figures the Licensee enters — the Licensee is responsible for verifying
 them against their actual physical inventory before relying on them for
@@ -52,9 +59,12 @@ exceed the amount actually paid by the Licensee for the license giving rise
 to the claim. Nothing in this license excludes or limits liability that
 cannot be excluded or limited under applicable mandatory law.
 
-NO SUPPORT OR MAINTENANCE OBLIGATION. This license does not entitle the
-Licensee to updates, bug fixes, or support, unless separately agreed in
-writing.
+UPDATES AND SUPPORT. The license includes the new versions published during
+one (1) year from the purchase date. Further years of updates may be
+purchased (renewal); without renewal, the Licensee keeps the right to use the
+versions already obtained, without time limit. Support is community-based
+only: no individual support, response time, or maintenance obligation is
+included, unless separately agreed in writing.
 
 GOVERNING LAW. This license is governed by French law. Any dispute arising
 out of or in connection with this license shall be submitted to the
@@ -68,8 +78,7 @@ remaining provisions remain in full force and effect, and the unenforceable
 provision shall be replaced by an enforceable provision that most closely
 reflects its original intent.
 
-For an extended license (multiple end products, resale rights, or a custom
-arrangement), contact the author.
+For a multi-workshop license or a custom arrangement, contact the author.
 
 ---
 
@@ -79,11 +88,10 @@ pas distribué sous une licence permissive (MIT, Apache, etc.).
 En achetant une licence pour ce code, l'acheteur (le « Licencié ») obtient un
 droit non exclusif et non transférable de :
 
-  1. Utiliser, modifier et déployer ce code pour un (1) produit final par
-     licence achetée (un seul déploiement en production, ex. l'outil de
-     gestion de stock/commandes interne d'un seul atelier), sauf licence
-     étendue/multi-usage achetée séparément.
-  2. Modifier librement le code source pour ce produit final, y compris le
+  1. Installer, utiliser et exploiter ce logiciel pour un (1) atelier par
+     licence achetée (une seule installation en production, au service d'une
+     seule entreprise), sauf licence multi-ateliers achetée séparément.
+  2. Modifier librement le code source pour cet atelier, y compris le
      rebranding et l'ajout de fonctionnalités.
 
 Le Licencié NE PEUT PAS :
@@ -95,15 +103,22 @@ Le Licencié NE PEUT PAS :
      façon qui permettrait à des tiers de l'obtenir sans acheter de licence.
   3. Revendiquer la paternité originale de l'architecture/du code sous-jacent.
 
-NATURE DU PRODUIT. Il s'agit d'un kit de démarrage / boilerplate, pas d'un
-produit fini, audité, ou certifié pour la production. Il n'a fait l'objet
-d'aucun audit de sécurité professionnel ni d'aucune revue de conformité
-juridique. Le Licencié est seul responsable de revoir, tester, sécuriser et
-adapter le code avant tout déploiement avec de vraies données de stock, de
-commandes ou de clients, et de s'assurer que son usage particulier respecte
-l'ensemble des lois et réglementations qui lui sont applicables (y compris,
-le cas échéant, les réglementations de protection des données comme le
-RGPD). En particulier, les niveaux de stock, les calculs de rendement de
+NATURE DU PRODUIT. Il s'agit d'un logiciel de gestion d'atelier
+auto-hébergé, livré sous forme de code source. Il n'a pas fait l'objet d'un
+audit de sécurité certifié par un tiers. Le Licencié l'installe et
+l'exploite sur sa propre infrastructure ; il est responsable de la
+sécurisation de cette installation (secrets, HTTPS, accès, sauvegardes) et
+de la conformité de son usage aux lois et réglementations qui lui sont
+applicables (y compris, le cas échéant, le RGPD).
+
+FACTURES. Le logiciel produit des devis, des factures et des avoirs, dont des
+factures électroniques Factur-X (EN 16931), à partir des informations saisies
+par le Licencié (identité, régime de TVA, clients, montants). Il n'est pas
+une plateforme agréée de facturation électronique et ne transmet aucune
+facture à l'administration fiscale. Le Licencié reste responsable de
+l'exactitude de ses factures, du choix et de l'usage d'une plateforme agréée
+lorsque la loi l'exige, et de la tenue de sa comptabilité ; il est conseillé
+de vérifier ces points avec un expert-comptable. En particulier, les niveaux de stock, les calculs de rendement de
 découpe et les résultats de faisabilité de commande produits par ce logiciel
 sont des aides à la planification basées sur les chiffres saisis par le
 Licencié — celui-ci est responsable de les vérifier par rapport à son
@@ -130,8 +145,13 @@ réclamation. Rien dans cette licence n'exclut ni ne limite une responsabilité
 qui ne peut être exclue ou limitée en vertu d'une règle impérative du droit
 applicable.
 
-AUCUNE OBLIGATION DE SUPPORT OU DE MAINTENANCE. Cette licence ne donne pas
-droit à des mises à jour, correctifs ou support, sauf accord écrit séparé.
+MISES À JOUR ET SUPPORT. La licence comprend les nouvelles versions publiées
+pendant un (1) an à compter de la date d'achat. Des années de mises à jour
+supplémentaires peuvent être achetées (renouvellement) ; sans
+renouvellement, le Licencié conserve le droit d'utiliser sans limite de
+durée les versions déjà obtenues. Le support est uniquement communautaire :
+aucun support individuel, délai de réponse ni obligation de maintenance
+n'est inclus, sauf accord écrit séparé.
 
 DROIT APPLICABLE. Cette licence est régie par le droit français. Tout litige
 né de cette licence ou en relation avec elle sera soumis à la compétence
@@ -144,5 +164,5 @@ autres clauses restent pleinement en vigueur, et la clause inapplicable sera
 remplacée par une clause valable reflétant au plus près son intention
 initiale.
 
-Pour une licence étendue (plusieurs produits finaux, droits de revente, ou un
-arrangement sur mesure), contactez l'auteur.
+Pour une licence multi-ateliers ou un arrangement sur mesure, contactez
+l'auteur.

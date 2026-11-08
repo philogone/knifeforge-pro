@@ -1,4 +1,4 @@
-# HANDOVER.md — KnifeForge Manager
+# HANDOVER.md — KnifeForge Pro
 
 Internal notes for whoever owns this codebase next. Explains *why* it's built this way.
 
@@ -335,8 +335,48 @@ confirmation. Order selection convention: `order_ids = null` → all draft/confi
   block), never cut, exported (SVG / DXF), nested, nor counted in a part's size.
 
 **Known limits / next steps.** No per-object fill/stroke styling, no groups, no text objects,
-DXF arcs are not preserved (polylines only), COUNT materials are not nestable, nesting does not
+COUNT materials are not nestable, nesting does not
 use leftover offcuts, and the dimension tool places aligned dimensions only.
+
+## KnifeForge Pro — customers, invoicing and operations
+
+**Invoices are legal documents, so they are frozen, numbered without gaps, and never edited.**
+`billing_service.issue()` assigns the next number from `DocumentCounter` (per kind and year:
+`D-`, `F-`, `A-YYYY-0001`) in the same transaction that copies the workshop identity and the
+customer into `seller_snapshot` / `buyer_snapshot` and recomputes the totals. After that the
+document no longer reads settings or the customer record: renaming the workshop or erasing a
+customer (GDPR) does not rewrite an invoice already sent. Drafts carry no number, so deleting a
+draft never leaves a hole. An issued invoice is corrected only by a credit note (`corrects_id`,
+foreign key NO ACTION: it blocks deleting the corrected invoice, yet lets a full restore empty
+the table in one statement on PostgreSQL, which RESTRICT would refuse on a self-reference).
+
+**Why Factur-X EN 16931.** France makes e-invoicing mandatory (reception since 1 September
+2026, issuing for SMEs and micro-businesses on 1 September 2027) through approved platforms
+that accept Factur-X, UBL and CII. Factur-X is the only one of the three a customer can also
+simply open: a PDF/A-3 (`facturx_service.render_pdf`, embedded fonts) carrying the CII XML
+(`build_cii_xml`), validated against the official XSD by the `factur-x` library before it is
+returned. Mentions added by the reform are fields of their own: customer SIREN, delivery
+address, nature of the operation (BT-23 framework B1 / S1 / M1), VAT on debits. The
+franchise regime emits VAT category E with the art. 293 B CGI exemption reason. KnifeForge Pro
+produces the file; transmitting it to an approved platform is the workshop's step.
+
+**Backups are generic over the schema.** `backup_service` walks `Base.metadata.sorted_tables`,
+so a new table is backed up without touching the service. A backup carries the Alembic
+revision and is refused by a different one (restoring rows into a schema they were not written
+for corrupts silently). Restore is one transaction, parents before children, then resets the
+PostgreSQL sequences. The nightly `pg_dump` service in docker-compose covers the disaster case.
+
+**Stock ledger.** Every stock change goes through `stock_ledger.record_movement()` (initial stock,
+restock or manual correction, order confirmation, cancellation), so the history explains the current
+quantity instead of approximating it.
+
+**Security choices.** JWT via PyJWT with `exp` and `sub` required (python-jose is unmaintained
+and had algorithm-confusion CVEs); `SECRET_KEY` refused when short or a placeholder; uvicorn
+trusts `X-Forwarded-For` from nginx only (port 8000 is bound to localhost) so the login rate
+limit sees visitors, not the proxy. nginx sends a strict CSP with no inline or eval script:
+the theme bootstrap lives in `public/theme-init.js`, and Vite aliases `paper` to
+`paper-core.js`, because paper-full bundles acorn for PaperScript and acorn builds functions
+with `new Function` at load time.
 
 ## What's deliberately NOT in this kit
 
@@ -348,12 +388,13 @@ use leftover offcuts, and the dimension tool places aligned dimensions only.
   stays a field the maker sets themselves; the suggested price is an input to that decision, not
   an automatic override of it.
 - No purchase-order/supplier-invoice tracking beyond the single price+shipping fields on a
-  restock — no supplier records, no multi-line invoices, no currency conversion.
+  restock — no supplier records, no currency conversion. Sales invoices exist (see above);
+  accounting entries do not.
 - No customer-facing storefront or public order form — this is an internal shop-management tool,
   not a sales channel. Orders are entered by the maker.
 - No multi-user/role system — single admin login, matching the scale of a one-person or
   small-shop operation.
 - No 2D nesting for AREA materials with mixed blank sizes, and no cutting optimizer for AREA at
   all (see above) — only LENGTH materials get cross-order bin packing.
-- No scheduled/automatic backups — `Settings > Export data` is a manual, on-demand JSON snapshot
-  the maker triggers and stores themselves; there's no cron job or off-site upload built in.
+- No off-site backup upload — the nightly dump and the on-demand backup stay on the machine;
+  copying them elsewhere is the workshop's job.

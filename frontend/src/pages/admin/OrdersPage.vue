@@ -3,21 +3,29 @@ import ListToolbar from "@/components/ListToolbar.vue";
 import { byText, useListSearch } from "@/composables/useListSearch";
 import { ORDER_STATUS_TAG } from "@/constants/referenceData";
 import { computed, onMounted, reactive, ref } from "vue";
+import { useRoute } from "vue-router";
 
 import EditorIcon from "@/components/EditorIcon.vue";
 import { useI18n } from "@/i18n";
 import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
-import type { OrderLine, OrderStatus } from "@/types";
+import type { Customer, OrderLine, OrderStatus } from "@/types";
 
 const { t } = useI18n();
 const store = useAppStore();
-onMounted(() => {
+const route = useRoute();
+const customers = ref<Customer[]>([]);
+// arriving from a customer's card: show only their orders
+const customerFilter = computed(() => Number(route.query.customer) || 0);
+
+onMounted(async () => {
   store.fetchOrders();
   store.fetchKnifeModels();
+  customers.value = (await store.fetchCustomers()).filter((c) => !c.anonymized_at);
 });
 
 const form = reactive({
+  customer_id: 0,
   customer_name: "",
   customer_email: "",
   notes: "",
@@ -41,7 +49,12 @@ async function submit() {
   submitting.value = true;
   formError.value = "";
   try {
-    await store.createOrder(form);
+    await store.createOrder(
+      form.customer_id
+        ? { customer_id: form.customer_id, notes: form.notes, lines: form.lines }
+        : { customer_name: form.customer_name, customer_email: form.customer_email || null, notes: form.notes, lines: form.lines },
+    );
+    form.customer_id = 0;
     form.customer_name = "";
     form.customer_email = "";
     form.notes = "";
@@ -59,7 +72,10 @@ const statusColor: Record<OrderStatus, string> = ORDER_STATUS_TAG;
 // ---- search, status filter and sort
 const statusFilter = ref<"" | OrderStatus>("");
 const list = useListSearch(
-  () => store.orders.filter((o) => !statusFilter.value || o.status === statusFilter.value),
+  () =>
+    store.orders.filter(
+      (o) => (!statusFilter.value || o.status === statusFilter.value) && (!customerFilter.value || o.customer_id === customerFilter.value),
+    ),
   (o) => [o.customer_name, o.customer_email, `#${o.id}`, ...o.lines.map((l) => l.knife_model_name)],
   [
     { key: "recent", label: "", compare: (a, b) => b.created_at.localeCompare(a.created_at) },
@@ -89,12 +105,20 @@ const statuses: OrderStatus[] = ["draft", "confirmed", "completed", "cancelled"]
       <h2 class="sheet-title mb-4">{{ t("orders.addTitle") }}</h2>
       <form class="space-y-3" @submit.prevent="submit">
         <div class="grid grid-cols-2 gap-3">
-          <label class="block"><span class="field-label">{{ t("orders.customerName") }}</span>
-            <input v-model="form.customer_name" required autocomplete="name" class="input w-full" />
+          <label class="block col-span-2"><span class="field-label">{{ t("doc.customer") }}</span>
+            <select v-model.number="form.customer_id" class="input w-full">
+              <option :value="0">{{ t("orders.newFreeCustomer") }}</option>
+              <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.is_business && c.company_name ? c.company_name : c.name }}{{ c.city ? ` · ${c.city}` : "" }}</option>
+            </select>
           </label>
-          <label class="block"><span class="field-label">{{ t("orders.customerEmail") }}</span>
-            <input v-model="form.customer_email" type="email" autocomplete="email" class="input w-full" />
-          </label>
+          <template v-if="!form.customer_id">
+            <label class="block"><span class="field-label">{{ t("orders.customerName") }}</span>
+              <input v-model="form.customer_name" required autocomplete="name" class="input w-full" />
+            </label>
+            <label class="block"><span class="field-label">{{ t("orders.customerEmail") }}</span>
+              <input v-model="form.customer_email" type="email" autocomplete="email" class="input w-full" />
+            </label>
+          </template>
           <label class="block col-span-2"><span class="field-label">{{ t("common.notes") }}</span>
             <textarea v-model="form.notes" class="input w-full" rows="2"></textarea>
           </label>

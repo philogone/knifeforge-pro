@@ -35,3 +35,14 @@ export const ORDER_STATUS_TAG: Record<"draft" | "confirmed" | "completed" | "can
   completed: "tag-success",
   cancelled: "tag-danger",
 };
+
+/** Quote / invoice / credit note states, one colour each (DESIGN.md tags). */
+export const DOCUMENT_STATUS_TAG: Record<"draft" | "issued" | "accepted" | "refused" | "paid", string> = {
+  draft: "tag-neutral",
+  issued: "tag-info",
+  accepted: "tag-success",
+  refused: "tag-danger",
+  paid: "tag-success",
+};
+
+export const ORDER_STAGES = ["todo", "forging", "heat_treatment", "grinding", "handle", "finishing", "ready", "delivered"] as const;

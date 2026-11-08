@@ -21,7 +21,9 @@ const groups: { to: string; key: string }[][] = [
     { to: "/knife-models", key: "nav.knifeModels" },
   ],
   [
+    { to: "/customers", key: "nav.customers" },
     { to: "/orders", key: "nav.orders" },
+    { to: "/documents", key: "nav.documents" },
     { to: "/production", key: "nav.production" },
   ],
   [

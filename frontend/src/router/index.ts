@@ -66,6 +66,24 @@ const routes = [
     meta: { requiresAdmin: true },
   },
   {
+    path: "/customers",
+    name: "customers",
+    component: () => import("@/pages/admin/CustomersPage.vue"),
+    meta: { requiresAdmin: true },
+  },
+  {
+    path: "/documents",
+    name: "documents",
+    component: () => import("@/pages/admin/DocumentsPage.vue"),
+    meta: { requiresAdmin: true },
+  },
+  {
+    path: "/documents/:id",
+    name: "document-editor",
+    component: () => import("@/pages/admin/DocumentEditorPage.vue"),
+    meta: { requiresAdmin: true },
+  },
+  {
     path: "/bienvenue",
     name: "welcome",
     component: () => import("@/pages/admin/WelcomePage.vue"),

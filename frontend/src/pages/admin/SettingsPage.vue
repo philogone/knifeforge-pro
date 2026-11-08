@@ -16,6 +16,40 @@ const exporting = ref(false);
 
 const shop = reactive({ hourly_rate: 0, default_margin_percent: 0 });
 
+// ---- invoicing identity and legal mentions
+const billing = reactive({
+  legal_name: "",
+  address_line1: "",
+  postal_code: "",
+  city: "",
+  siren: "",
+  siret: "",
+  vat_regime: "franchise" as "franchise" | "normal",
+  vat_number: "",
+  default_vat_rate: 20,
+  trade_register: "",
+  iban: "",
+  bic: "",
+  payment_terms_days: 30,
+  late_penalty_text: "",
+  quote_validity_days: 30,
+});
+const billingSaved = ref(false);
+const billingError = ref("");
+
+async function saveBilling() {
+  billingSaved.value = false;
+  billingError.value = "";
+  const payload: Record<string, unknown> = { ...billing };
+  for (const [k, v] of Object.entries(payload)) if (v === "") payload[k] = null;
+  try {
+    await store.updateShopSettings(payload);
+    billingSaved.value = true;
+  } catch (err) {
+    billingError.value = errorMessage(err, t);
+  }
+}
+
 // ---- workshop identity, printed in the client plan's title block
 const workshop = reactive({ workshop_name: "", workshop_contact: "", workshop_logo: "" });
 const workshopSaved = ref(false);
@@ -57,6 +91,10 @@ async function refreshShop() {
   workshop.workshop_name = s.workshop_name ?? "";
   workshop.workshop_contact = s.workshop_contact ?? "";
   workshop.workshop_logo = s.workshop_logo ?? "";
+  for (const key of Object.keys(billing) as (keyof typeof billing)[]) {
+    const value = s[key as keyof typeof s];
+    (billing as Record<string, unknown>)[key] = value ?? (typeof billing[key] === "number" ? 0 : "");
+  }
 }
 async function saveShop() {
   shopSaved.value = false;
@@ -247,6 +285,91 @@ async function exportData() {
         <span v-if="workshopSaved" class="text-sm text-green-700" role="status">{{ t("settings.shop.saved") }}</span>
         <span v-if="workshopError" class="text-sm text-red-700" role="alert">{{ workshopError }}</span>
       </div>
+    </section>
+
+    <section class="sheet p-5 mb-6" aria-labelledby="billing-title">
+      <h2 id="billing-title" class="sheet-title">{{ t("billing.title") }}</h2>
+      <p class="sheet-hint text-sm mt-1 max-w-prose">{{ t("billing.hint") }}</p>
+      <div class="mt-4 flex gap-2" role="radiogroup" :aria-label="t('billing.regime')">
+        <button
+          v-for="r in ['franchise', 'normal'] as const"
+          :key="r"
+          role="radio"
+          :aria-checked="billing.vat_regime === r"
+          class="btn btn-sm border"
+          :class="billing.vat_regime === r ? 'bg-accent-600 text-white border-accent-600' : 'bg-paper border-slate-300 text-slate-700 hover:bg-slate-50'"
+          @click="billing.vat_regime = r"
+        >
+          {{ t(`billing.regimes.${r}`) }}
+        </button>
+      </div>
+      <p class="mt-2 text-xs text-slate-500">{{ t(`billing.regimeHint.${billing.vat_regime}`) }}</p>
+      <div class="field-grid mt-4 grid sm:grid-cols-2 gap-3">
+        <div class="sm:col-span-2">
+          <label class="field-label" for="bi-legal">{{ t("billing.legalName") }}</label>
+          <input id="bi-legal" v-model="billing.legal_name" class="input w-full" :placeholder="t('billing.legalNameHint')" />
+        </div>
+        <div class="sm:col-span-2">
+          <label class="field-label" for="bi-addr">{{ t("customers.address") }}</label>
+          <input id="bi-addr" v-model="billing.address_line1" class="input w-full" autocomplete="street-address" />
+        </div>
+        <div>
+          <label class="field-label" for="bi-pc">{{ t("customers.postalCode") }}</label>
+          <input id="bi-pc" v-model="billing.postal_code" class="input w-full" />
+        </div>
+        <div>
+          <label class="field-label" for="bi-city">{{ t("customers.city") }}</label>
+          <input id="bi-city" v-model="billing.city" class="input w-full" />
+        </div>
+        <div>
+          <label class="field-label" for="bi-siren">{{ t("customers.siren") }}</label>
+          <input id="bi-siren" v-model="billing.siren" inputmode="numeric" maxlength="9" pattern="\d{9}" class="input w-full" />
+        </div>
+        <div>
+          <label class="field-label" for="bi-siret">{{ t("billing.siret") }}</label>
+          <input id="bi-siret" v-model="billing.siret" inputmode="numeric" maxlength="14" pattern="\d{14}" class="input w-full" />
+        </div>
+        <template v-if="billing.vat_regime === 'normal'">
+          <div>
+            <label class="field-label" for="bi-vat">{{ t("customers.vatNumber") }}</label>
+            <input id="bi-vat" v-model="billing.vat_number" class="input w-full" placeholder="FR00123456789" />
+          </div>
+          <div>
+            <label class="field-label" for="bi-rate">{{ t("billing.defaultRate") }}</label>
+            <input id="bi-rate" v-model.number="billing.default_vat_rate" type="number" min="0" max="100" step="0.1" class="input w-full" />
+          </div>
+        </template>
+        <div class="sm:col-span-2">
+          <label class="field-label" for="bi-rm">{{ t("billing.tradeRegister") }}</label>
+          <input id="bi-rm" v-model="billing.trade_register" class="input w-full" :placeholder="t('billing.tradeRegisterHint')" />
+        </div>
+        <div>
+          <label class="field-label" for="bi-iban">IBAN</label>
+          <input id="bi-iban" v-model="billing.iban" class="input w-full" autocomplete="off" />
+        </div>
+        <div>
+          <label class="field-label" for="bi-bic">BIC</label>
+          <input id="bi-bic" v-model="billing.bic" class="input w-full" autocomplete="off" />
+        </div>
+        <div>
+          <label class="field-label" for="bi-terms">{{ t("billing.paymentTerms") }}</label>
+          <input id="bi-terms" v-model.number="billing.payment_terms_days" type="number" min="0" max="120" class="input w-full" />
+        </div>
+        <div>
+          <label class="field-label" for="bi-quote">{{ t("billing.quoteValidity") }}</label>
+          <input id="bi-quote" v-model.number="billing.quote_validity_days" type="number" min="1" max="365" class="input w-full" />
+        </div>
+        <div class="sm:col-span-2">
+          <label class="field-label" for="bi-pen">{{ t("billing.latePenalty") }}</label>
+          <input id="bi-pen" v-model="billing.late_penalty_text" class="input w-full" :placeholder="t('billing.latePenaltyHint')" />
+        </div>
+      </div>
+      <div class="mt-4 flex items-center gap-3">
+        <button class="btn btn-primary" @click="saveBilling">{{ t("common.save") }}</button>
+        <span v-if="billingSaved" class="text-sm text-green-700" role="status">{{ t("settings.shop.saved") }}</span>
+        <span v-if="billingError" class="text-sm text-red-700" role="alert">{{ billingError }}</span>
+      </div>
+      <p class="mt-4 text-xs text-slate-500 max-w-prose">{{ t("documents.einvoicingNote") }}</p>
     </section>
 
     <div class="sheet p-5 mb-6">

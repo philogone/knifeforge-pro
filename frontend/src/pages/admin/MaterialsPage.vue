@@ -9,7 +9,7 @@ import { PIECE_TYPE_SUGGESTIONS, STEEL_GRADE_SUGGESTIONS, WOOD_GRADE_SUGGESTIONS
 import { formatDecimal, useI18n } from "@/i18n";
 import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
-import type { CandidateOrder, CuttingPlan, DimensionType, Material, MaterialCategory, MetalType, SawType, YieldCalcResult } from "@/types";
+import type { StockMovement, CandidateOrder, CuttingPlan, DimensionType, Material, MaterialCategory, MetalType, SawType, YieldCalcResult } from "@/types";
 
 const { t, locale } = useI18n();
 const store = useAppStore();
@@ -233,6 +233,18 @@ const cutBarsForVisual = computed(() => {
   }));
 });
 
+// ---- stock ledger, per material
+const historyFor = ref<number | null>(null);
+const movements = ref<StockMovement[]>([]);
+async function toggleHistory(id: number) {
+  if (historyFor.value === id) {
+    historyFor.value = null;
+    return;
+  }
+  movements.value = await store.fetchMovements(id);
+  historyFor.value = id;
+}
+
 /** stock at or under its threshold: the one state on this page that needs the maker's eye */
 function isLow(m: Material) {
   return m.low_stock_threshold > 0 && m.quantity_in_stock <= m.low_stock_threshold;
@@ -448,6 +460,35 @@ const sortOptions = computed(() => [
           <button class="link-action" @click="openRestock(m.id)">{{ t("materials.restock") }}</button>
           <button v-if="m.dimension_type !== 'count'" class="link-action" @click="openYieldCalc(m.id)">{{ t("materials.yieldCalculator") }}</button>
           <button v-if="m.dimension_type === 'length'" class="link-action" @click="openOptimizer(m.id)">{{ t("materials.cuttingOptimizer") }}</button>
+          <button class="link-action ml-auto" :aria-expanded="historyFor === m.id" @click="toggleHistory(m.id)">{{ t("materials.history") }}</button>
+        </div>
+
+        <div v-if="historyFor === m.id" class="mt-3 border-t border-slate-100 pt-3">
+          <p v-if="!movements.length" class="text-sm text-slate-600">{{ t("materials.historyEmpty") }}</p>
+          <div v-else class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-left text-xs text-slate-500">
+                  <th class="font-normal pb-1">{{ t("documents.col.date") }}</th>
+                  <th class="font-normal pb-1">{{ t("materials.historyReason") }}</th>
+                  <th class="font-normal pb-1 text-right">{{ t("materials.historyDelta") }}</th>
+                  <th class="font-normal pb-1 text-right">{{ t("materials.historyBalance") }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="mv in movements" :key="mv.id" class="border-t border-slate-100">
+                  <td class="py-1.5 text-slate-600 tabular-nums">{{ new Date(mv.created_at).toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { dateStyle: "short", timeStyle: "short" }) }}</td>
+                  <td class="py-1.5">
+                    {{ t(`materials.reason.${mv.reason}`) }}
+                    <router-link v-if="mv.order_id" :to="`/orders/${mv.order_id}`" class="link-action text-xs ml-1">#{{ mv.order_id }}</router-link>
+                    <span v-if="mv.cost" class="text-slate-500 text-xs"> · {{ formatDecimal(mv.cost, locale, 2) }} €</span>
+                  </td>
+                  <td class="py-1.5 text-right tabular-nums" :class="mv.delta < 0 ? 'text-red-700' : 'text-green-700'">{{ mv.delta > 0 ? "+" : "" }}{{ formatDecimal(mv.delta, locale, 3) }}</td>
+                  <td class="py-1.5 text-right tabular-nums">{{ formatDecimal(mv.balance_after, locale, 3) }} {{ unitFor(m.dimension_type, mv.balance_after) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div v-if="restockOpenFor === m.id" class="mt-3 border-t border-slate-100 pt-3">

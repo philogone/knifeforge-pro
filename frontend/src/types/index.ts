@@ -99,12 +99,17 @@ export interface OrderLine {
   quantity: number;
 }
 
+export type OrderStage = "todo" | "forging" | "heat_treatment" | "grinding" | "handle" | "finishing" | "ready" | "delivered";
+
 export interface Order {
   id: number;
   customer_name: string;
   customer_email: string | null;
   status: OrderStatus;
   notes: string | null;
+  customer_id: number | null;
+  due_date: string | null;
+  stage: OrderStage;
   is_mock: boolean;
   created_at: string;
   lines: OrderLine[];
@@ -182,6 +187,102 @@ export interface ShopSettings {
   workshop_logo: string | null;
   /** first-run wizard done (or skipped) */
   onboarding_done: boolean;
+  legal_name: string | null;
+  address_line1: string | null;
+  postal_code: string | null;
+  city: string | null;
+  country: string;
+  siren: string | null;
+  siret: string | null;
+  vat_regime: "franchise" | "normal";
+  vat_number: string | null;
+  default_vat_rate: number;
+  trade_register: string | null;
+  iban: string | null;
+  bic: string | null;
+  payment_terms_days: number;
+  late_penalty_text: string | null;
+  quote_validity_days: number;
+}
+
+export interface Customer {
+  id: number;
+  is_business: boolean;
+  name: string;
+  company_name: string | null;
+  email: string | null;
+  phone: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  postal_code: string | null;
+  city: string | null;
+  country: string;
+  delivery_line1: string | null;
+  delivery_postal_code: string | null;
+  delivery_city: string | null;
+  delivery_country: string | null;
+  siren: string | null;
+  vat_number: string | null;
+  notes: string | null;
+  anonymized_at: string | null;
+  is_mock: boolean;
+  created_at: string;
+  order_count: number;
+  document_count: number;
+}
+
+export type DocumentKind = "quote" | "invoice" | "credit_note";
+export type DocumentStatus = "draft" | "issued" | "accepted" | "refused" | "paid";
+export type OperationNature = "goods" | "services" | "mixed";
+
+export interface DocumentLine {
+  id?: number;
+  description: string;
+  /** decimals travel as strings to keep them exact */
+  quantity: string;
+  unit: string;
+  unit_price_ht: string;
+  vat_rate: string;
+  total_ht?: string;
+}
+
+export interface SalesDocument {
+  id: number;
+  kind: DocumentKind;
+  status: DocumentStatus;
+  number: string | null;
+  customer_id: number | null;
+  customer_name: string | null;
+  order_id: number | null;
+  corrects_id: number | null;
+  corrects_number: string | null;
+  nature: OperationNature;
+  vat_on_debits: boolean;
+  issue_date: string | null;
+  due_date: string | null;
+  delivery_date: string | null;
+  valid_until: string | null;
+  notes: string | null;
+  total_ht: string;
+  total_vat: string;
+  total_ttc: string;
+  paid_at: string | null;
+  created_at: string;
+  issued_at: string | null;
+  frozen: boolean;
+  missing: string[];
+  lines: DocumentLine[];
+}
+
+export interface StockMovement {
+  id: number;
+  delta: number;
+  balance_after: number;
+  reason: "restock" | "correction" | "order_confirmed" | "order_cancelled" | "initial";
+  order_id: number | null;
+  cost: number | null;
+  note: string | null;
+  created_at: string;
 }
 
 export interface CandidateOrder {

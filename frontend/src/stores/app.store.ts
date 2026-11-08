@@ -4,6 +4,9 @@ import { apiFetch, apiFetchBlob, setToken } from "@/composables/useApi";
 import type { DocNode } from "@/editor/types";
 import type {
   CandidateOrder,
+  Customer,
+  SalesDocument,
+  StockMovement,
   CostBreakdown,
   CuttingPlan,
   Design,
@@ -232,6 +235,64 @@ export const useAppStore = defineStore("app", {
     },
     async restoreBackup(backup: unknown) {
       return apiFetch<{ restored: Record<string, number> }>("/admin/settings/restore", { method: "POST", body: JSON.stringify(backup) });
+    },
+    // ---- customers
+    async fetchCustomers() {
+      return apiFetch<Customer[]>("/admin/customers");
+    },
+    async fetchCustomer(id: number) {
+      return apiFetch<Customer>(`/admin/customers/${id}`);
+    },
+    async saveCustomer(payload: Partial<Customer>, id?: number) {
+      return id
+        ? apiFetch<Customer>(`/admin/customers/${id}`, { method: "PUT", body: JSON.stringify(payload) })
+        : apiFetch<Customer>("/admin/customers", { method: "POST", body: JSON.stringify(payload) });
+    },
+    async deleteCustomer(id: number) {
+      return apiFetch(`/admin/customers/${id}`, { method: "DELETE" });
+    },
+    async exportCustomer(id: number) {
+      return apiFetch<Record<string, unknown>>(`/admin/customers/${id}/export`);
+    },
+    async eraseCustomer(id: number) {
+      return apiFetch<Customer>(`/admin/customers/${id}/erase`, { method: "POST" });
+    },
+    // ---- quotes, invoices, credit notes
+    async fetchDocuments(filter: { kind?: string; customer_id?: number; order_id?: number } = {}) {
+      const qs = new URLSearchParams();
+      for (const [k, v] of Object.entries(filter)) if (v) qs.set(k, String(v));
+      return apiFetch<SalesDocument[]>(`/admin/documents${qs.toString() ? `?${qs}` : ""}`);
+    },
+    async fetchDocument(id: number) {
+      return apiFetch<SalesDocument>(`/admin/documents/${id}`);
+    },
+    async createDocument(payload: Record<string, unknown>) {
+      return apiFetch<SalesDocument>("/admin/documents", { method: "POST", body: JSON.stringify(payload) });
+    },
+    async updateDocument(id: number, payload: Record<string, unknown>) {
+      return apiFetch<SalesDocument>(`/admin/documents/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+    },
+    async deleteDocument(id: number) {
+      return apiFetch(`/admin/documents/${id}`, { method: "DELETE" });
+    },
+    async documentFromOrder(orderId: number, kind: "quote" | "invoice") {
+      return apiFetch<SalesDocument>(`/admin/documents/from-order/${orderId}?kind=${kind}`, { method: "POST" });
+    },
+    async documentAction(id: number, action: "issue" | "credit-note" | "to-invoice") {
+      return apiFetch<SalesDocument>(`/admin/documents/${id}/${action}`, { method: "POST" });
+    },
+    async documentStatus(id: number, status: string) {
+      return apiFetch<SalesDocument>(`/admin/documents/${id}/status?status=${status}`, { method: "POST" });
+    },
+    documentPdf(id: number, download = false) {
+      return apiFetchBlob(`/admin/documents/${id}/pdf${download ? "?download=true" : ""}`);
+    },
+    // ---- stock ledger
+    async fetchMovements(materialId: number) {
+      return apiFetch<StockMovement[]>(`/admin/materials/${materialId}/movements`);
+    },
+    async updateOrder(id: number, payload: Record<string, unknown>) {
+      return apiFetch<Order>(`/admin/orders/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
     },
     async exportData() {
       return apiFetch<Record<string, unknown>>("/admin/settings/export");

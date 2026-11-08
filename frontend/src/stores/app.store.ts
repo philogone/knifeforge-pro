@@ -227,6 +227,12 @@ export const useAppStore = defineStore("app", {
     async clearMockData() {
       return apiFetch<{ removed: number }>("/admin/settings/mock-data/clear", { method: "POST" });
     },
+    async downloadBackup() {
+      return apiFetch<Record<string, unknown>>("/admin/settings/backup");
+    },
+    async restoreBackup(backup: unknown) {
+      return apiFetch<{ restored: Record<string, number> }>("/admin/settings/restore", { method: "POST", body: JSON.stringify(backup) });
+    },
     async exportData() {
       return apiFetch<Record<string, unknown>>("/admin/settings/export");
     },

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 
-import { hasToken } from "@/composables/useApi";
+import { apiFetch, hasToken } from "@/composables/useApi";
+import type { ShopSettings } from "@/types";
 
 const routes = [
   { path: "/login", name: "login", component: () => import("@/pages/admin/LoginPage.vue") },
@@ -65,6 +66,12 @@ const routes = [
     meta: { requiresAdmin: true },
   },
   {
+    path: "/bienvenue",
+    name: "welcome",
+    component: () => import("@/pages/admin/WelcomePage.vue"),
+    meta: { requiresAdmin: true },
+  },
+  {
     path: "/settings",
     name: "settings",
     component: () => import("@/pages/admin/SettingsPage.vue"),
@@ -77,9 +84,21 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to) => {
+// first-run wizard: checked once per page load, after sign-in
+let onboardingChecked = false;
+
+router.beforeEach(async (to) => {
   if (to.meta.requiresAdmin && !hasToken()) {
     return { name: "login" };
+  }
+  if (to.meta.requiresAdmin && !onboardingChecked && to.name !== "welcome") {
+    onboardingChecked = true;
+    try {
+      const shop = await apiFetch<ShopSettings>("/admin/settings/shop");
+      if (!shop.onboarding_done) return { name: "welcome" };
+    } catch {
+      // the page itself will report the API problem
+    }
   }
 });
 

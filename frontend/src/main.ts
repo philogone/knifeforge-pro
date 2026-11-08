@@ -16,4 +16,6 @@ initTheme();
 const app = createApp(App);
 app.use(createPinia());
 app.use(router);
+// v-focus: put the caret in the first field of a step or a dialog
+app.directive("focus", { mounted: (el: HTMLElement) => el.focus() });
 app.mount("#app");

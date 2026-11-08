@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Float, String, Text
+from sqlalchemy import Boolean, CheckConstraint, Float, String, Text, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -23,3 +23,5 @@ class ShopSettings(Base):
     workshop_contact: Mapped[str | None] = mapped_column(String(200), nullable=True)
     # A small PNG / JPEG / SVG as a data URL (kept with the row: one image, no file store).
     workshop_logo: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # first-run wizard completed (or skipped): the app stops redirecting to it
+    onboarding_done: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())

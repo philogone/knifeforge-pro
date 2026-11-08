@@ -93,6 +93,63 @@ async function clear() {
   }
 }
 
+// ---- restorable backup
+const backupBusy = ref(false);
+const backupMsg = ref("");
+const backupError = ref("");
+
+function saveJson(data: unknown, name: string) {
+  const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadBackup() {
+  backupBusy.value = true;
+  backupError.value = "";
+  try {
+    saveJson(await store.downloadBackup(), `knifeforge-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`);
+  } catch (err) {
+    backupError.value = errorMessage(err, t);
+  } finally {
+    backupBusy.value = false;
+  }
+}
+
+async function onRestoreFile(ev: Event) {
+  const input = ev.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file) return;
+  backupMsg.value = "";
+  backupError.value = "";
+  let data: unknown;
+  try {
+    data = JSON.parse(await file.text());
+  } catch {
+    backupError.value = t("settings.restore.notJson");
+    return;
+  }
+  if (!confirm(t("settings.restore.confirm", { name: file.name }))) return;
+  backupBusy.value = true;
+  try {
+    const res = await store.restoreBackup(data);
+    const total = Object.values(res.restored).reduce((a, b) => a + b, 0);
+    backupMsg.value = t("settings.restore.done", { n: total });
+    await refreshShop();
+  } catch (err) {
+    backupError.value = errorMessage(err, t);
+  } finally {
+    backupBusy.value = false;
+  }
+}
+
 async function exportData() {
   exporting.value = true;
   try {
@@ -225,11 +282,17 @@ async function exportData() {
     <div class="sheet p-5">
       <h2 class="sheet-title">{{ t("settings.backup") }}</h2>
       <p class="sheet-hint text-sm mt-1 max-w-prose">{{ t("settings.backup.hint") }}</p>
-      <div class="mt-3">
-        <button :disabled="exporting" class="btn btn-secondary" @click="exportData">
-          {{ t("settings.backup.export") }}
-        </button>
+      <div class="mt-3 flex flex-wrap items-center gap-3">
+        <button :disabled="backupBusy" class="btn btn-primary" @click="downloadBackup">{{ t("settings.backup.download") }}</button>
+        <label class="btn btn-outline cursor-pointer" :class="backupBusy ? 'opacity-50 pointer-events-none' : ''">
+          {{ t("settings.restore.button") }}
+          <input type="file" accept="application/json,.json" class="sr-only" @change="onRestoreFile" />
+        </label>
+        <button :disabled="exporting" class="link-action" @click="exportData">{{ t("settings.backup.export") }}</button>
       </div>
+      <p class="sheet-hint mt-2 max-w-prose">{{ t("settings.restore.hint") }}</p>
+      <p v-if="backupMsg" class="mt-2 text-sm text-green-700" role="status">{{ backupMsg }}</p>
+      <p v-if="backupError" class="mt-2 text-sm text-red-700" role="alert">{{ backupError }}</p>
     </div>
   </div>
 </template>

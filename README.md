@@ -17,7 +17,7 @@ et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à 
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 <br>
-![Tests backend](https://img.shields.io/badge/tests%20backend-89%20passing-brightgreen)
+![Tests backend](https://img.shields.io/badge/tests%20backend-91%20passing-brightgreen)
 ![Tests frontend](https://img.shields.io/badge/tests%20frontend-134%20passing-brightgreen)
 ![Précision](https://img.shields.io/badge/courbes-%E2%89%A4%200%2C01%20mm-6366f1)
 ![Licence](https://img.shields.io/badge/licence-commerciale-lightgrey)
@@ -197,10 +197,10 @@ ADMIN_PASSWORD_HASH='<hash généré ci-dessus, entre apostrophes>'
 FRONTEND_URL=http://localhost:5173
 ```
 
-Créez les tables puis lancez le serveur (les données de démo se créent au démarrage) :
+Créez ou mettez à jour les tables (migrations Alembic, comme en production), puis lancez le serveur (les données de démo se créent au démarrage) :
 
 ```bash
-python -c "import app.models; from app.database import Base, engine; Base.metadata.create_all(engine)"
+alembic upgrade head
 uvicorn app.main:app --port 8000
 ```
 
@@ -215,6 +215,14 @@ npm run dev                       # http://localhost:5173
 </details>
 
 <a id="architecture"></a>
+
+## 💾 Sauvegardes et mises à jour
+
+- **Chaque nuit** (Docker) : le service `backup` écrit `backups/knifeforge-AAAA-MM-JJ.sql.gz` et garde 14 jours (`BACKUP_KEEP_DAYS`). Restauration :
+  `gunzip -c backups/knifeforge-AAAA-MM-JJ.sql.gz | docker compose exec -T db psql -U knifeforge knifeforge`
+- **À la demande** : *Réglages › Sauvegarde des données › Télécharger une sauvegarde complète*, puis *Restaurer une sauvegarde…* sur la même version de l'application (tout ou rien, en une transaction).
+- **Mettre à jour** : remplacez le code par la nouvelle version, puis `docker compose up -d --build`. Les migrations de base de données s'appliquent seules au démarrage du backend ; faites une sauvegarde juste avant.
+- **Premier lancement** : un assistant (*/bienvenue*) demande le nom et le logo de l'atelier et propose de garder ou d'effacer les données de démonstration.
 
 ## 🏗️ Architecture
 
@@ -305,7 +313,7 @@ knifeforge-pro/
 ## 🧪 Tests
 
 ```bash
-cd backend && pytest              # 89 tests : géométrie, nesting, exports, API, métrologie
+cd backend && pytest              # 91 tests : géométrie, nesting, exports, API, métrologie
 cd frontend && npm test           # 134 tests : moteur d'édition, calibration, perspective, magnétisme, congés, texte, formes, client API, traductions
 cd frontend && npx vue-tsc --noEmit && npm run build
 ```

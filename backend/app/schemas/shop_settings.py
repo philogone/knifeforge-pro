@@ -12,6 +12,7 @@ class ShopSettingsUpdate(BaseModel):
     workshop_contact: str | None = Field(default=None, max_length=200)
     # "" removes the logo
     workshop_logo: str | None = Field(default=None, max_length=LOGO_MAX_CHARS)
+    onboarding_done: bool | None = None
 
     @field_validator("workshop_logo")
     @classmethod
@@ -27,5 +28,6 @@ class ShopSettingsOut(BaseModel):
     workshop_name: str | None = None
     workshop_contact: str | None = None
     workshop_logo: str | None = None
+    onboarding_done: bool = False
 
     model_config = {"from_attributes": True}

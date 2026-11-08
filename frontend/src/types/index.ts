@@ -180,6 +180,8 @@ export interface ShopSettings {
   workshop_contact: string | null;
   /** data URL (PNG, JPEG or SVG) printed on client plans */
   workshop_logo: string | null;
+  /** first-run wizard done (or skipped) */
+  onboarding_done: boolean;
 }
 
 export interface CandidateOrder {

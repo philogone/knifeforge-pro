@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.security import require_admin
@@ -21,6 +21,7 @@ from app.schemas.order import OrderOut
 from app.schemas.saw_blade import SawBladeOut
 from app.schemas.shop_settings import ShopSettingsOut, ShopSettingsUpdate
 from app.schemas.treatment import TreatmentRecipeOut
+from app.services.backup_service import BackupError, export_backup, restore_backup
 from app.services.order_service import load_order_with_relations
 from app.services.seed_service import clear_mock_data, seed_mock_data, seed_mock_designs
 from app.services.shop_settings_service import get_shop_settings
@@ -93,3 +94,19 @@ def export_data(db: Session = Depends(get_db)):
         ],
         "designs": [DesignOut.model_validate(d).model_dump(mode="json") for d in designs],
     }
+
+
+@router.get("/backup")
+def download_backup(db: Session = Depends(get_db)):
+    """Restorable backup: every table, raw rows, tagged with the schema version."""
+    return export_backup(db)
+
+
+@router.post("/restore")
+def restore(payload: dict = Body(...), db: Session = Depends(get_db)):
+    """Replace ALL data with the backup's content (one transaction: all or nothing)."""
+    try:
+        counts = restore_backup(db, payload)
+    except BackupError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"restored": counts}

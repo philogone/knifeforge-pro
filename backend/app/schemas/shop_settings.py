@@ -13,6 +13,22 @@ class ShopSettingsUpdate(BaseModel):
     # "" removes the logo
     workshop_logo: str | None = Field(default=None, max_length=LOGO_MAX_CHARS)
     onboarding_done: bool | None = None
+    legal_name: str | None = Field(default=None, max_length=150)
+    address_line1: str | None = Field(default=None, max_length=200)
+    postal_code: str | None = Field(default=None, max_length=20)
+    city: str | None = Field(default=None, max_length=100)
+    country: str | None = Field(default=None, min_length=2, max_length=2)
+    siren: str | None = Field(default=None, pattern=r"^(\d{9})?$")
+    siret: str | None = Field(default=None, pattern=r"^(\d{14})?$")
+    vat_regime: str | None = Field(default=None, pattern="^(franchise|normal)$")
+    vat_number: str | None = Field(default=None, max_length=20)
+    default_vat_rate: float | None = Field(default=None, ge=0, le=100)
+    trade_register: str | None = Field(default=None, max_length=120)
+    iban: str | None = Field(default=None, max_length=34)
+    bic: str | None = Field(default=None, max_length=11)
+    payment_terms_days: int | None = Field(default=None, ge=0, le=120)
+    late_penalty_text: str | None = Field(default=None, max_length=300)
+    quote_validity_days: int | None = Field(default=None, ge=1, le=365)
 
     @field_validator("workshop_logo")
     @classmethod
@@ -29,5 +45,21 @@ class ShopSettingsOut(BaseModel):
     workshop_contact: str | None = None
     workshop_logo: str | None = None
     onboarding_done: bool = False
+    legal_name: str | None = None
+    address_line1: str | None = None
+    postal_code: str | None = None
+    city: str | None = None
+    country: str = "FR"
+    siren: str | None = None
+    siret: str | None = None
+    vat_regime: str = "franchise"
+    vat_number: str | None = None
+    default_vat_rate: float = 20.0
+    trade_register: str | None = None
+    iban: str | None = None
+    bic: str | None = None
+    payment_terms_days: int = 30
+    late_penalty_text: str | None = None
+    quote_validity_days: int = 30
 
     model_config = {"from_attributes": True}

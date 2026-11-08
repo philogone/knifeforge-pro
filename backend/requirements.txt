@@ -12,6 +12,9 @@ python-multipart==0.0.12
 redis==5.1.1
 shapely==2.2.0
 ezdxf==1.4.5
+# Invoices: PDF rendering and Factur-X (PDF/A-3 + EN 16931 XML)
+reportlab==4.5.1
+factur-x==3.16
 
 # Testing (not needed at runtime, but kept in the same file so `pytest`
 # works out of the box inside the Docker image without a separate install

@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.models.order import OrderStatus
+from app.models.order import OrderStage, OrderStatus
 
 
 class OrderLineIn(BaseModel):
@@ -20,16 +20,22 @@ class OrderLineOut(BaseModel):
 
 
 class OrderCreate(BaseModel):
-    customer_name: str = Field(min_length=1, max_length=150)
+    # either an existing customer, or a free name (kept for quick orders)
+    customer_id: int | None = None
+    customer_name: str | None = Field(default=None, max_length=150)
     customer_email: EmailStr | None = None
     notes: str | None = None
+    due_date: date | None = None
     lines: list[OrderLineIn] = Field(default_factory=list)
 
 
 class OrderUpdate(BaseModel):
+    customer_id: int | None = None
     customer_name: str | None = Field(default=None, min_length=1, max_length=150)
     customer_email: EmailStr | None = None
     notes: str | None = None
+    due_date: date | None = None
+    stage: OrderStage | None = None
     lines: list[OrderLineIn] | None = None
 
 
@@ -39,6 +45,9 @@ class OrderOut(BaseModel):
     customer_email: str | None
     status: OrderStatus
     notes: str | None
+    customer_id: int | None = None
+    due_date: date | None = None
+    stage: OrderStage = OrderStage.TODO
     is_mock: bool
     created_at: datetime
     lines: list[OrderLineOut]

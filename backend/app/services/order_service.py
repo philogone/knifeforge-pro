@@ -10,6 +10,8 @@ from collections import defaultdict
 
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.stock_movement import MovementReason
+from app.services.stock_ledger import record_movement
 from app.models.knife_model import KnifeModel, KnifeModelMaterial
 from app.models.material import DimensionType, Material
 from app.models.order import Order, OrderLine, OrderStatus
@@ -82,6 +84,7 @@ def confirm_order(db: Session, order: Order) -> Order:
     }
     for material_id, amount in requirements.items():
         materials_by_id[material_id].quantity_in_stock -= amount
+        record_movement(db, materials_by_id[material_id], -amount, MovementReason.ORDER_CONFIRMED, order_id=order.id)
 
     order.status = OrderStatus.CONFIRMED
     db.commit()
@@ -100,6 +103,7 @@ def cancel_order(db: Session, order: Order) -> Order:
         }
         for material_id, amount in requirements.items():
             materials_by_id[material_id].quantity_in_stock += amount
+            record_movement(db, materials_by_id[material_id], amount, MovementReason.ORDER_CANCELLED, order_id=order.id)
 
     order.status = OrderStatus.CANCELLED
     db.commit()

@@ -6,6 +6,7 @@ from app.core.security import require_admin
 from app.database import get_db
 from app.models.material import Material
 from app.schemas.cutting import CandidateOrderOut, CuttingOptimizeRequest, CuttingPlanOut
+from app.schemas.stock_movement import StockMovementOut
 from app.schemas.material import (
     MaterialCreate,
     MaterialOut,
@@ -14,7 +15,9 @@ from app.schemas.material import (
     YieldCalcRequest,
     YieldCalcResult,
 )
+from app.models.stock_movement import MovementReason, StockMovement
 from app.services.costing_service import apply_weighted_average_restock
+from app.services.stock_ledger import record_movement
 from app.services.cutting_service import list_candidate_orders, optimize_cutting
 from app.services.yield_service import compute_yield
 
@@ -34,6 +37,8 @@ def list_materials(db: Session = Depends(get_db)):
 def create_material(payload: MaterialCreate, db: Session = Depends(get_db)):
     material = Material(**payload.model_dump())
     db.add(material)
+    db.flush()
+    record_movement(db, material, material.quantity_in_stock, MovementReason.INITIAL)
     db.commit()
     return _query(db).filter(Material.id == material.id).first()
 
@@ -61,6 +66,14 @@ def restock_material(material_id: int, payload: MaterialRestock, db: Session = D
         apply_weighted_average_restock(material, payload.quantity_delta, payload.purchase_price, payload.shipping_cost)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    cost = (payload.purchase_price or 0.0) + (payload.shipping_cost or 0.0)
+    record_movement(
+        db,
+        material,
+        payload.quantity_delta,
+        MovementReason.RESTOCK if cost > 0 else MovementReason.CORRECTION,
+        cost=cost or None,
+    )
     db.commit()
     return _get_or_404(db, material_id)
 
@@ -97,3 +110,16 @@ def delete_material(material_id: int, db: Session = Depends(get_db)):
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(status_code=409, detail="Material is used by one or more knife models") from exc
+
+
+@router.get("/{material_id}/movements", response_model=list[StockMovementOut])
+def stock_movements(material_id: int, limit: int = 200, db: Session = Depends(get_db)):
+    """The ledger behind the stock figure, newest first."""
+    _get_or_404(db, material_id)
+    return (
+        db.query(StockMovement)
+        .filter(StockMovement.material_id == material_id)
+        .order_by(StockMovement.created_at.desc(), StockMovement.id.desc())
+        .limit(min(max(limit, 1), 1000))
+        .all()
+    )

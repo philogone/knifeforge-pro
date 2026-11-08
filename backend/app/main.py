@@ -8,12 +8,14 @@ from app.config import get_settings
 from app.database import SessionLocal
 from app.routers import (
     auth,
+    customers,
     designs,
     knife_models,
     materials,
     nesting,
     orders,
     production,
+    sales_documents,
     saw_blades,
     settings,
     treatments,
@@ -41,7 +43,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="KnifeForge Manager", lifespan=lifespan)
+app = FastAPI(title="KnifeForge Pro", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -61,6 +63,8 @@ app.include_router(production.router)
 app.include_router(designs.router)
 app.include_router(nesting.router)
 app.include_router(settings.router)
+app.include_router(customers.router)
+app.include_router(sales_documents.router)
 
 
 @app.get("/api/health")

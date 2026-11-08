@@ -1,8 +1,8 @@
 import enum
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -18,6 +18,19 @@ class OrderStatus(str, enum.Enum):
     CANCELLED = "cancelled"
 
 
+class OrderStage(str, enum.Enum):
+    """Where the knife is on the bench, independent of the commercial status."""
+
+    TODO = "todo"
+    FORGING = "forging"
+    HEAT_TREATMENT = "heat_treatment"
+    GRINDING = "grinding"
+    HANDLE = "handle"
+    FINISHING = "finishing"
+    READY = "ready"
+    DELIVERED = "delivered"
+
+
 class Order(Base):
     __tablename__ = "orders"
 
@@ -30,6 +43,11 @@ class Order(Base):
         index=True,
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), nullable=True, index=True)
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    stage: Mapped[OrderStage] = mapped_column(
+        Enum(OrderStage, name="order_stage", values_callable=lambda e: [x.value for x in e]), default=OrderStage.TODO
+    )
 
     is_mock: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

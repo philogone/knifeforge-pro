@@ -33,7 +33,13 @@ database.SessionLocal.configure(bind=test_engine)
 def _fresh_database():
     database.Base.metadata.create_all(test_engine)
     yield
-    database.Base.metadata.drop_all(test_engine)
+    # dropping tables that still hold rows trips SQLite's foreign-key checks (self-referencing
+    # credit notes, RESTRICT links): the content is thrown away anyway, so switch them off
+    with test_engine.connect() as conn:
+        conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        database.Base.metadata.drop_all(conn)
+        conn.exec_driver_sql("PRAGMA foreign_keys=ON")
+        conn.commit()
 
 
 @pytest.fixture

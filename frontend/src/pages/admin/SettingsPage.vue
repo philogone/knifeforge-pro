@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from "vue";
 
 import { type Locale, useI18n } from "@/i18n";
 import { type ThemeChoice, useTheme } from "@/composables/useTheme";
+import { CARD_HEIGHT_MM, CARD_WIDTH_MM, isScreenCalibrated, saveScreenCalibration, screenPxPerMm } from "@/editor/screenScale";
 import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
 
@@ -15,6 +16,19 @@ const busy = ref(false);
 const exporting = ref(false);
 
 const shop = reactive({ hourly_rate: 0, default_margin_percent: 0 });
+
+// ---- true-size screen: match a bank card
+const calibWidth = ref(Math.round(screenPxPerMm() * CARD_WIDTH_MM));
+const calibrated = ref(isScreenCalibrated());
+function saveCalibration() {
+  saveScreenCalibration(calibWidth.value / CARD_WIDTH_MM);
+  calibrated.value = true;
+}
+function resetCalibration() {
+  saveScreenCalibration(null);
+  calibrated.value = false;
+  calibWidth.value = Math.round(screenPxPerMm() * CARD_WIDTH_MM);
+}
 
 // ---- invoicing identity and legal mentions
 const billing = reactive({
@@ -248,6 +262,29 @@ async function exportData() {
         >
           {{ t(`theme.${c}`) }}
         </button>
+      </div>
+    </section>
+
+    <section class="sheet p-5 mb-6" aria-labelledby="calib-title">
+      <h2 id="calib-title" class="sheet-title">{{ t("calib.screenTitle") }}</h2>
+      <p class="sheet-hint text-sm mt-1 max-w-prose">{{ t("calib.screenHint") }}</p>
+      <div class="mt-4 overflow-x-auto">
+        <div
+          class="rounded-[3.5%/5.5%] border-2 border-dashed border-accent-600 bg-accent-50 flex items-center justify-center text-xs text-accent-800"
+          :style="{ width: `${calibWidth}px`, height: `${(calibWidth * CARD_HEIGHT_MM) / CARD_WIDTH_MM}px` }"
+        >
+          {{ t("calib.card") }}
+        </div>
+      </div>
+      <label class="mt-3 flex items-center gap-3 text-sm text-slate-700">
+        <span class="shrink-0">{{ t("calib.size") }}</span>
+        <input v-model.number="calibWidth" type="range" min="200" max="700" step="1" class="flex-1 max-w-md" :aria-label="t('calib.size')" />
+        <input v-model.number="calibWidth" type="number" min="200" max="700" class="input-sm w-20 text-right tabular-nums" :aria-label="t('calib.size')" />
+      </label>
+      <div class="mt-3 flex items-center gap-3">
+        <button class="btn btn-primary" @click="saveCalibration">{{ t("calib.save") }}</button>
+        <button v-if="calibrated" class="btn btn-outline" @click="resetCalibration">{{ t("calib.reset") }}</button>
+        <span class="text-xs text-slate-500">{{ calibrated ? t("calib.calibrated") : t("calib.notCalibrated") }}</span>
       </div>
     </section>
 

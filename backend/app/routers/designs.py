@@ -157,10 +157,14 @@ def _safe_filename(name: str, extension: str) -> str:
 
 
 @router.get("/{design_id}/export.svg")
-def export_svg(design_id: int, db: Session = Depends(get_db)):
+def export_svg(
+    design_id: int,
+    kerf: float = Query(default=0.0, ge=0, le=export_service.MAX_KERF_MM, description="Kerf to compensate (mm)"),
+    db: Session = Depends(get_db),
+):
     design = _get_or_404(db, design_id)
     try:
-        svg = export_service.design_to_svg(_document(design))
+        svg = export_service.design_to_svg(_document(design), kerf_mm=kerf)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return Response(
@@ -171,10 +175,15 @@ def export_svg(design_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{design_id}/export.dxf")
-def export_dxf(design_id: int, db: Session = Depends(get_db)):
+def export_dxf(
+    design_id: int,
+    curves: str = Query(default="polylines", pattern="^(polylines|arcs)$"),
+    kerf: float = Query(default=0.0, ge=0, le=export_service.MAX_KERF_MM, description="Kerf to compensate (mm)"),
+    db: Session = Depends(get_db),
+):
     design = _get_or_404(db, design_id)
     try:
-        data = export_service.design_to_dxf(_document(design))
+        data = export_service.design_to_dxf(_document(design), curves=curves, kerf_mm=kerf)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return Response(

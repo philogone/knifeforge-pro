@@ -197,8 +197,11 @@ export const useAppStore = defineStore("app", {
       });
       return res.contours;
     },
-    downloadDesignFile(id: number, kind: "export.svg" | "export.dxf") {
-      return apiFetchBlob(`/admin/designs/${id}/${kind}`);
+    downloadDesignFile(id: number, kind: "export.svg" | "export.dxf", opts: { curves?: "polylines" | "arcs"; kerf?: number } = {}) {
+      const qs = new URLSearchParams();
+      if (opts.curves && kind === "export.dxf") qs.set("curves", opts.curves);
+      if (opts.kerf) qs.set("kerf", String(opts.kerf));
+      return apiFetchBlob(`/admin/designs/${id}/${kind}${qs.toString() ? `?${qs}` : ""}`);
     },
     designPlan(id: number, params: Record<string, string | number | undefined>, download = false) {
       const qs = new URLSearchParams();

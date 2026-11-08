@@ -18,6 +18,7 @@ import { RULER_SIZE, drawGrid, drawRulers, screenToWorld } from "@/editor/view";
 import { useI18n } from "@/i18n";
 import { errorMessage } from "@/i18n/apiErrors";
 import { useTheme } from "@/composables/useTheme";
+import { screenPxPerMm } from "@/editor/screenScale";
 import { useAppStore } from "@/stores/app.store";
 import type { Design, DesignKind, DesignSummary } from "@/types";
 
@@ -226,7 +227,7 @@ function attachEngine(doc: Design) {
       syncSelectionForms(s);
     }),
     e.on("view", () => {
-      zoomPct.value = Math.round((e.zoom / (96 / 25.4)) * 100);
+      zoomPct.value = Math.round((e.zoom / screenPxPerMm()) * 100);
       paintBackground();
       paintRulers();
     }),
@@ -385,11 +386,35 @@ async function save(): Promise<boolean> {
   }
 }
 
+// export options, remembered between sessions
+function storedNumber(key: string, fallback: number): number {
+  try {
+    const v = Number(localStorage.getItem(key));
+    return Number.isFinite(v) && localStorage.getItem(key) !== null ? v : fallback;
+  } catch {
+    return fallback;
+  }
+}
+const exportOpts = reactive({ kerf: storedNumber("knifeforge_export_kerf", 0), arcs: storedNumber("knifeforge_export_arcs", 0) === 1 });
+watch(
+  () => ({ ...exportOpts }),
+  (o) => {
+    try {
+      localStorage.setItem("knifeforge_export_kerf", String(o.kerf || 0));
+      localStorage.setItem("knifeforge_export_arcs", o.arcs ? "1" : "0");
+    } catch {
+      // not persisted
+    }
+  },
+);
+
 async function exportFile(kind: "export.svg" | "export.dxf") {
   if (unsaved.value && !(await save())) return;
   try {
-    const blob = await store.downloadDesignFile(designId.value, kind);
-    saveBlob(blob, `${meta.name.replace(/[^\w.-]+/g, "_")}.${kind.split(".")[1]}`);
+    const kerf = Math.max(0, Math.min(3, Number(exportOpts.kerf) || 0));
+    const blob = await store.downloadDesignFile(designId.value, kind, { curves: exportOpts.arcs ? "arcs" : "polylines", kerf });
+    const suffix = kerf ? `_kerf${String(kerf).replace(".", ",")}` : "";
+    saveBlob(blob, `${meta.name.replace(/[^\w.-]+/g, "_")}${suffix}.${kind.split(".")[1]}`);
   } catch (err) {
     setStatus(t("designs.exportFailed", { error: errorMessage(err, t) }), true);
   }
@@ -1071,11 +1096,19 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <summary class="list-none cursor-pointer select-none flex items-center gap-1 px-2 py-1 rounded-md border border-slate-300 bg-paper text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors">
             {{ t("editor.file") }} <EditorIcon name="chevron-down" :size="14" />
           </summary>
-          <div class="absolute right-0 z-30 mt-1 w-48 bg-paper border border-slate-200 rounded-lg shadow-lg py-1">
+          <div class="absolute right-0 z-30 mt-1 w-72 bg-paper border border-slate-200 rounded-lg shadow-lg py-1">
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" @click="importFrom">{{ t("editor.importSvg") }}</button>
             <div class="my-1 border-t border-slate-100"></div>
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" @click="exportFrom('export.svg')">{{ t("editor.exportSvg") }}</button>
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" @click="exportFrom('export.dxf')">{{ t("editor.exportDxf") }}</button>
+            <div class="my-1 border-t border-slate-100"></div>
+            <div class="px-3 py-1.5 space-y-2 text-xs text-slate-600" @click.stop>
+              <label class="flex items-center gap-2"><input v-model="exportOpts.arcs" type="checkbox" /> {{ t("export.arcs") }}</label>
+              <label class="flex items-center justify-between gap-2">{{ t("export.kerf") }}
+                <input v-model.number="exportOpts.kerf" type="number" min="0" max="3" step="0.01" class="input-sm w-20 text-right" />
+              </label>
+              <p class="leading-snug text-slate-500">{{ exportOpts.kerf ? t("export.kerfOn", { half: String((Number(exportOpts.kerf) || 0) / 2).replace(".", ",") }) : t("export.kerfOff") }}</p>
+            </div>
           </div>
         </details>
         <button class="px-2 py-1 rounded border border-slate-300 text-slate-700 hover:bg-slate-50" @click="openPlan">{{ t("editor.plan") }}</button>

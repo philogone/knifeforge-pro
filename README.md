@@ -17,8 +17,8 @@ et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à 
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 <br>
-![Tests backend](https://img.shields.io/badge/tests%20backend-100%20passing-brightgreen)
-![Tests frontend](https://img.shields.io/badge/tests%20frontend-134%20passing-brightgreen)
+![Tests backend](https://img.shields.io/badge/tests%20backend-105%20passing-brightgreen)
+![Tests frontend](https://img.shields.io/badge/tests%20frontend-137%20passing-brightgreen)
 ![Précision](https://img.shields.io/badge/courbes-%E2%89%A4%200%2C01%20mm-6366f1)
 ![Licence](https://img.shields.io/badge/licence-commerciale-lightgrey)
 
@@ -124,6 +124,8 @@ Placement des **vraies formes** (perçages compris) sur vos plaques et barres.
 | Coordonnées stockées | 0,0001 mm |
 | SVG exporté | 0,001 mm, courbes de Bézier **non aplaties** |
 | Aires, périmètres, DXF, nesting | courbes aplaties à **≤ 0,01 mm** (formule de Wang) |
+| DXF en arcs (option) | Béziers converties en arcs de cercle à **≤ 0,01 mm**, vérifié dans les deux sens |
+| Compensation du trait de coupe (option) | contours décalés de la moitié du trait (trous vers l'intérieur), arrondis ≤ 0,0005 mm |
 | Espacement du nesting | **minimum garanti** : jamais sous la valeur demandée, excédent ≤ ~0,05 mm |
 | Marge de bord | respectée au micron sur les polygones (≤ 0,01 mm d'écart sur les courbes) |
 | Cercle / ellipse dessinés | Bézier à 4 nœuds : écart radial ≤ 0,027 % du rayon (0,03 mm pour R = 100 mm) |
@@ -134,11 +136,11 @@ Placement des **vraies formes** (perçages compris) sur vos plaques et barres.
 
 <br>
 
-- **L'écran n'est pas un instrument de mesure** : le zoom « 1:1 » suppose 96 dpi. Fiez-vous aux cotes et aux champs numériques.
+- **L'écran n'est pas un instrument de mesure** : le zoom « 1:1 » suppose 96 dpi tant que l'écran n'est pas calibré (*Réglages › Affichage à taille réelle*, avec une carte bancaire). Fiez-vous aux cotes et aux champs numériques.
 - **Imprimez les plans à 100 %**, sans « ajuster à la page », pour qu'ils soient à l'échelle.
 - Un **SVG importé sans unité** est lu à 96 dpi : vérifiez-le avec une cote.
-- Le **DXF contient des polylignes** (pas d'arcs), aplaties à 0,01 mm.
-- Le **trait de scie et l'offset laser** ne sont pas compensés automatiquement : utilisez l'outil *Décalage*.
+- Le **DXF** contient des polylignes aplaties à 0,01 mm, ou des arcs (option *DXF en arcs* du menu Fichier).
+- Le **trait de coupe** (laser, jet d'eau) se compense à l'export (menu Fichier) ; le trait de scie reste porté par la scie pour le calcul de matière.
 - Le **nesting est une heuristique** rapide et déterministe (bottom-left glouton avec compactage), pas un optimum mathématique.
 
 Le détail des choix techniques est dans [`HANDOVER.md`](HANDOVER.md#knifeforge-pro--vector-designs-nesting-and-the-precision-contract).
@@ -313,8 +315,8 @@ knifeforge-pro/
 ## 🧪 Tests
 
 ```bash
-cd backend && pytest              # 100 tests : géométrie, nesting, exports, API, métrologie
-cd frontend && npm test           # 134 tests : moteur d'édition, calibration, perspective, magnétisme, congés, texte, formes, client API, traductions
+cd backend && pytest              # 105 tests : géométrie, nesting, exports, API, métrologie
+cd frontend && npm test           # 137 tests : moteur d'édition, calibration, perspective, magnétisme, congés, texte, formes, client API, traductions
 cd frontend && npx vue-tsc --noEmit && npm run build
 ```
 

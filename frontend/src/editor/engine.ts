@@ -5,6 +5,7 @@ import type { ShapePart } from "./shapes";
 import { docToPixel, planRectify, rectangleTargets, rectifiedPlacement, rectifyImage, type RectifyPlan } from "./perspective";
 import { chamferCorner, circleNodes, filletCorner, holeCentres, type Axis, type CornerError, type HolePattern } from "./drafting";
 import { MAX_GRID_MM, MAX_ZOOM, MIN_GRID_MM, MIN_ZOOM, PX_PER_MM_CSS, ROLE_STYLE, UI_COLOR, defaultLayers } from "./constants";
+import { screenPxPerMm } from "./screenScale";
 import { History } from "./history";
 import { createTool, type ToolHandler } from "./tools";
 import type {
@@ -264,7 +265,7 @@ export class EditorEngine {
   }
 
   zoomActual(): void {
-    this.setZoom(PX_PER_MM_CSS);
+    this.setZoom(screenPxPerMm());
   }
 
   panByScreen(dx: number, dy: number): void {

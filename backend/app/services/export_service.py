@@ -13,7 +13,9 @@ from xml.sax.saxutils import escape
 import ezdxf
 
 from app.schemas.design import DesignDocument, DimensionObject, Node, PathObject
+from app.services.arcs import cubic_to_arcs
 from app.services.geometry_service import (
+    DEFAULT_TOLERANCE_MM,
     document_bounds,
     extract_engraving_lines,
     extract_parts,
@@ -64,16 +66,35 @@ def _layer_roles(doc: DesignDocument) -> dict[str, tuple[str, bool]]:
     return {layer.id: (layer.role, layer.visible) for layer in doc.layers}
 
 
+MAX_KERF_MM = 3.0
+# round joins of the offset: chord error kerf/2 * (1 - cos(pi / (4 * 32))) <= 0.0005 mm for 3 mm kerf
+_KERF_QUAD_SEGS = 32
+
+
+def kerf_compensated_rings(doc: DesignDocument, kerf_mm: float) -> list[list[tuple[float, float]]]:
+    """Every cut part offset by half the kerf, so the beam's centre line leaves the part to size:
+    outlines grow, holes shrink (shapely buffer on the part with its holes). Flattened at the
+    project tolerance, so the result is polylines."""
+    if not 0 < kerf_mm <= MAX_KERF_MM:
+        raise ValueError(f"Kerf must be between 0 and {MAX_KERF_MM} mm")
+    rings: list[list[tuple[float, float]]] = []
+    for part in extract_parts(doc):
+        grown = part.geometry.buffer(kerf_mm / 2, quad_segs=_KERF_QUAD_SEGS, join_style="round")
+        rings.extend(polygon_rings(grown))
+    return rings
+
+
 # ---------------------------------------------------------------------------
 # Design -> SVG (1 user unit = 1 mm)
 # ---------------------------------------------------------------------------
 
 
-def design_to_svg(doc: DesignDocument, margin_mm: float = 5.0) -> str:
+def design_to_svg(doc: DesignDocument, margin_mm: float = 5.0, kerf_mm: float = 0.0) -> str:
     bounds = document_bounds(doc)
     if bounds is None:
         raise ValueError("The design has nothing to export")
     minx, miny, maxx, maxy = bounds
+    margin_mm += kerf_mm  # room for the grown outline
     minx -= margin_mm
     miny -= margin_mm
     width = maxx - minx + margin_mm
@@ -81,12 +102,19 @@ def design_to_svg(doc: DesignDocument, margin_mm: float = 5.0) -> str:
     roles = _layer_roles(doc)
 
     elements: list[str] = []
+    if kerf_mm:
+        elements.append(
+            f'<path d="{_rings_d(kerf_compensated_rings(doc, kerf_mm))}" fill="none" stroke="{CUT_COLOR}" '
+            f'stroke-width="0.1" fill-rule="evenodd" data-layer="cut" data-kerf="{_num(kerf_mm)}"/>'
+        )
     for obj in doc.objects:
         if not isinstance(obj, PathObject):
             continue
         role, visible = roles[obj.layer]
         if not visible or role not in ("cut", "hole", "engrave"):
             continue
+        if kerf_mm and role != "engrave":
+            continue  # cut outlines come from the compensated rings above
         color = ENGRAVE_COLOR if role == "engrave" else CUT_COLOR
         fill = ' fill-rule="evenodd"' if obj.closed else ""
         elements.append(
@@ -162,7 +190,37 @@ def _dxf_bytes(dxf: ezdxf.document.Drawing) -> bytes:
     return stream.getvalue().encode("utf-8")
 
 
-def design_to_dxf(doc: DesignDocument) -> bytes:
+def _contour_bulges(nodes: list[Node], closed: bool, to_dxf, tolerance: float) -> list[tuple[float, float, float]]:
+    """(x, y, bulge) vertices of one contour in DXF space; the bulge of a vertex shapes the
+    segment that starts there. Fitted after the y-flip so arc directions are DXF's."""
+    vertices: list[tuple[float, float, float]] = []
+    count = len(nodes)
+    segments = count if closed else count - 1
+    start = to_dxf(nodes[0].x, nodes[0].y)
+    for i in range(segments):
+        a, b = nodes[i], nodes[(i + 1) % count]
+        p0 = to_dxf(a.x, a.y)
+        c1 = to_dxf(a.x + a.ox, a.y + a.oy)
+        c2 = to_dxf(b.x + b.ix, b.y + b.iy)
+        p1 = to_dxf(b.x, b.y)
+        current = p0
+        for end, bulge in cubic_to_arcs(p0, c1, c2, p1, tolerance):
+            vertices.append((current[0], current[1], bulge))
+            current = end
+    if not closed:
+        last = to_dxf(nodes[-1].x, nodes[-1].y)
+        vertices.append((last[0], last[1], 0.0))
+    elif not vertices:
+        vertices.append((start[0], start[1], 0.0))
+    return vertices
+
+
+def design_to_dxf(doc: DesignDocument, curves: str = "polylines", kerf_mm: float = 0.0) -> bytes:
+    """`curves`: "polylines" (flattened at 0.01 mm, every program reads them) or "arcs"
+    (LWPOLYLINE with bulges, arcs within 0.01 mm of the Béziers). `kerf_mm` > 0 offsets cut
+    outlines by half the kerf (always polylines: an offset Bézier is no longer a Bézier)."""
+    if curves not in ("polylines", "arcs"):
+        raise ValueError("curves must be 'polylines' or 'arcs'")
     parts = extract_parts(doc)
     lines = extract_engraving_lines(doc)
     if not parts and not lines:
@@ -171,13 +229,33 @@ def design_to_dxf(doc: DesignDocument) -> bytes:
     assert bounds is not None
     minx, _, _, maxy = bounds
 
+    def to_dxf(x: float, y: float) -> tuple[float, float]:
+        return (x - minx, maxy - y)
+
     dxf = _new_dxf()
     msp = dxf.modelspace()
-    for part in parts:
-        for ring in polygon_rings(part.geometry):
-            msp.add_lwpolyline([(x - minx, maxy - y) for x, y in ring], close=True, dxfattribs={"layer": "CUT"})
+    if kerf_mm:
+        for ring in kerf_compensated_rings(doc, kerf_mm):
+            msp.add_lwpolyline([to_dxf(x, y) for x, y in ring], close=True, dxfattribs={"layer": "CUT"})
+    elif curves == "arcs":
+        roles = _layer_roles(doc)
+        for obj in doc.objects:
+            if not isinstance(obj, PathObject):
+                continue
+            role, visible = roles[obj.layer]
+            if not visible or role not in ("cut", "hole") or not obj.closed:
+                continue
+            for contour in obj.contours:
+                if len(contour) < 2:
+                    continue
+                verts = _contour_bulges(contour, True, to_dxf, DEFAULT_TOLERANCE_MM)
+                msp.add_lwpolyline(verts, format="xyb", close=True, dxfattribs={"layer": "CUT"})
+    else:
+        for part in parts:
+            for ring in polygon_rings(part.geometry):
+                msp.add_lwpolyline([to_dxf(x, y) for x, y in ring], close=True, dxfattribs={"layer": "CUT"})
     for line in lines:
-        msp.add_lwpolyline([(x - minx, maxy - y) for x, y in line], dxfattribs={"layer": "ENGRAVE"})
+        msp.add_lwpolyline([to_dxf(x, y) for x, y in line], dxfattribs={"layer": "ENGRAVE"})
     return _dxf_bytes(dxf)
 
 

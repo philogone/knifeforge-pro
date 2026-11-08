@@ -47,7 +47,9 @@ class SalesDocument(Base):
     customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
     order_id: Mapped[int | None] = mapped_column(ForeignKey("orders.id", ondelete="SET NULL"), nullable=True)
     # a credit note cancels (part of) this invoice
-    corrects_id: Mapped[int | None] = mapped_column(ForeignKey("sales_documents.id", ondelete="RESTRICT"), nullable=True)
+    # NO ACTION (not RESTRICT): still blocks deleting a corrected invoice, but lets a full
+    # restore wipe the table in one statement on PostgreSQL
+    corrects_id: Mapped[int | None] = mapped_column(ForeignKey("sales_documents.id"), nullable=True)
 
     issue_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)

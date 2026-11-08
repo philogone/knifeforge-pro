@@ -74,7 +74,7 @@ def upgrade() -> None:
         sa.Column("number", sa.String(30)),
         sa.Column("customer_id", sa.Integer(), sa.ForeignKey("customers.id", ondelete="SET NULL")),
         sa.Column("order_id", sa.Integer(), sa.ForeignKey("orders.id", ondelete="SET NULL")),
-        sa.Column("corrects_id", sa.Integer(), sa.ForeignKey("sales_documents.id", ondelete="RESTRICT")),
+        sa.Column("corrects_id", sa.Integer(), sa.ForeignKey("sales_documents.id")),
         sa.Column("issue_date", sa.Date()),
         sa.Column("due_date", sa.Date()),
         sa.Column("delivery_date", sa.Date()),

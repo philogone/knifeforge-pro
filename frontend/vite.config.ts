@@ -8,6 +8,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      // paper-full bundles acorn for PaperScript (unused), which calls `new Function` at load:
+      // the Content-Security-Policy forbids eval, so the editor would not start. Same API, no parser.
+      paper: "paper/dist/paper-core.js",
     },
   },
   server: {

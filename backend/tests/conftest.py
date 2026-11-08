@@ -1,29 +1,35 @@
-"""Shared test setup: every test runs against a throw-away in-memory SQLite
-database (never the real Postgres), with admin auth bypassed for API tests."""
+"""Shared test setup: every test runs against a throw-away database, with admin auth
+bypassed for API tests. In-memory SQLite by default; set TEST_DATABASE_URL to an EMPTY,
+disposable PostgreSQL database (CI does) to run the same suite on the production engine.
+Its tables are dropped after every test."""
 
 import os
 
-os.environ.setdefault("SECRET_KEY", "test-secret")
-os.environ["DATABASE_URL"] = "sqlite://"
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "")
+os.environ.setdefault("SECRET_KEY", "test-secret-not-for-production")
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL or "sqlite://"
 os.environ.setdefault("ADMIN_EMAIL", "admin@example.com")
 os.environ.setdefault("ADMIN_PASSWORD_HASH", "$2b$12$abcdefghijklmnopqrstuv")
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import create_engine, event  # noqa: E402
+from sqlalchemy.orm import close_all_sessions  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 
 import app.database as database  # noqa: E402
 from app.core.security import require_admin  # noqa: E402
 from app.main import app  # noqa: E402
 
-test_engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+if TEST_DATABASE_URL:
+    test_engine = create_engine(TEST_DATABASE_URL)
+else:
+    test_engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
 
-
-@event.listens_for(test_engine, "connect")
-def _enforce_foreign_keys(dbapi_connection, _record):
-    # SQLite ignores ON DELETE SET NULL / RESTRICT unless asked — Postgres enforces them.
-    dbapi_connection.execute("PRAGMA foreign_keys=ON")
+    @event.listens_for(test_engine, "connect")
+    def _enforce_foreign_keys(dbapi_connection, _record):
+        # SQLite ignores ON DELETE SET NULL / RESTRICT unless asked — Postgres enforces them.
+        dbapi_connection.execute("PRAGMA foreign_keys=ON")
 
 
 database.SessionLocal.configure(bind=test_engine)
@@ -35,11 +41,15 @@ def _fresh_database():
     yield
     # dropping tables that still hold rows trips SQLite's foreign-key checks (self-referencing
     # credit notes, RESTRICT links): the content is thrown away anyway, so switch them off
-    with test_engine.connect() as conn:
-        conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
-        database.Base.metadata.drop_all(conn)
-        conn.exec_driver_sql("PRAGMA foreign_keys=ON")
-        conn.commit()
+    close_all_sessions()  # PostgreSQL would wait on locks held by open sessions
+    if test_engine.dialect.name == "sqlite":
+        with test_engine.connect() as conn:
+            conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
+            database.Base.metadata.drop_all(conn)
+            conn.exec_driver_sql("PRAGMA foreign_keys=ON")
+            conn.commit()
+    else:
+        database.Base.metadata.drop_all(test_engine)
 
 
 @pytest.fixture

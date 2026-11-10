@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,12 +18,20 @@ class Settings(BaseSettings):
     database_url: str
     redis_url: str = "redis://redis:6379/0"
 
-    admin_email: str
-    admin_password_hash: str
+    # Docker passes the admin account through the environment. The desktop build leaves both
+    # empty until the first-run screen creates them (see app/core/desktop.py).
+    admin_email: str = ""
+    admin_password_hash: str = ""
 
     rate_limit_per_minute: int = 60
 
     seed_mock_data_on_startup: bool = True
+
+    # desktop build (Windows installer): one workshop, one machine, SQLite, no Docker
+    desktop: bool = False
+    data_dir: str = ""
+    # built interface served by the backend itself (desktop); nginx serves it under Docker
+    frontend_dist: str = ""
 
     @field_validator("secret_key")
     @classmethod
@@ -33,6 +41,13 @@ class Settings(BaseSettings):
         if value.strip().lower() in placeholders or value.strip().lower().startswith("change-me") or len(value.strip()) < 16:
             raise ValueError("SECRET_KEY is too short or a placeholder: generate one with `python -c \"import secrets; print(secrets.token_hex(32))\"`")
         return value
+
+
+    @model_validator(mode="after")
+    def _admin_account_outside_desktop(self) -> "Settings":
+        if not self.desktop and not (self.admin_email and self.admin_password_hash):
+            raise ValueError("ADMIN_EMAIL and ADMIN_PASSWORD_HASH are required (see .env.example)")
+        return self
 
 
 @lru_cache

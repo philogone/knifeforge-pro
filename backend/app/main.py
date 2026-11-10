@@ -1,8 +1,11 @@
 import logging
+import threading
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from app.config import get_settings
 from app.database import SessionLocal
@@ -41,7 +44,13 @@ async def lifespan(app: FastAPI):
                 logger.info("Seeded %s mock design(s)", designs_created)
         finally:
             db.close()
+    stop = threading.Event()
+    if app_settings.desktop:
+        from app.services.auto_backup import start_scheduler
+
+        start_scheduler(stop)
     yield
+    stop.set()
 
 
 app = FastAPI(title="KnifeForge Pro", lifespan=lifespan)
@@ -71,4 +80,39 @@ app.include_router(dashboard.router)
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "app": "knifeforge-pro", "desktop": app_settings.desktop}
+
+
+# ---- desktop build: the backend also serves the built interface (nginx does it under Docker)
+# Same security headers as frontend/nginx.conf: everything comes from this origin, no inline or
+# eval script.
+SECURITY_HEADERS = {
+    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; frame-src 'self' blob:; "
+    "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+}
+
+if app_settings.frontend_dist:
+    dist = Path(app_settings.frontend_dist).resolve()
+
+    @app.middleware("http")
+    async def security_headers(request: Request, call_next):
+        response = await call_next(request)
+        for name, value in SECURITY_HEADERS.items():
+            response.headers.setdefault(name, value)
+        return response
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def interface(path: str):
+        if path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not found")
+        file = (dist / path).resolve()
+        if path and file.is_file() and dist in file.parents:
+            # hashed asset names never change: cache them; index.html is always revalidated
+            cache = "public, max-age=31536000, immutable" if path.startswith("assets/") else "no-cache"
+            return FileResponse(file, headers={"Cache-Control": cache})
+        return FileResponse(dist / "index.html", headers={"Cache-Control": "no-cache"})

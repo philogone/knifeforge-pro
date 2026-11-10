@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 
 import { type Locale, useI18n } from "@/i18n";
 import { type ThemeChoice, useTheme } from "@/composables/useTheme";
 import { CARD_HEIGHT_MM, CARD_WIDTH_MM, isScreenCalibrated, saveScreenCalibration, screenPxPerMm } from "@/editor/screenScale";
 import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
+import type { AutoBackup } from "@/types";
 
 const { t, locale, setLocale } = useI18n();
 const store = useAppStore();
@@ -122,6 +123,43 @@ async function refresh() {
 onMounted(() => {
   refresh();
   refreshShop();
+  loadAutoBackup();
+});
+
+// ---- daily automatic backup (desktop build only: the section stays hidden under Docker)
+const auto = ref<AutoBackup | null>(null);
+const autoForm = reactive({ enabled: true, directory: "", keep_days: 30 });
+const autoBusy = ref(false);
+const autoMsg = ref("");
+const autoError = ref("");
+async function loadAutoBackup() {
+  try {
+    auto.value = await store.fetchAutoBackup();
+    Object.assign(autoForm, { enabled: auto.value.enabled, directory: auto.value.directory, keep_days: auto.value.keep_days });
+  } catch {
+    auto.value = null;
+  }
+}
+async function autoAction(action: () => Promise<AutoBackup>, done: string) {
+  autoBusy.value = true;
+  autoMsg.value = "";
+  autoError.value = "";
+  try {
+    auto.value = await action();
+    if (auto.value.last_error) autoError.value = auto.value.last_error;
+    else autoMsg.value = t(done);
+  } catch (err) {
+    autoError.value = errorMessage(err, t);
+  } finally {
+    autoBusy.value = false;
+  }
+}
+const saveAuto = () => autoAction(() => store.saveAutoBackup({ ...autoForm, directory: autoForm.directory.trim() }), "autoBackup.saved");
+const runAuto = () => autoAction(() => store.runAutoBackup(), "autoBackup.done");
+const lastBackupLabel = computed(() => {
+  if (!auto.value?.last_at) return t("autoBackup.never");
+  const d = new Date(auto.value.last_at);
+  return t("autoBackup.last", { when: d.toLocaleString(locale.value === "fr" ? "fr-FR" : "en-GB", { dateStyle: "long", timeStyle: "short" }), file: auto.value.last_file ?? "" });
 });
 
 async function seed() {
@@ -441,6 +479,28 @@ async function exportData() {
           <p v-if="backupMsg" class="mt-2 text-sm text-green-700" role="status">{{ backupMsg }}</p>
           <p v-if="backupError" class="mt-2 text-sm text-red-700" role="alert">{{ backupError }}</p>
         </div>
+        <section v-if="auto" class="sheet p-5" aria-labelledby="auto-backup-title">
+          <h2 id="auto-backup-title" class="sheet-title">{{ t("autoBackup.title") }}</h2>
+          <p class="sheet-hint text-sm mt-1 max-w-prose">{{ t("autoBackup.hint") }}</p>
+          <label class="mt-3 flex items-center gap-2 text-sm text-slate-700">
+            <input v-model="autoForm.enabled" type="checkbox" /> {{ t("autoBackup.enabled") }}
+          </label>
+          <label class="block mt-3">
+            <span class="field-label">{{ t("autoBackup.directory") }}</span>
+            <input v-model="autoForm.directory" type="text" spellcheck="false" class="input w-full font-mono text-xs" />
+          </label>
+          <label class="block mt-3">
+            <span class="field-label">{{ t("autoBackup.keepDays") }}</span>
+            <input v-model.number="autoForm.keep_days" type="number" min="1" max="3650" class="input w-28" />
+          </label>
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <button :disabled="autoBusy" class="btn btn-primary" @click="saveAuto">{{ t("common.save") }}</button>
+            <button :disabled="autoBusy" class="btn btn-outline" @click="runAuto">{{ t("autoBackup.runNow") }}</button>
+          </div>
+          <p class="mt-3 text-xs text-slate-500">{{ lastBackupLabel }}</p>
+          <p v-if="autoMsg" class="mt-2 text-sm text-green-700" role="status">{{ autoMsg }}</p>
+          <p v-if="autoError" class="mt-2 text-sm text-red-700" role="alert">{{ autoError }}</p>
+        </section>
         <div class="sheet p-5">
           <h2 class="sheet-title">{{ t("settings.mockData") }}</h2>
           <p class="sheet-hint text-sm mt-1 max-w-prose">{{ t("settings.mockData.hint") }}</p>

@@ -20,6 +20,7 @@ import type {
   NestingResult,
   Order,
   ProductionOverview,
+  AutoBackup,
   Dashboard,
   SawBlade,
   ShopSettings,
@@ -40,6 +41,32 @@ export const useAppStore = defineStore("app", {
   actions: {
     async login(email: string, password: string) {
       const res = await apiFetch<{ access_token: string }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      setToken(res.access_token);
+    },
+
+    /** desktop build only: the API answers 404 under Docker, where pg_dump does the job */
+    async fetchAutoBackup() {
+      return apiFetch<AutoBackup>("/admin/settings/auto-backup");
+    },
+
+    async saveAutoBackup(payload: Pick<AutoBackup, "enabled" | "directory" | "keep_days">) {
+      return apiFetch<AutoBackup>("/admin/settings/auto-backup", { method: "PUT", body: JSON.stringify(payload) });
+    },
+
+    async runAutoBackup() {
+      return apiFetch<AutoBackup>("/admin/settings/auto-backup/run", { method: "POST" });
+    },
+
+    /** desktop build: is the workshop's account still to be created? */
+    async authStatus() {
+      return apiFetch<{ needs_setup: boolean }>("/auth/status");
+    },
+
+    async setupAccount(email: string, password: string) {
+      const res = await apiFetch<{ access_token: string }>("/auth/setup", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });

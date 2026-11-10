@@ -368,6 +368,15 @@ export interface Dashboard {
   stock: { total_value: number; low_count: number; materials: DashboardStockLevel[] };
 }
 
+export interface AutoBackup {
+  enabled: boolean;
+  directory: string;
+  keep_days: number;
+  last_at: string | null;
+  last_file: string | null;
+  last_error: string | null;
+}
+
 export interface ProductionOverview {
   materials: MaterialDemand[];
   orders: OrderSummary[];

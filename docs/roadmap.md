@@ -35,7 +35,7 @@ Mieux vaut moins de fonctions irréprochables qu'un catalogue fragile : c'est ce
 
 Terminé quand : captures validées à 1440 / 1900 px et téléphone, clair et sombre ; tests verts.
 
-## Lot 7 — Installer sans Docker (priorité 1)
+## Lot 7 — Installer sans Docker (fait le 10 novembre 2026, reste le test par un non-développeur)
 
 Le frein n° 1 : un artisan ne passera pas par Docker, alors que les concurrents s'ouvrent dans un
 navigateur.
@@ -97,7 +97,7 @@ Terminé quand : chaque point a ses tests de précision et sa page de guide.
 
 ## Ordre de marche
 
-1. ~~Lot 6~~ → 2. Lot 7 → 3. Lots 8 et 9 en parallèle → 4. Lot 10.
+1. ~~Lot 6~~ → 2. ~~Lot 7~~ → 3. Lots 8 et 9 en parallèle → 4. Lot 10.
 
 À chaque lot : tests verts (`pytest`, `npm test`, `vue-tsc`, build), captures vérifiées,
 documentation à jour, puis fusion.

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
+from app.config import get_settings
 from app.core.security import require_admin
 from app.database import get_db
 from app.models.design import Design
@@ -19,7 +20,7 @@ from app.schemas.knife_model import KnifeModelOut
 from app.schemas.material import MaterialOut
 from app.schemas.order import OrderOut
 from app.schemas.saw_blade import SawBladeOut
-from app.schemas.shop_settings import ShopSettingsOut, ShopSettingsUpdate
+from app.schemas.shop_settings import AutoBackupOut, AutoBackupUpdate, ShopSettingsOut, ShopSettingsUpdate
 from app.schemas.treatment import TreatmentRecipeOut
 from app.services.backup_service import BackupError, export_backup, restore_backup
 from app.services.order_service import load_order_with_relations
@@ -110,3 +111,33 @@ def restore(payload: dict = Body(...), db: Session = Depends(get_db)):
     except BackupError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"restored": counts}
+
+
+# ---- daily automatic backup (desktop build only; Docker has its nightly pg_dump service)
+def _desktop_only() -> None:
+    if not get_settings().desktop:
+        raise HTTPException(status_code=404, detail="Only in the desktop version")
+
+
+@router.get("/auto-backup", response_model=AutoBackupOut, dependencies=[Depends(_desktop_only)])
+def auto_backup_state():
+    from app.services import auto_backup
+
+    return auto_backup.read_state()
+
+
+@router.put("/auto-backup", response_model=AutoBackupOut, dependencies=[Depends(_desktop_only)])
+def auto_backup_configure(payload: AutoBackupUpdate):
+    from app.services import auto_backup
+
+    try:
+        return auto_backup.configure(payload.enabled, payload.directory, payload.keep_days)
+    except OSError as exc:
+        raise HTTPException(status_code=400, detail="Backup folder not writable") from exc
+
+
+@router.post("/auto-backup/run", response_model=AutoBackupOut, dependencies=[Depends(_desktop_only)])
+def auto_backup_now():
+    from app.services import auto_backup
+
+    return auto_backup.run_backup()

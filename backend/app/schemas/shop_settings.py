@@ -63,3 +63,18 @@ class ShopSettingsOut(BaseModel):
     quote_validity_days: int = 30
 
     model_config = {"from_attributes": True}
+
+
+class AutoBackupOut(BaseModel):
+    enabled: bool
+    directory: str
+    keep_days: int
+    last_at: str | None = None
+    last_file: str | None = None
+    last_error: str | None = None
+
+
+class AutoBackupUpdate(BaseModel):
+    enabled: bool = True
+    directory: str = Field(min_length=1, max_length=1000)
+    keep_days: int = Field(default=30, ge=1, le=3650)

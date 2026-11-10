@@ -17,7 +17,7 @@ et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à 
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 <br>
-![Tests backend](https://img.shields.io/badge/tests%20backend-111%20passing-brightgreen)
+![Tests backend](https://img.shields.io/badge/tests%20backend-118%20passing-brightgreen)
 ![Tests frontend](https://img.shields.io/badge/tests%20frontend-139%20passing-brightgreen)
 ![Précision](https://img.shields.io/badge/courbes-%E2%89%A4%200%2C01%20mm-6366f1)
 ![Licence](https://img.shields.io/badge/licence-commerciale-lightgrey)
@@ -184,7 +184,33 @@ Le détail des choix techniques est dans [`HANDOVER.md`](HANDOVER.md#knifeforge-
 
 ## 🚀 Démarrage rapide
 
-### Avec Docker (production)
+### Sur un ordinateur Windows (installeur, recommandé pour un atelier)
+
+1. Lancez `KnifeForge-Pro-<version>-installation.exe` (aucun droit d'administrateur requis).
+2. Ouvrez **KnifeForge Pro** depuis le bureau : votre navigateur s'ouvre sur l'application, et une
+   petite fenêtre indique qu'elle tourne (la fermer arrête KnifeForge).
+3. Au premier lancement, créez l'accès (email et mot de passe), puis laissez-vous guider.
+
+| | |
+|---|---|
+| Programme | `%LOCALAPPDATA%\Programs\KnifeForge Pro` |
+| Vos données | `%LOCALAPPDATA%\KnifeForge Pro` (base `knifeforge.db`, réglages `config.json`, journaux) |
+| Sauvegardes | chaque jour dans `Sauvegardes\` ou le dossier choisi dans *Réglages › Sauvegarde automatique* (clé USB, second disque, dossier synchronisé) |
+| Mise à jour | lancez l'installeur de la nouvelle version : la base est copiée dans `Sauvegardes avant mise à jour\` puis migrée au démarrage |
+| Désinstallation | ne supprime jamais vos données |
+
+L'application n'écoute que sur cet ordinateur (`127.0.0.1`) et n'envoie rien à l'extérieur.
+
+**Mot de passe oublié** : KnifeForge fermé, ouvrez `config.json` dans le dossier des données,
+supprimez les lignes `admin_email` et `admin_password_hash`, puis relancez : l'écran de création
+de l'accès revient, vos données restent intactes.
+
+Construire l'installeur soi-même : la CI le fait à chaque modification (tâche *Windows
+installer*, fichier téléchargeable). À la main : `cd frontend && npm run build`, puis
+`cd backend && pip install -r requirements.txt -r requirements-desktop.txt && pyinstaller desktop/knifeforge.spec`,
+puis `iscc /DAppVersion=$(cat VERSION) installer/knifeforge.iss` (Inno Setup 6).
+
+### Avec Docker (serveur, NAS)
 
 ```bash
 cp .env.example .env
@@ -348,7 +374,7 @@ knifeforge-pro/
 ## 🧪 Tests
 
 ```bash
-cd backend && pytest              # 111 tests : géométrie, nesting, exports, API, métrologie
+cd backend && pytest              # 118 tests : géométrie, nesting, exports, API, métrologie
 cd frontend && npm test           # 139 tests : moteur d'édition, calibration, perspective, magnétisme, congés, texte, formes, client API, traductions
 cd frontend && npx vue-tsc --noEmit && npm run build
 ```

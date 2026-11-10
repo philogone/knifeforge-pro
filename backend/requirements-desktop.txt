@@ -1,0 +1,2 @@
+# Desktop build (Windows installer), on top of requirements.txt
+pyinstaller==6.11.1

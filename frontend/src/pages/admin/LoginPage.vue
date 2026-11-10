@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import { useI18n } from "@/i18n";
@@ -12,14 +12,30 @@ const router = useRouter();
 
 const email = ref("");
 const password = ref("");
+const confirm = ref("");
 const error = ref("");
 const loading = ref(false);
+// first launch of the desktop build: the account is created here instead of signing in
+const setup = ref(false);
+
+onMounted(async () => {
+  try {
+    setup.value = (await store.authStatus()).needs_setup;
+  } catch {
+    // older server or no network: the sign-in form reports the problem on submit
+  }
+});
 
 async function submit() {
   error.value = "";
+  if (setup.value && password.value !== confirm.value) {
+    error.value = t("setup.mismatch");
+    return;
+  }
   loading.value = true;
   try {
-    await store.login(email.value, password.value);
+    if (setup.value) await store.setupAccount(email.value.trim(), password.value);
+    else await store.login(email.value, password.value);
     router.push("/");
   } catch (err) {
     error.value = errorMessage(err, t, "login.failed");
@@ -84,8 +100,8 @@ async function submit() {
           </svg>
           <span class="font-semibold tracking-tight">KnifeForge <span class="text-accent-700">Pro</span></span>
         </div>
-        <h1 class="page-title">{{ t("login.title") }}</h1>
-        <p class="page-lead mb-8">{{ t("login.lead") }}</p>
+        <h1 class="page-title">{{ setup ? t("setup.title") : t("login.title") }}</h1>
+        <p class="page-lead mb-8">{{ setup ? t("setup.lead") : t("login.lead") }}</p>
         <form class="space-y-4" @submit.prevent="submit">
           <label class="block">
             <span class="field-label">{{ t("login.email") }}</span>
@@ -93,11 +109,25 @@ async function submit() {
           </label>
           <label class="block">
             <span class="field-label">{{ t("login.password") }}</span>
-            <input v-model="password" type="password" autocomplete="current-password" required class="input w-full" />
+            <input
+              v-model="password"
+              type="password"
+              :autocomplete="setup ? 'new-password' : 'current-password'"
+              :minlength="setup ? 10 : undefined"
+              :maxlength="setup ? 72 : undefined"
+              required
+              class="input w-full"
+              :aria-describedby="setup ? 'setup-hint' : undefined"
+            />
+          </label>
+          <p v-if="setup" id="setup-hint" class="sheet-hint -mt-2">{{ t("setup.passwordHint") }}</p>
+          <label v-if="setup" class="block">
+            <span class="field-label">{{ t("setup.confirm") }}</span>
+            <input v-model="confirm" type="password" autocomplete="new-password" required class="input w-full" />
           </label>
           <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
           <button type="submit" :disabled="loading" class="btn btn-primary w-full py-2.5">
-            {{ loading ? t("login.signingIn") : t("login.signIn") }}
+            {{ loading ? t("login.signingIn") : setup ? t("setup.create") : t("login.signIn") }}
           </button>
         </form>
       </div>

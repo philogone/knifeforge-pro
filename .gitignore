@@ -23,3 +23,8 @@ backend/*.db
 
 # nightly database dumps (docker compose backup service)
 backups/
+
+# desktop build (PyInstaller) and installer (Inno Setup) outputs
+backend/build/
+backend/dist/
+installer/output/

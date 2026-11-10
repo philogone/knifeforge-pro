@@ -378,6 +378,42 @@ the theme bootstrap lives in `public/theme-init.js`, and Vite aliases `paper` to
 `paper-core.js`, because paper-full bundles acorn for PaperScript and acorn builds functions
 with `new Function` at load time.
 
+## KnifeForge Pro — the desktop build (Windows installer)
+
+**Why a desktop build at all.** Docker stops most workshops at the door, while the competing
+tools open in a browser. The same backend therefore also runs as a Windows program:
+`backend/desktop/launcher.py`, packed by PyInstaller (`desktop/knifeforge.spec`) and installed by
+Inno Setup (`installer/knifeforge.iss`, per user, no administrator rights). CI builds the
+installer and smoke-tests the packed program on every change.
+
+**SQLite, not PostgreSQL.** One workshop, one machine, one process: SQLite in the data folder
+needs no service. The test suite and every migration already run on SQLite (CI checks the
+schema with `alembic check` on both engines). Migration 007 uses batch mode for that reason.
+
+**Configuration without environment variables.** `app/core/desktop.py` keeps in
+`%LOCALAPPDATA%\KnifeForge Pro\config.json` what Docker passes in `.env`: the token signing key
+(generated on the first launch), the admin account and the backup settings. It sets the
+environment before `app.config` is imported, so the rest of the backend is unchanged.
+
+**The account is created in the app.** `POST /api/auth/setup` works once, only in desktop mode,
+only while no account exists; the server listens on 127.0.0.1 only. A forgotten password is
+reset by removing the two account lines from `config.json` (documented in the README): whoever
+can edit the data folder already owns the data.
+
+**The backend serves the interface** (`FRONTEND_DIST`), with the same security headers as
+`frontend/nginx.conf`. Login attempts are rate-limited in memory when there is no Redis.
+
+**Updates never lose data.** Before migrating, the launcher copies the database to
+`Sauvegardes avant mise à jour\` when its revision differs from the program's. Uninstalling never
+touches the data folder. A daily backup (`app/services/auto_backup.py`) writes the restorable
+JSON backup to a folder the workshop chooses and prunes only its own old files.
+
+**Packing pitfalls met.** numpy (under shapely) loads parts of `numpy._core` dynamically and the
+stock PyInstaller hook misses some: they are listed explicitly. A windowed program has no
+console, so a crash at start shows nothing: the launcher logs to `Journaux\` and dumps the
+stacks to `demarrage-lent.txt` if starting takes more than 90 s. Build with `KF_CONSOLE=1` for
+a diagnostic variant with a console.
+
 ## What's deliberately NOT in this kit
 
 - No barcode/serialized stock tracking (e.g. "this exact bar, cut from this exact billet") —

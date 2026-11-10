@@ -112,7 +112,7 @@ watch(
 </script>
 
 <template>
-  <div v-if="model" class="page max-w-3xl">
+  <div v-if="model" class="page" :class="clientView ? 'max-w-3xl' : 'max-w-6xl'">
     <router-link to="/knife-models" class="back-link">&larr; {{ t("common.backToList") }}</router-link>
     <div class="flex items-start justify-between gap-4 mt-1 flex-wrap">
       <div class="flex items-center gap-2 flex-wrap min-w-0">
@@ -171,124 +171,128 @@ watch(
 
     <p v-if="deleteError" role="alert" class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ deleteError }}</p>
 
-    <div class="sheet p-4 mt-6">
-      <h2 class="sheet-title mb-2">{{ t("knifeModels.materialsRequired") }}</h2>
-      <div class="-mx-1 overflow-x-auto">
-      <table class="w-full text-sm">
-        <tbody>
-          <tr v-for="m in model.materials" :key="m.id" class="border-t border-slate-100 first:border-0">
-            <td class="py-2 font-medium text-slate-800">{{ m.material_name }}</td>
-            <td class="py-2 text-slate-500">{{ t(`knifeModels.role.${m.role}`) }}</td>
-            <td class="py-2 text-slate-500">
-              <span v-if="m.blank_length_mm" class="tabular-nums">{{ [m.blank_length_mm, m.blank_width_mm, m.blank_thickness_mm].filter((v) => v).map((v) => num(v!, 1)).join(" × ") }} mm</span>
-              <span v-else class="tabular-nums">{{ qty(m.quantity, "unit") }}</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      </div>
-    </div>
-
-
-    <section class="sheet p-4 mt-4" aria-labelledby="model-designs">
-      <div class="flex items-center justify-between gap-3">
-        <h2 id="model-designs" class="font-semibold text-slate-900">{{ t("modelDesigns.title") }}</h2>
-        <router-link :to="{ path: '/designs', query: { model: String(modelId) } }" class="text-sm text-accent-700 hover:underline">
-          + {{ t("modelDesigns.new") }}
-        </router-link>
-      </div>
-      <p class="text-xs text-slate-500 mt-1">{{ t("modelDesigns.hint") }}</p>
-
-      <ul v-if="linkedDesigns.length" class="mt-3 divide-y divide-slate-100">
-        <li v-for="d in linkedDesigns" :key="d.id" class="flex items-center gap-3 py-2 text-sm">
-          <router-link :to="`/designs/${d.id}`" class="font-medium text-slate-800 hover:text-accent-700">{{ d.name }}</router-link>
-          <span class="text-slate-500">{{ d.material_name ?? t("modelDesigns.noMaterial") }}</span>
-          <router-link :to="{ path: `/designs/${d.id}`, query: { plan: '1' } }" class="ml-auto text-xs link-action">{{ t("clientView.plan") }}</router-link>
-          <button class="text-xs text-slate-500 hover:text-red-700" @click="setDesignModel(d.id, null)">{{ t("modelDesigns.detach") }}</button>
-        </li>
-      </ul>
-      <p v-else class="mt-3 text-sm text-slate-600">{{ t("modelDesigns.empty") }}</p>
-
-      <p v-for="m in uncoveredMaterials" :key="m.id" class="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-        {{ t("modelDesigns.uncovered", { material: m.material_name ?? "" }) }}
-      </p>
-
-      <form v-if="attachable.length" class="mt-3 flex gap-2" @submit.prevent="attachId && setDesignModel(attachId, modelId)">
-        <label class="sr-only" for="attach-design">{{ t("modelDesigns.attach") }}</label>
-        <select id="attach-design" v-model.number="attachId" class="flex-1 input-sm text-sm">
-          <option :value="0">{{ t("modelDesigns.attachPlaceholder") }}</option>
-          <option v-for="d in attachable" :key="d.id" :value="d.id">
-            {{ d.name }}{{ d.knife_model_name ? ` (${d.knife_model_name})` : "" }}
-          </option>
-        </select>
-        <button type="submit" :disabled="!attachId" class="rounded-lg bg-slate-800 px-3 py-1.5 text-sm text-paper disabled:opacity-50">{{ t("modelDesigns.attach") }}</button>
-      </form>
-      <p v-if="designError" role="alert" class="mt-2 text-sm text-red-700">{{ designError }}</p>
-    </section>
-
-    <div v-if="cost" class="sheet p-4 mt-4">
-      <h2 class="sheet-title mb-1">{{ t("costing.title") }}</h2>
-      <p class="text-xs text-slate-500 mb-2">{{ t("costing.hint") }}</p>
-      <div class="-mx-1 overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="text-left text-slate-500">
-            <th class="font-normal pb-1">{{ t("costing.material") }}</th>
-            <th class="font-normal pb-1">{{ t("costing.consumption") }}</th>
-            <th class="font-normal pb-1">{{ t("costing.unitCost") }}</th>
-            <th class="font-normal pb-1">{{ t("costing.lineCost") }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="line in cost.lines" :key="line.material_id" class="border-t border-slate-100">
-            <td class="py-1.5">{{ line.material_name }}</td>
-            <td class="py-1.5 text-slate-500">{{ qty(line.consumption, line.unit) }}</td>
-            <td class="py-1.5 text-slate-500">{{ formatDecimal(line.unit_cost, locale, 6) }} €/{{ line.unit === "unit" ? t("common.unitOne") : line.unit }}</td>
-            <td class="py-1.5 font-medium text-slate-800">{{ money(line.line_cost) }}</td>
-          </tr>
-          <tr class="border-t border-slate-100">
-            <td class="py-1.5">{{ t("costing.labor") }}</td>
-            <td class="py-1.5 text-slate-500">{{ cost.labor_hours }} h</td>
-            <td class="py-1.5 text-slate-500">{{ cost.hourly_rate }} €/h</td>
-            <td class="py-1.5 font-medium text-slate-800">{{ money(cost.labor_cost) }}</td>
-          </tr>
-        </tbody>
-      </table>
-      </div>
-
-      <div class="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
-        <span class="font-semibold text-slate-900">{{ t("costing.costPrice") }}</span>
-        <span class="font-semibold text-slate-900">{{ money(cost.cost_price) }}</span>
-      </div>
-
-      <div class="mt-3 pt-3 border-t border-slate-200 space-y-1">
-        <div class="flex items-center justify-between text-sm">
-          <span class="text-slate-600">{{ t("costing.suggestedPrice", { n: cost.margin_percent }) }}</span>
-          <span class="font-semibold text-accent-700">{{ money(cost.suggested_sale_price) }}</span>
+    <div class="mt-6 grid gap-4 lg:grid-cols-2 items-start">
+      <div class="space-y-4 min-w-0">
+        <div class="sheet p-4">
+          <h2 class="sheet-title mb-2">{{ t("knifeModels.materialsRequired") }}</h2>
+          <div class="-mx-1 overflow-x-auto">
+          <table class="w-full text-sm">
+            <tbody>
+              <tr v-for="m in model.materials" :key="m.id" class="border-t border-slate-100 first:border-0">
+                <td class="py-2 font-medium text-slate-800">{{ m.material_name }}</td>
+                <td class="py-2 text-slate-500">{{ t(`knifeModels.role.${m.role}`) }}</td>
+                <td class="py-2 text-slate-500">
+                  <span v-if="m.blank_length_mm" class="tabular-nums">{{ [m.blank_length_mm, m.blank_width_mm, m.blank_thickness_mm].filter((v) => v).map((v) => num(v!, 1)).join(" × ") }} mm</span>
+                  <span v-else class="tabular-nums">{{ qty(m.quantity, "unit") }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
         </div>
-        <div class="flex items-center justify-between text-sm">
-          <span class="text-slate-600">{{ t("costing.currentPrice") }}</span>
-          <span class="font-medium text-slate-800">{{ money(cost.current_sale_price) }}</span>
-        </div>
-        <p v-if="priceDelta !== null" class="text-xs mt-1" :class="priceDelta < 0 ? 'text-red-600' : 'text-green-700'">
-          {{ priceDelta < 0 ? t("costing.belowSuggested", { n: money(Math.abs(priceDelta)) }) : t("costing.aboveSuggested", { n: money(priceDelta) }) }}
-        </p>
-      </div>
-    </div>
 
-    <div class="sheet p-4 mt-4">
-      <h2 class="sheet-title mb-2">{{ t("knifeModels.process") }}</h2>
-      <ol class="space-y-3">
-        <li v-for="(recipe, i) in recipesByModel" :key="recipe!.id">
-          <p class="text-sm font-medium text-slate-800">{{ i + 1 }}. {{ recipe!.name }}</p>
-          <ol class="mt-1 ml-4 list-decimal list-inside text-sm text-slate-600 space-y-0.5">
-            <li v-for="s in recipe!.steps" :key="s.id">
-              {{ s.description }}
-              <span class="text-slate-500">— {{ [s.temperature_c !== null ? `${s.temperature_c} °C` : "", s.duration_minutes !== null ? `${s.duration_minutes} min` : "", s.medium ?? ""].filter(Boolean).join(" · ") }}</span>
+        <div v-if="cost" class="sheet p-4">
+          <h2 class="sheet-title mb-1">{{ t("costing.title") }}</h2>
+          <p class="text-xs text-slate-500 mb-2">{{ t("costing.hint") }}</p>
+          <div class="-mx-1 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-slate-500">
+                <th class="font-normal pb-1">{{ t("costing.material") }}</th>
+                <th class="font-normal pb-1">{{ t("costing.consumption") }}</th>
+                <th class="font-normal pb-1">{{ t("costing.unitCost") }}</th>
+                <th class="font-normal pb-1">{{ t("costing.lineCost") }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="line in cost.lines" :key="line.material_id" class="border-t border-slate-100">
+                <td class="py-1.5">{{ line.material_name }}</td>
+                <td class="py-1.5 text-slate-500">{{ qty(line.consumption, line.unit) }}</td>
+                <td class="py-1.5 text-slate-500">{{ formatDecimal(line.unit_cost, locale, 6) }} €/{{ line.unit === "unit" ? t("common.unitOne") : line.unit }}</td>
+                <td class="py-1.5 font-medium text-slate-800">{{ money(line.line_cost) }}</td>
+              </tr>
+              <tr class="border-t border-slate-100">
+                <td class="py-1.5">{{ t("costing.labor") }}</td>
+                <td class="py-1.5 text-slate-500">{{ cost.labor_hours }} h</td>
+                <td class="py-1.5 text-slate-500">{{ cost.hourly_rate }} €/h</td>
+                <td class="py-1.5 font-medium text-slate-800">{{ money(cost.labor_cost) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+
+          <div class="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
+            <span class="font-semibold text-slate-900">{{ t("costing.costPrice") }}</span>
+            <span class="font-semibold text-slate-900">{{ money(cost.cost_price) }}</span>
+          </div>
+
+          <div class="mt-3 pt-3 border-t border-slate-200 space-y-1">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-slate-600">{{ t("costing.suggestedPrice", { n: cost.margin_percent }) }}</span>
+              <span class="font-semibold text-accent-700">{{ money(cost.suggested_sale_price) }}</span>
+            </div>
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-slate-600">{{ t("costing.currentPrice") }}</span>
+              <span class="font-medium text-slate-800">{{ money(cost.current_sale_price) }}</span>
+            </div>
+            <p v-if="priceDelta !== null" class="text-xs mt-1" :class="priceDelta < 0 ? 'text-red-600' : 'text-green-700'">
+              {{ priceDelta < 0 ? t("costing.belowSuggested", { n: money(Math.abs(priceDelta)) }) : t("costing.aboveSuggested", { n: money(priceDelta) }) }}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="space-y-4 min-w-0">
+        <section class="sheet p-4" aria-labelledby="model-designs">
+          <div class="flex items-center justify-between gap-3">
+            <h2 id="model-designs" class="font-semibold text-slate-900">{{ t("modelDesigns.title") }}</h2>
+            <router-link :to="{ path: '/designs', query: { model: String(modelId) } }" class="text-sm text-accent-700 hover:underline">
+              + {{ t("modelDesigns.new") }}
+            </router-link>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">{{ t("modelDesigns.hint") }}</p>
+
+          <ul v-if="linkedDesigns.length" class="mt-3 divide-y divide-slate-100">
+            <li v-for="d in linkedDesigns" :key="d.id" class="flex items-center gap-3 py-2 text-sm">
+              <router-link :to="`/designs/${d.id}`" class="font-medium text-slate-800 hover:text-accent-700">{{ d.name }}</router-link>
+              <span class="text-slate-500">{{ d.material_name ?? t("modelDesigns.noMaterial") }}</span>
+              <router-link :to="{ path: `/designs/${d.id}`, query: { plan: '1' } }" class="ml-auto text-xs link-action">{{ t("clientView.plan") }}</router-link>
+              <button class="text-xs text-slate-500 hover:text-red-700" @click="setDesignModel(d.id, null)">{{ t("modelDesigns.detach") }}</button>
+            </li>
+          </ul>
+          <p v-else class="mt-3 text-sm text-slate-600">{{ t("modelDesigns.empty") }}</p>
+
+          <p v-for="m in uncoveredMaterials" :key="m.id" class="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            {{ t("modelDesigns.uncovered", { material: m.material_name ?? "" }) }}
+          </p>
+
+          <form v-if="attachable.length" class="mt-3 flex gap-2" @submit.prevent="attachId && setDesignModel(attachId, modelId)">
+            <label class="sr-only" for="attach-design">{{ t("modelDesigns.attach") }}</label>
+            <select id="attach-design" v-model.number="attachId" class="flex-1 input-sm text-sm">
+              <option :value="0">{{ t("modelDesigns.attachPlaceholder") }}</option>
+              <option v-for="d in attachable" :key="d.id" :value="d.id">
+                {{ d.name }}{{ d.knife_model_name ? ` (${d.knife_model_name})` : "" }}
+              </option>
+            </select>
+            <button type="submit" :disabled="!attachId" class="rounded-lg bg-slate-800 px-3 py-1.5 text-sm text-paper disabled:opacity-50">{{ t("modelDesigns.attach") }}</button>
+          </form>
+          <p v-if="designError" role="alert" class="mt-2 text-sm text-red-700">{{ designError }}</p>
+        </section>
+
+        <div class="sheet p-4">
+          <h2 class="sheet-title mb-2">{{ t("knifeModels.process") }}</h2>
+          <ol class="space-y-3">
+            <li v-for="(recipe, i) in recipesByModel" :key="recipe!.id">
+              <p class="text-sm font-medium text-slate-800">{{ i + 1 }}. {{ recipe!.name }}</p>
+              <ol class="mt-1 ml-4 list-decimal list-inside text-sm text-slate-600 space-y-0.5">
+                <li v-for="s in recipe!.steps" :key="s.id">
+                  {{ s.description }}
+                  <span class="text-slate-500">— {{ [s.temperature_c !== null ? `${s.temperature_c} °C` : "", s.duration_minutes !== null ? `${s.duration_minutes} min` : "", s.medium ?? ""].filter(Boolean).join(" · ") }}</span>
+                </li>
+              </ol>
             </li>
           </ol>
-        </li>
-      </ol>
+        </div>
+      </div>
     </div>
     </template>
   </div>

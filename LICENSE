@@ -29,6 +29,12 @@ HTTPS, access, backups) and for ensuring that their use complies with the
 laws and regulations applicable to them (including, where relevant, data
 protection laws such as the GDPR).
 
+DATA. The software runs entirely on the Licensee's infrastructure. It sends no
+data to the author: no hosting, no telemetry, no usage statistics. The author
+never receives, stores, or processes the Licensee's data or their customers'
+data, and is not a data processor within the meaning of the GDPR; the
+Licensee is the sole data controller for the personal data they record.
+
 INVOICES. The software produces quotes, invoices, and credit notes, including
 Factur-X (EN 16931) electronic invoices, from the information the Licensee
 enters (identity, VAT regime, customers, amounts). It is not an approved
@@ -110,6 +116,13 @@ l'exploite sur sa propre infrastructure ; il est responsable de la
 sécurisation de cette installation (secrets, HTTPS, accès, sauvegardes) et
 de la conformité de son usage aux lois et réglementations qui lui sont
 applicables (y compris, le cas échéant, le RGPD).
+
+DONNÉES. Le logiciel fonctionne entièrement sur l'infrastructure du Licencié.
+Il n'envoie aucune donnée à l'auteur : ni hébergement, ni télémétrie, ni
+statistiques d'usage. L'auteur ne reçoit, ne stocke ni ne traite jamais les
+données du Licencié ni celles de ses clients, et n'est pas sous-traitant au
+sens du RGPD ; le Licencié est seul responsable des traitements de données
+personnelles qu'il effectue.
 
 FACTURES. Le logiciel produit des devis, des factures et des avoirs, dont des
 factures électroniques Factur-X (EN 16931), à partir des informations saisies

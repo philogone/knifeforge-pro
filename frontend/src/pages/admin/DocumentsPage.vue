@@ -65,7 +65,7 @@ function fmtDate(iso: string | null) {
 </script>
 
 <template>
-  <div class="page max-w-5xl">
+  <div class="page max-w-7xl">
     <header class="page-head">
       <div>
         <h1 class="page-title">{{ t("documents.title") }}</h1>

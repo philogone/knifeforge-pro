@@ -321,6 +321,53 @@ export interface OrderSummary {
   lines: string[];
 }
 
+export interface DashboardDueOrder {
+  order_id: number;
+  customer_name: string;
+  due_date: string;
+  stage: OrderStage;
+  late: boolean;
+}
+
+export interface DashboardStockLevel {
+  material_id: number;
+  name: string;
+  unit: string;
+  quantity: number;
+  threshold: number;
+  value: number;
+  low: boolean;
+}
+
+export interface Dashboard {
+  today: string;
+  orders: {
+    by_status: Record<OrderStatus, number>;
+    by_stage: Record<OrderStage, number>;
+    active: number;
+    drafts_feasible: number;
+    drafts_short: number;
+    late: number;
+    due_this_week: number;
+    upcoming: DashboardDueOrder[];
+  };
+  finance: {
+    pipeline_revenue: number;
+    pipeline_cost: number;
+    pipeline_margin: number;
+    unpriced_lines: number;
+    invoiced_month_ht: number;
+    invoiced_year_ht: number;
+    monthly: { month: string; amount_ht: number }[];
+    unpaid_count: number;
+    unpaid_ttc: number;
+    unpaid_overdue: number;
+    quotes_pending_count: number;
+    quotes_pending_ht: number;
+  };
+  stock: { total_value: number; low_count: number; materials: DashboardStockLevel[] };
+}
+
 export interface ProductionOverview {
   materials: MaterialDemand[];
   orders: OrderSummary[];

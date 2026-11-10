@@ -153,7 +153,7 @@ const sortOptions = computed(() => [
 </script>
 
 <template>
-  <div class="page max-w-6xl">
+  <div class="page max-w-7xl">
     <header class="page-head">
       <div>
         <h1 class="page-title">{{ t("designs.title") }}</h1>

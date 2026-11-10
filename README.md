@@ -17,8 +17,8 @@ et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à 
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 <br>
-![Tests backend](https://img.shields.io/badge/tests%20backend-105%20passing-brightgreen)
-![Tests frontend](https://img.shields.io/badge/tests%20frontend-137%20passing-brightgreen)
+![Tests backend](https://img.shields.io/badge/tests%20backend-111%20passing-brightgreen)
+![Tests frontend](https://img.shields.io/badge/tests%20frontend-139%20passing-brightgreen)
 ![Précision](https://img.shields.io/badge/courbes-%E2%89%A4%200%2C01%20mm-6366f1)
 ![Licence](https://img.shields.io/badge/licence-commerciale-lightgrey)
 
@@ -93,6 +93,7 @@ Placement des **vraies formes** (perçages compris) sur vos plaques et barres.
 - Coût de revient, prix de vente suggéré, interface **FR / EN**, **mode sombre**
 - **Suivi d'atelier** : étape de chaque commande (forge, trempe, émouture, manche, finition, prête, livrée), date promise
 - **Historique de stock** : chaque entrée et sortie, avec sa raison et sa commande
+- **Tableau de bord** à l'ouverture : commandes par état et par étape, dates promises, marge potentielle, facturé, impayés, niveaux de stock
 
 </td>
 </tr>
@@ -124,6 +125,9 @@ Placement des **vraies formes** (perçages compris) sur vos plaques et barres.
 ## 📸 En images
 
 <table>
+<tr>
+<td colspan="2"><img src="docs/screenshots/dashboard.png" alt="Tableau de bord : commandes, finances, stock"><p align="center"><sub><b>Le tableau de bord</b> : commandes par état et à l'établi, dates promises, facturé sur 6 mois, jauges de stock (chiffres de démonstration).</sub></p></td>
+</tr>
 <tr>
 <td colspan="2"><img src="docs/screenshots/editor.png" alt="Éditeur vectoriel : profil de lame coté sur la grille millimétrée"><p align="center"><sub><b>L'éditeur</b> : profil de lame à l'échelle sur la grille millimétrée, perçages et cote de 112 mm.</sub></p></td>
 </tr>
@@ -344,8 +348,8 @@ knifeforge-pro/
 ## 🧪 Tests
 
 ```bash
-cd backend && pytest              # 105 tests : géométrie, nesting, exports, API, métrologie
-cd frontend && npm test           # 137 tests : moteur d'édition, calibration, perspective, magnétisme, congés, texte, formes, client API, traductions
+cd backend && pytest              # 111 tests : géométrie, nesting, exports, API, métrologie
+cd frontend && npm test           # 139 tests : moteur d'édition, calibration, perspective, magnétisme, congés, texte, formes, client API, traductions
 cd frontend && npx vue-tsc --noEmit && npm run build
 ```
 

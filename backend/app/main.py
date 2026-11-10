@@ -9,6 +9,7 @@ from app.database import SessionLocal
 from app.routers import (
     auth,
     customers,
+    dashboard,
     designs,
     knife_models,
     materials,
@@ -65,6 +66,7 @@ app.include_router(nesting.router)
 app.include_router(settings.router)
 app.include_router(customers.router)
 app.include_router(sales_documents.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/api/health")

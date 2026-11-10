@@ -104,7 +104,7 @@ const wastePct = computed(() => (result.value ? Math.round((100 - result.value.u
 </script>
 
 <template>
-  <div class="page max-w-6xl">
+  <div class="page max-w-7xl">
     <header class="page-head">
       <div>
         <h1 class="page-title">{{ t("nesting.title") }}</h1>

@@ -144,7 +144,7 @@ const sortOptions = computed(() => [
 </script>
 
 <template>
-  <div class="page max-w-4xl">
+  <div class="page max-w-7xl">
     <header class="page-head">
       <div>
         <h1 class="page-title">{{ t("customers.title") }}</h1>
@@ -253,7 +253,7 @@ const sortOptions = computed(() => [
     <p v-else-if="!customers.length" class="sheet p-6 text-sm text-slate-600">{{ t("customers.empty") }}</p>
     <p v-else-if="!list.visible.value.length" class="sheet p-6 text-sm text-slate-600">{{ t("list.noMatch") }}</p>
 
-    <div class="space-y-3">
+    <div class="card-grid card-grid-3">
       <article v-for="c in list.visible.value" :key="c.id" class="sheet p-4">
         <div class="flex items-start justify-between gap-4">
           <div class="flex items-center gap-2 flex-wrap min-w-0">

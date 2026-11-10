@@ -272,7 +272,7 @@ const sortOptions = computed(() => [
 </script>
 
 <template>
-  <div class="page max-w-5xl">
+  <div class="page max-w-7xl">
     <header class="page-head">
       <div>
         <h1 class="page-title">{{ t("materials.title") }}</h1>
@@ -408,7 +408,7 @@ const sortOptions = computed(() => [
       :shown="list.visible.value.length"
       :total="list.total.value"
     ></ListToolbar>
-    <div class="space-y-3">
+    <div class="card-grid items-start">
       <p v-if="list.total.value && !list.visible.value.length" class="sheet p-6 text-sm text-slate-600">{{ t("list.noMatch") }}</p>
       <div v-for="m in list.visible.value" :key="m.id" class="sheet p-4">
         <div class="flex items-start justify-between gap-4">

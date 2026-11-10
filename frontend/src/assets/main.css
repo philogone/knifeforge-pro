@@ -128,6 +128,21 @@
   .page-title {
     @apply text-[1.625rem] leading-tight font-semibold tracking-tight text-slate-900;
   }
+  /* list of record cards: one column on a laptop, two (or three) on a desktop screen;
+     a message paragraph (empty, no match) spans the whole row */
+  .card-grid {
+    @apply grid gap-3 xl:grid-cols-2;
+  }
+  .card-grid-3 {
+    @apply 2xl:grid-cols-3;
+  }
+  .card-grid > p {
+    grid-column: 1 / -1;
+  }
+  /* settings: sections stacked by theme, the themes side by side */
+  .settings-col {
+    @apply space-y-6 min-w-0;
+  }
   .page-lead {
     @apply mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600;
   }
@@ -312,4 +327,26 @@
 }
 .dark .hover\:bg-red-50:hover {
   background-color: #3a1a17;
+}
+
+/* ------------------------------------------------------------------ */
+/* Dashboard charts. Order statuses use four categorical hues validated together (dataviz
+   validator, light and dark, wrap-around pair included) in the donut's fixed order:
+   draft, confirmed, cancelled, completed. Magnitudes use the olive accent alone. */
+:root {
+  --viz-draft: #eda100;
+  --viz-confirmed: #2a78d6;
+  --viz-cancelled: #eb6834;
+  --viz-completed: #1baf7a;
+  --viz-mark: #6b7a2c;
+  --viz-track: rgb(var(--slate-200));
+  --viz-low: #c2410c;
+}
+.dark {
+  --viz-draft: #c98500;
+  --viz-confirmed: #3987e5;
+  --viz-cancelled: #d95926;
+  --viz-completed: #199e70;
+  --viz-mark: #a5b45c;
+  --viz-low: #e66767;
 }

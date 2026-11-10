@@ -122,7 +122,7 @@ async function finish(to: string) {
       <p class="page-lead">{{ t("welcome.doneLead") }}</p>
       <ol class="mt-6 space-y-3">
         <li v-for="(s, i) in [
-          { to: '/', key: 'welcome.start.materials' },
+          { to: '/materials', key: 'welcome.start.materials' },
           { to: '/knife-models', key: 'welcome.start.models' },
           { to: '/designs', key: 'welcome.start.designs' },
           { to: '/orders', key: 'welcome.start.orders' },

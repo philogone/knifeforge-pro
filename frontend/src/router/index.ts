@@ -7,6 +7,12 @@ const routes = [
   { path: "/login", name: "login", component: () => import("@/pages/admin/LoginPage.vue") },
   {
     path: "/",
+    name: "dashboard",
+    component: () => import("@/pages/admin/DashboardPage.vue"),
+    meta: { requiresAdmin: true },
+  },
+  {
+    path: "/materials",
     name: "materials",
     component: () => import("@/pages/admin/MaterialsPage.vue"),
     meta: { requiresAdmin: true },

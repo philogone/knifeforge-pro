@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 
+import NavMenu, { type NavItem } from "@/components/NavMenu.vue";
 import { clearToken } from "@/composables/useApi";
 import { useTheme } from "@/composables/useTheme";
 import { useI18n } from "@/i18n";
@@ -13,23 +14,32 @@ const showChrome = computed(() => route.name !== "login");
 // the editor fills the window: no footer under it
 const showFooter = computed(() => showChrome.value && route.name !== "design-editor");
 
-// the nav follows the workshop's flow: stock and know-how, then orders, then drawing
-const groups: { to: string; key: string }[][] = [
-  [
-    { to: "/", key: "nav.materials" },
-    { to: "/treatments", key: "nav.recipes" },
-    { to: "/knife-models", key: "nav.knifeModels" },
-  ],
-  [
-    { to: "/customers", key: "nav.customers" },
-    { to: "/orders", key: "nav.orders" },
-    { to: "/documents", key: "nav.documents" },
-    { to: "/production", key: "nav.production" },
-  ],
-  [
-    { to: "/designs", key: "nav.designs" },
-    { to: "/nesting", key: "nav.nesting" },
-  ],
+// three sections, each a menu: the workshop (stock and know-how), drawing and cutting, sales
+const groups: { label: string; items: NavItem[] }[] = [
+  {
+    label: "nav.group.workshop",
+    items: [
+      { to: "/production", key: "nav.production", desc: "nav.desc.production" },
+      { to: "/materials", key: "nav.materials", desc: "nav.desc.materials" },
+      { to: "/treatments", key: "nav.recipes", desc: "nav.desc.recipes" },
+      { to: "/knife-models", key: "nav.knifeModels", desc: "nav.desc.knifeModels" },
+    ],
+  },
+  {
+    label: "nav.group.design",
+    items: [
+      { to: "/designs", key: "nav.designs", desc: "nav.desc.designs" },
+      { to: "/nesting", key: "nav.nesting", desc: "nav.desc.nesting" },
+    ],
+  },
+  {
+    label: "nav.group.sales",
+    items: [
+      { to: "/customers", key: "nav.customers", desc: "nav.desc.customers" },
+      { to: "/orders", key: "nav.orders", desc: "nav.desc.orders" },
+      { to: "/documents", key: "nav.documents", desc: "nav.desc.documents" },
+    ],
+  },
 ];
 
 /** a detail page (/orders/3, /designs/1) keeps its section lit */
@@ -37,6 +47,10 @@ function isActive(to: string): boolean {
   if (to === "/") return route.path === "/";
   return route.path === to || route.path.startsWith(`${to}/`);
 }
+
+// below lg the sections fold into one panel opened from a Menu button
+const mobileOpen = ref(false);
+watch(() => route.fullPath, () => (mobileOpen.value = false));
 
 function logout() {
   clearToken();
@@ -56,26 +70,32 @@ function logout() {
         <span class="font-semibold tracking-tight">KnifeForge <span class="text-accent-700">Pro</span></span>
       </router-link>
 
-      <div class="flex items-center h-full min-w-0 overflow-x-auto">
-        <template v-for="(group, gi) in groups" :key="gi">
-          <span v-if="gi" class="mx-2 h-4 w-px bg-slate-200 shrink-0" aria-hidden="true"></span>
-          <router-link
-            v-for="item in group"
-            :key="item.to"
-            :to="item.to"
-            class="relative h-full px-2.5 flex items-center text-sm whitespace-nowrap transition-colors"
-            :class="isActive(item.to) ? 'text-slate-900 font-medium nav-active' : 'text-slate-600 hover:text-slate-900'"
-            :aria-current="isActive(item.to) ? 'page' : undefined"
-          >
-            {{ t(item.key) }}
-          </router-link>
-        </template>
+      <div class="hidden lg:flex items-center h-full min-w-0">
+        <router-link
+          to="/"
+          class="relative h-full px-3 flex items-center text-sm whitespace-nowrap transition-colors"
+          :class="isActive('/') ? 'text-slate-900 font-medium nav-active' : 'text-slate-600 hover:text-slate-900'"
+          :aria-current="isActive('/') ? 'page' : undefined"
+        >
+          {{ t("nav.dashboard") }}
+        </router-link>
+        <NavMenu v-for="g in groups" :key="g.label" :label="t(g.label)" :items="g.items" />
       </div>
 
-      <div class="ml-auto flex items-center gap-4 shrink-0 text-sm">
+      <button
+        type="button"
+        class="lg:hidden ml-auto btn btn-outline btn-sm"
+        :aria-expanded="mobileOpen"
+        aria-controls="mobile-nav"
+        @click="mobileOpen = !mobileOpen"
+      >
+        {{ mobileOpen ? t("nav.close") : t("nav.menu") }}
+      </button>
+
+      <div class="hidden lg:flex ml-auto items-center gap-4 shrink-0 text-sm">
         <router-link
           to="/settings"
-          class="relative h-14 px-2.5 flex items-center"
+          class="relative h-14 px-3 flex items-center"
           :class="isActive('/settings') ? 'text-slate-900 font-medium nav-active' : 'text-slate-600 hover:text-slate-900'"
           :aria-current="isActive('/settings') ? 'page' : undefined"
         >
@@ -96,6 +116,29 @@ function logout() {
         </button>
         <button class="text-slate-500 hover:text-slate-900" @click="logout">{{ t("nav.signOut") }}</button>
       </div>
+      <div v-if="mobileOpen" id="mobile-nav" class="lg:hidden absolute inset-x-0 top-full border-b border-slate-200 bg-paper shadow-lg max-h-[calc(100vh-3.5rem)] overflow-y-auto">
+        <div class="px-5 py-3 space-y-4 text-sm">
+          <router-link to="/" class="block py-1.5" :class="isActive('/') ? 'font-medium text-accent-800' : 'text-slate-700'">{{ t("nav.dashboard") }}</router-link>
+          <div v-for="g in groups" :key="g.label">
+            <p class="text-xs font-medium text-slate-500">{{ t(g.label) }}</p>
+            <router-link
+              v-for="item in g.items"
+              :key="item.to"
+              :to="item.to"
+              class="block py-1.5"
+              :class="isActive(item.to) ? 'font-medium text-accent-800' : 'text-slate-700'"
+              :aria-current="isActive(item.to) ? 'page' : undefined"
+            >
+              {{ t(item.key) }}
+            </router-link>
+          </div>
+          <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-4">
+            <router-link to="/settings" class="py-1.5" :class="isActive('/settings') ? 'font-medium text-accent-800' : 'text-slate-700'">{{ t("nav.settings") }}</router-link>
+            <button class="py-1.5 text-slate-700" @click="theme.toggle()">{{ theme.isDark.value ? t("theme.toLight") : t("theme.toDark") }}</button>
+            <button class="py-1.5 text-slate-500" @click="logout">{{ t("nav.signOut") }}</button>
+          </div>
+        </div>
+      </div>
     </nav>
     <main id="main" tabindex="-1" class="outline-none"><router-view /></main>
     <p v-if="showFooter" class="text-center text-xs text-slate-500 py-10">{{ t("app.footer") }}</p>
@@ -103,7 +146,7 @@ function logout() {
 </template>
 
 <style scoped>
-/* the link strip scrolls horizontally, which clips an outside ring: draw it inside */
+/* links fill the bar's height: draw the focus ring inside so the bar does not clip it */
 nav a:focus-visible {
   outline-offset: -2px;
 }
@@ -112,8 +155,8 @@ nav a:focus-visible {
 .nav-active::after {
   content: "";
   position: absolute;
-  left: 0.625rem;
-  right: 0.625rem;
+  left: 0.75rem;
+  right: 0.75rem;
   bottom: -1px;
   height: 2px;
   border-radius: 2px 2px 0 0;

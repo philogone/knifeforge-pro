@@ -20,6 +20,7 @@ import type {
   NestingResult,
   Order,
   ProductionOverview,
+  Dashboard,
   SawBlade,
   ShopSettings,
   TreatmentRecipe,
@@ -222,6 +223,10 @@ export const useAppStore = defineStore("app", {
 
     async fetchProductionOverview() {
       return apiFetch<ProductionOverview>("/admin/production/overview");
+    },
+
+    async fetchDashboard() {
+      return apiFetch<Dashboard>("/admin/dashboard");
     },
 
     async mockDataStatus() {

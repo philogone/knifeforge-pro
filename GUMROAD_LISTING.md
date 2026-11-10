@@ -83,7 +83,9 @@ Non pour l'utiliser : Docker et un fichier `.env` à remplir suffisent (le READM
 étape). Oui pour le modifier, avec des bases en Python et Vue.
 
 **Mes données partent-elles quelque part ?**
-Non. Tout reste sur la machine où vous l'installez, sauvegardes comprises.
+Non. Tout reste sur la machine où vous l'installez, sauvegardes comprises. Le logiciel n'envoie
+aucune donnée à l'éditeur (ni statistiques, ni télémétrie) : vous restez seul maître et seul
+responsable des données de vos clients, l'éditeur n'y a jamais accès.
 
 **Est-ce conforme à la facturation électronique obligatoire ?**
 Les factures sont produites au format Factur-X EN 16931, l'un des formats acceptés par la

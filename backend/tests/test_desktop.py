@@ -129,3 +129,34 @@ def test_data_folder_follows_each_system(monkeypatch, tmp_path):
     assert default_data_dir("linux") == tmp_path / ".local" / "share" / "knifeforge-pro"
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
     assert default_data_dir("linux") == tmp_path / "xdg" / "knifeforge-pro"
+
+
+def test_mail_account_is_kept_in_config_json_not_in_the_database(desktop_mode, client, monkeypatch):
+    settings = get_settings()
+    saved = {k: getattr(settings, k) for k in desktop.SMTP_KEYS}
+    try:
+        body = {"host": "smtp.example.com", "port": 465, "security": "ssl", "user": "atelier@example.com",
+                "password": "secret-smtp", "from_address": "", "from_name": "Atelier"}
+        out = client.put("/api/admin/settings/mail", json=body).json()
+        assert out["configured"] and out["editable"] and out["password_set"] and "secret-smtp" not in json.dumps(out)
+        stored = json.loads((desktop_mode / "config.json").read_text(encoding="utf-8"))
+        assert stored["smtp_password"] == "secret-smtp" and stored["smtp_port"] == 465
+        # the password is kept when not sent again, removed with ""
+        client.put("/api/admin/settings/mail", json={**body, "password": None})
+        assert json.loads((desktop_mode / "config.json").read_text(encoding="utf-8"))["smtp_password"] == "secret-smtp"
+        client.put("/api/admin/settings/mail", json={**body, "password": ""})
+        assert client.get("/api/admin/settings/mail").json()["password_set"] is False
+        # nothing about it in a full backup
+        assert "smtp" not in json.dumps(client.get("/api/admin/settings/backup").json())
+        # read back at the next start
+        for key in desktop.SMTP_KEYS:
+            monkeypatch.delenv(key.upper(), raising=False)
+        for key in ("DESKTOP", "DATA_DIR", "DATABASE_URL", "SECRET_KEY", "ADMIN_EMAIL", "ADMIN_PASSWORD_HASH", "REDIS_URL", "FRONTEND_DIST", "ENVIRONMENT"):
+            monkeypatch.setenv(key, os.environ.get(key, ""))  # restored afterwards
+        desktop.prepare_environment(desktop_mode, None)
+        assert os.environ["SMTP_HOST"] == "smtp.example.com" and os.environ["SMTP_PORT"] == "465"
+    finally:
+        for k, v in saved.items():
+            setattr(settings, k, v)
+        for key in desktop.SMTP_KEYS:
+            os.environ.pop(key.upper(), None)

@@ -94,6 +94,22 @@ Terminé quand : chaque point a ses tests de précision et sa page de guide.
 - **Paiement** : acomptes et paiements partiels sur une facture.
 - **Plateforme agréée** : connexion à une ou deux plateformes (dépôt automatique du Factur-X),
   avant l'obligation d'émission du 1er septembre 2027.
+- **Sauvegarde et reprise des données** (demandé le 13 novembre 2026). Existe déjà : la
+  sauvegarde complète téléchargeable et sa restauration dans les Réglages, l'export JSON lisible,
+  la sauvegarde quotidienne automatique. À faire dans ce lot :
+  - **reprendre une sauvegarde au premier lancement** : sur l'écran de création de l'accès et
+    dans l'assistant de bienvenue, « J'ai déjà KnifeForge : reprendre ma sauvegarde » (nouvel
+    ordinateur, réinstallation, passage de Docker à l'installeur ou l'inverse) ;
+  - **restaurer une sauvegarde d'une version antérieure** : aujourd'hui refusée si la base n'est
+    pas à la même version. Ce lot ajoute une migration de base (008) : sans cela, une sauvegarde
+    faite en 0.9 ne se restaurerait plus en 0.10. La sauvegarde est chargée dans une base
+    temporaire à sa version, mise à niveau, puis restaurée ; jamais l'inverse (une sauvegarde
+    plus récente que le programme est refusée avec un message clair) ;
+  - **sauvegarde manuelle à la demande** mise en avant (bouton visible, nom de fichier daté,
+    rappel si aucune sauvegarde depuis 7 jours), et vérification du fichier avant restauration
+    (aperçu : date, version, nombre de clients, commandes, factures).
+- Plus tard, à part : **import depuis un autre outil** (clients, matières, modèles en CSV ou
+  tableur), pour un atelier qui arrive avec ses données.
 
 ## Lot 11 — Maquette 3D du couteau monté (idée du 13 novembre 2026)
 

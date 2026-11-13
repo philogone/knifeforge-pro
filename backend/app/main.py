@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from app.config import get_settings
 from app.database import SessionLocal
 from app.routers import (
+    accounting,
     auth,
     calibration,
     customers,
@@ -97,6 +98,7 @@ app.include_router(customers.router)
 app.include_router(sales_documents.router)
 app.include_router(dashboard.router)
 app.include_router(calibration.router)
+app.include_router(accounting.router)
 
 
 @app.get("/api/health")

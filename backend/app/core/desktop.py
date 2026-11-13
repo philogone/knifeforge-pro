@@ -5,7 +5,8 @@ What Docker passes through environment variables lives here in `<data dir>/confi
 - `secret_key`: signs session tokens, generated on the first launch and never shown;
 - `admin_email` / `admin_password_hash`: created on the first-run screen (`POST /api/auth/setup`);
 - `port`: the local port the launcher last served on;
-- `auto_backup`: the daily backup folder and how many days of backups to keep.
+- `auto_backup`: the daily backup folder and how many days of backups to keep;
+- `smtp_*`: the workshop's outgoing mail account (Settings › E-mail).
 
 The database is SQLite in the same folder. Nothing in this folder ever leaves the machine.
 `prepare_environment()` must run before anything imports `app.config`, since the settings are
@@ -22,6 +23,7 @@ from typing import Any
 CONFIG_NAME = "config.json"
 DB_NAME = "knifeforge.db"
 DEFAULT_PORT = 8765
+SMTP_KEYS = ("smtp_host", "smtp_port", "smtp_security", "smtp_user", "smtp_password", "smtp_from", "smtp_from_name")
 
 
 def default_data_dir(platform: str = sys.platform) -> Path:
@@ -78,4 +80,8 @@ def prepare_environment(data_dir: Path, frontend_dist: Path | None) -> dict[str,
             "FRONTEND_DIST": str(frontend_dist) if frontend_dist else "",
         }
     )
+    # outgoing mail, set from Settings (stored here, with the other secrets, not in the database)
+    for key in SMTP_KEYS:
+        if key in values:
+            os.environ[key.upper()] = str(values[key])
     return values

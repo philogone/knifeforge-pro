@@ -20,7 +20,15 @@ from app.schemas.knife_model import KnifeModelOut
 from app.schemas.material import MaterialOut
 from app.schemas.order import OrderOut
 from app.schemas.saw_blade import SawBladeOut
-from app.schemas.shop_settings import AutoBackupOut, AutoBackupUpdate, ShopSettingsOut, ShopSettingsUpdate
+from app.schemas.shop_settings import (
+    AutoBackupOut,
+    AutoBackupUpdate,
+    MailSettingsOut,
+    MailSettingsUpdate,
+    MailTestIn,
+    ShopSettingsOut,
+    ShopSettingsUpdate,
+)
 from app.schemas.treatment import TreatmentRecipeOut
 from app.services.backup_service import BackupError, export_backup, restore_backup
 from app.services.order_service import load_order_with_relations
@@ -141,3 +149,54 @@ def auto_backup_now():
     from app.services import auto_backup
 
     return auto_backup.run_backup()
+
+
+def _mail_out() -> dict:
+    from app.services import mail_service
+
+    s = get_settings()
+    return {
+        "configured": mail_service.configured(s), "editable": s.desktop, "host": s.smtp_host, "port": s.smtp_port,
+        "security": s.smtp_security, "user": s.smtp_user, "from_address": s.smtp_from, "from_name": s.smtp_from_name,
+        "password_set": bool(s.smtp_password),
+    }
+
+
+@router.get("/mail", response_model=MailSettingsOut)
+def mail_settings():
+    """The outgoing mail account (never the password)."""
+    return _mail_out()
+
+
+@router.put("/mail", response_model=MailSettingsOut)
+def mail_configure(payload: MailSettingsUpdate):
+    """Desktop build: stored in config.json with the other secrets. Docker: set SMTP_* in .env."""
+    from pathlib import Path
+
+    from app.core import desktop
+
+    s = get_settings()
+    if not s.desktop:
+        raise HTTPException(status_code=409, detail="E-mail is configured by the server environment")
+    values = {
+        "smtp_host": payload.host.strip(), "smtp_port": payload.port, "smtp_security": payload.security,
+        "smtp_user": payload.user.strip(), "smtp_from": payload.from_address.strip(), "smtp_from_name": payload.from_name.strip(),
+    }
+    if payload.password is not None:
+        values["smtp_password"] = payload.password
+    desktop.update_config(Path(s.data_dir), **values)
+    for key, value in values.items():  # the settings object is shared: effective at once
+        setattr(s, key, value)
+    return _mail_out()
+
+
+@router.post("/mail/test", response_model=MailSettingsOut)
+def mail_test(payload: MailTestIn):
+    from app.services import mail_service
+
+    try:
+        mail_service.send(get_settings(), [str(payload.to)], "KnifeForge Pro : message d'essai",
+                          "Ce message confirme que KnifeForge Pro peut envoyer vos devis, factures et relances.\n")
+    except mail_service.MailError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return _mail_out()

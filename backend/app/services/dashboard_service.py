@@ -26,6 +26,7 @@ from app.schemas.dashboard import (
     StockSummaryOut,
 )
 from app.services.costing_service import compute_full_costing
+from app.services.billing_service import balance_due
 from app.services.order_service import _UNIT_BY_DIMENSION, check_feasibility, load_order_with_relations
 from app.services.shop_settings_service import get_shop_settings
 
@@ -110,7 +111,8 @@ def _finance(db: Session, today: date, active: list[Order]) -> FinanceSummaryOut
         if doc.issue_date.year == today.year:
             year_total += signed
 
-    unpaid = [d for d in issued if d.kind == DocumentKind.INVOICE and d.status == DocumentStatus.ISSUED]
+    # something still to collect: partial payments and credit notes deducted
+    unpaid = [d for d in issued if d.kind == DocumentKind.INVOICE and d.status == DocumentStatus.ISSUED and balance_due(d) > 0]
     quotes = [d for d in issued if d.kind == DocumentKind.QUOTE and d.status == DocumentStatus.ISSUED]
 
     return FinanceSummaryOut(
@@ -122,7 +124,7 @@ def _finance(db: Session, today: date, active: list[Order]) -> FinanceSummaryOut
         invoiced_year_ht=float(year_total),
         monthly=[MonthAmountOut(month=m, amount_ht=float(per_month[m])) for m in months],
         unpaid_count=len(unpaid),
-        unpaid_ttc=float(sum((d.total_ttc for d in unpaid), Decimal("0"))),
+        unpaid_ttc=float(sum((balance_due(d) for d in unpaid), Decimal("0"))),  # partial payments deducted
         unpaid_overdue=sum(1 for d in unpaid if d.due_date and d.due_date < today),
         quotes_pending_count=len(quotes),
         quotes_pending_ht=float(sum((d.total_ht for d in quotes), Decimal("0"))),

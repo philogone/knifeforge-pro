@@ -5,9 +5,13 @@ from app.models.material import DimensionType, Material, MaterialCategory, Metal
 from app.models.order import Order, OrderLine, OrderStage, OrderStatus
 from app.models.sales_document import (
     DocumentCounter,
+    DocumentEvent,
     DocumentKind,
     DocumentStatus,
+    EventKind,
     OperationNature,
+    Payment,
+    PaymentMethod,
     SalesDocument,
     SalesDocumentLine,
 )
@@ -19,6 +23,10 @@ from app.models.treatment import TreatmentRecipe, TreatmentStep, TreatmentType
 __all__ = [
     "Customer",
     "DocumentCounter",
+    "DocumentEvent",
+    "EventKind",
+    "Payment",
+    "PaymentMethod",
     "DocumentKind",
     "DocumentStatus",
     "MovementReason",

@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.models.customer import Customer
 from app.models.order import Order
-from app.models.sales_document import DocumentKind, DocumentStatus, OperationNature, SalesDocument, SalesDocumentLine
+from app.models.sales_document import DocumentKind, OperationNature, PaymentMethod, SalesDocument, SalesDocumentLine
 from app.services import billing_service as billing
 from app.services.seed_service import seed_mock_data, seed_mock_designs
 from app.services.shop_settings_service import get_shop_settings
@@ -104,6 +104,4 @@ def rebuild(db: Session) -> None:
     db.add(paid)
     db.commit()
     billing.issue(db, paid, settings)
-    paid.status = DocumentStatus.PAID
-    paid.paid_at = date.today()
-    db.commit()
+    billing.add_payment(db, paid, date.today(), paid.total_ttc, PaymentMethod.TRANSFER, "VIR-DEMO-001")

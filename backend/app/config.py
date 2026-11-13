@@ -37,6 +37,16 @@ class Settings(BaseSettings):
     # built interface served by the backend itself (desktop); nginx serves it under Docker
     frontend_dist: str = ""
 
+    # outgoing mail (the workshop's own SMTP account: its provider, its address). Docker: the
+    # environment; desktop build: config.json, set from Settings. Never stored in the database.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_security: str = "starttls"  # starttls · ssl · none
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""  # sender address; the user name when empty
+    smtp_from_name: str = ""
+
     # public demo: fictitious data rebuilt at each start, entered without a password, read-only
     # (app/services/demo_service.py)
     demo: bool = False

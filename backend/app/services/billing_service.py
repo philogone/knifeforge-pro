@@ -174,6 +174,7 @@ def issue(db: Session, doc: SalesDocument, settings: ShopSettings) -> SalesDocum
         doc.due_date = doc.due_date or doc.issue_date + timedelta(days=settings.payment_terms_days or 30)
         doc.delivery_date = doc.delivery_date or doc.issue_date
     compute_totals(doc)
+    apply_deposits(db, doc)
     doc.seller_snapshot = seller_snapshot(settings)
     doc.buyer_snapshot = buyer_snapshot(customer)
     doc.number = _next_number(db, doc.kind, doc.issue_date.year)
@@ -266,7 +267,171 @@ def draft_from_order(db: Session, order: Order, kind: DocumentKind, settings: Sh
             )
         )
     compute_totals(doc)
+    if kind == DocumentKind.INVOICE:
+        apply_deposits(db, doc)
     db.add(doc)
     db.commit()
     db.refresh(doc)
     return doc
+
+
+# ------------------------------------------------------------------------------------------
+# Deposits (factures d'acompte), payments, what is still due
+# ------------------------------------------------------------------------------------------
+
+
+def credited(doc: SalesDocument) -> Decimal:
+    """TTC of the issued credit notes that correct this invoice."""
+    session = Session.object_session(doc)
+    if session is None or doc.kind != DocumentKind.INVOICE:
+        return Decimal("0")
+    notes = (
+        session.query(SalesDocument)
+        .filter(SalesDocument.corrects_id == doc.id, SalesDocument.status != DocumentStatus.DRAFT)
+        .all()
+    )
+    return money(sum((n.total_ttc for n in notes), Decimal("0")))
+
+
+def amount_paid(doc: SalesDocument) -> Decimal:
+    return money(sum((p.amount for p in doc.payments), Decimal("0")))
+
+
+def amount_payable(doc: SalesDocument) -> Decimal:
+    """What the document asks the customer to pay (BT-115): TTC less the deposits deducted."""
+    return money(doc.total_ttc - (doc.prepaid_amount or Decimal("0")))
+
+
+def overdue_days(doc: SalesDocument, today: date | None = None) -> int:
+    """Days past the due date of an invoice that still has something to collect."""
+    if doc.kind != DocumentKind.INVOICE or not doc.due_date or balance_due(doc) == 0:
+        return 0
+    return max(0, ((today or date.today()) - doc.due_date).days)
+
+
+def balance_due(doc: SalesDocument) -> Decimal:
+    """Still to collect on an issued invoice (or to refund on a credit note)."""
+    if doc.kind == DocumentKind.QUOTE or doc.status == DocumentStatus.DRAFT:
+        return money(0)
+    return money(max(Decimal("0"), amount_payable(doc) - credited(doc) - amount_paid(doc)))
+
+
+def _settle(doc: SalesDocument) -> None:
+    """PAID once nothing is due (dated by the last payment), back to ISSUED otherwise."""
+    if doc.kind == DocumentKind.QUOTE or doc.status == DocumentStatus.DRAFT:
+        return
+    if balance_due(doc) == 0:
+        doc.status = DocumentStatus.PAID
+        doc.paid_at = max((p.paid_on for p in doc.payments), default=None) or date.today()
+    else:
+        doc.status = DocumentStatus.ISSUED
+        doc.paid_at = None
+
+
+def add_payment(db: Session, doc: SalesDocument, paid_on: date, amount: Decimal, method, reference: str | None = None):
+    from app.models.sales_document import Payment
+
+    if doc.kind == DocumentKind.QUOTE or doc.status == DocumentStatus.DRAFT:
+        raise BillingError("Payments are recorded on an issued invoice")
+    amount = money(amount)
+    if amount <= 0:
+        raise BillingError("The amount must be positive")
+    if amount > balance_due(doc):
+        raise BillingError("The amount is more than what is due")
+    payment = Payment(document=doc, paid_on=paid_on, amount=amount, method=method, reference=reference)
+    db.add(payment)
+    db.flush()
+    _settle(doc)
+    db.commit()
+    return payment
+
+
+def delete_payment(db: Session, doc: SalesDocument, payment_id: int) -> None:
+    payment = next((p for p in doc.payments if p.id == payment_id), None)
+    if payment is None:
+        raise BillingError("Payment not found")
+    doc.payments.remove(payment)
+    db.flush()
+    _settle(doc)
+    db.commit()
+
+
+def _order_ht(order: Order, settings: ShopSettings) -> Decimal:
+    rate = default_vat_rate(settings)
+    total = Decimal("0")
+    for line in order.lines:
+        price = Decimal(str(line.knife_model.sale_price or 0))
+        if rate:
+            price = money(price / (1 + rate / 100))
+        total += money(price) * Decimal(line.quantity)
+    return money(total)
+
+
+def draft_deposit_from_order(db: Session, order: Order, percent: Decimal, settings: ShopSettings) -> SalesDocument:
+    """A deposit invoice for `percent` of the order (HT), at the default VAT rate."""
+    if not Decimal("0") < percent <= Decimal("100"):
+        raise BillingError("The deposit must be between 0 and 100 %")
+    base = _order_ht(order, settings)
+    if base <= 0:
+        raise BillingError("The order has no price to take a deposit on")
+    doc = SalesDocument(kind=DocumentKind.INVOICE, is_deposit=True, customer_id=order.customer_id, order_id=order.id)
+    pct = f"{percent.normalize():f}".replace(".", ",")
+    doc.lines.append(
+        SalesDocumentLine(
+            position=0,
+            description=f"Acompte de {pct} % sur la commande n° {order.id}",
+            quantity=Decimal(1),
+            unit="C62",
+            unit_price_ht=money(base * percent / 100),
+            vat_rate=default_vat_rate(settings),
+        )
+    )
+    compute_totals(doc)
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+    return doc
+
+
+def deposits_to_deduct(db: Session, doc: SalesDocument) -> list[SalesDocument]:
+    """Issued deposit invoices of the same order not yet deducted by another issued invoice."""
+    if doc.kind != DocumentKind.INVOICE or doc.is_deposit or not doc.order_id:
+        return []
+    deposits = (
+        db.query(SalesDocument)
+        .filter(
+            SalesDocument.order_id == doc.order_id,
+            SalesDocument.kind == DocumentKind.INVOICE,
+            SalesDocument.is_deposit.is_(True),
+            SalesDocument.status != DocumentStatus.DRAFT,
+        )
+        .order_by(SalesDocument.issue_date, SalesDocument.id)
+        .all()
+    )
+    taken = set()
+    others = (
+        db.query(SalesDocument)
+        .filter(
+            SalesDocument.order_id == doc.order_id,
+            SalesDocument.is_deposit.is_(False),
+            SalesDocument.status != DocumentStatus.DRAFT,
+            SalesDocument.id != doc.id,
+        )
+        .all()
+    )
+    for other in others:
+        taken.update(ref["number"] for ref in (other.prepaid_refs or []))
+    return [d for d in deposits if d.number not in taken and credited(d) < d.total_ttc]
+
+
+def apply_deposits(db: Session, doc: SalesDocument) -> None:
+    """Deduct the order's deposits from a final invoice (TTC, net of their credit notes)."""
+    refs, total = [], Decimal("0")
+    for d in deposits_to_deduct(db, doc):
+        amount = money(d.total_ttc - credited(d))
+        refs.append({"number": d.number, "date": d.issue_date.isoformat(), "amount": str(amount)})
+        total += amount
+    if total > doc.total_ttc:
+        raise BillingError("The deposits are more than the invoice")
+    doc.prepaid_refs = refs or None
+    doc.prepaid_amount = money(total)

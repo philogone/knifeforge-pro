@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, CheckConstraint, Float, String, Text, false
+from sqlalchemy import JSON, Boolean, CheckConstraint, Float, String, Text, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -43,3 +43,13 @@ class ShopSettings(Base):
     late_penalty_text: Mapped[str | None] = mapped_column(String(300), nullable=True)
     quote_validity_days: Mapped[int] = mapped_column(default=30, server_default="30")
     onboarding_done: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    # ---- accounting export: the accounts of the sales journal (French chart of accounts)
+    account_customers: Mapped[str] = mapped_column(String(20), default="411000", server_default="411000")
+    account_sales_goods: Mapped[str] = mapped_column(String(20), default="707000", server_default="707000")
+    account_sales_services: Mapped[str] = mapped_column(String(20), default="706000", server_default="706000")
+    account_vat: Mapped[str] = mapped_column(String(20), default="445710", server_default="445710")
+    account_deposits: Mapped[str] = mapped_column(String(20), default="419100", server_default="419100")
+    account_bank: Mapped[str] = mapped_column(String(20), default="512000", server_default="512000")
+    # ---- e-mails: the workshop's own wording (null: the built-in text). Placeholders in braces.
+    email_send_template: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reminder_templates: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # {"1": "...", "2": ..., "3": ...}

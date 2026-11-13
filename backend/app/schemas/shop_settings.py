@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 LOGO_PREFIXES = ("data:image/png;base64,", "data:image/jpeg;base64,", "data:image/svg+xml;base64,")
 # ~300 KB of image once base64-decoded: plenty for a title-block logo, small enough to embed
@@ -29,6 +29,24 @@ class ShopSettingsUpdate(BaseModel):
     payment_terms_days: int | None = Field(default=None, ge=0, le=120)
     late_penalty_text: str | None = Field(default=None, max_length=300)
     quote_validity_days: int | None = Field(default=None, ge=1, le=365)
+    account_customers: str | None = Field(default=None, pattern=r"^[0-9A-Za-z]{1,20}$")
+    account_sales_goods: str | None = Field(default=None, pattern=r"^[0-9A-Za-z]{1,20}$")
+    account_sales_services: str | None = Field(default=None, pattern=r"^[0-9A-Za-z]{1,20}$")
+    account_vat: str | None = Field(default=None, pattern=r"^[0-9A-Za-z]{1,20}$")
+    account_deposits: str | None = Field(default=None, pattern=r"^[0-9A-Za-z]{1,20}$")
+    account_bank: str | None = Field(default=None, pattern=r"^[0-9A-Za-z]{1,20}$")
+    # "" goes back to the built-in wording
+    email_send_template: str | None = Field(default=None, max_length=4000)
+    reminder_templates: dict[str, str] | None = None
+
+    @field_validator("reminder_templates")
+    @classmethod
+    def _three_levels(cls, value: dict[str, str] | None) -> dict[str, str] | None:
+        if value is None:
+            return value
+        if set(value) - {"1", "2", "3"} or any(len(v) > 4000 for v in value.values()):
+            raise ValueError("reminder templates: levels 1, 2 and 3, 4000 characters at most")
+        return {k: v for k, v in value.items() if v.strip()}
 
     @field_validator("workshop_logo")
     @classmethod
@@ -61,6 +79,14 @@ class ShopSettingsOut(BaseModel):
     payment_terms_days: int = 30
     late_penalty_text: str | None = None
     quote_validity_days: int = 30
+    account_customers: str = "411000"
+    account_sales_goods: str = "707000"
+    account_sales_services: str = "706000"
+    account_vat: str = "445710"
+    account_deposits: str = "419100"
+    account_bank: str = "512000"
+    email_send_template: str | None = None
+    reminder_templates: dict[str, str] | None = None
 
     model_config = {"from_attributes": True}
 
@@ -78,3 +104,31 @@ class AutoBackupUpdate(BaseModel):
     enabled: bool = True
     directory: str = Field(min_length=1, max_length=1000)
     keep_days: int = Field(default=30, ge=1, le=3650)
+
+
+class MailSettingsOut(BaseModel):
+    configured: bool
+    # desktop build: set from Settings; Docker: from the server's environment (read-only here)
+    editable: bool
+    host: str
+    port: int
+    security: str
+    user: str
+    from_address: str
+    from_name: str
+    password_set: bool
+
+
+class MailSettingsUpdate(BaseModel):
+    host: str = Field(max_length=255)
+    port: int = Field(default=587, ge=1, le=65535)
+    security: str = Field(default="starttls", pattern="^(starttls|ssl|none)$")
+    user: str = Field(default="", max_length=255)
+    # None keeps the stored password; "" removes it
+    password: str | None = Field(default=None, max_length=500)
+    from_address: str = Field(default="", max_length=255)
+    from_name: str = Field(default="", max_length=120)
+
+
+class MailTestIn(BaseModel):
+    to: EmailStr

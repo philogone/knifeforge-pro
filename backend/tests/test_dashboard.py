@@ -97,8 +97,9 @@ def test_invoiced_amounts_subtract_credit_notes(client, db):
     assert finance.invoiced_year_ht == 180.0
     assert finance.monthly[-1].amount_ht == 180.0
     assert finance.monthly[-1].month == f"{today.year:04d}-{today.month:02d}"
-    assert finance.unpaid_count == 2  # both invoices issued and unpaid; the credit note is not an invoice
-    assert finance.unpaid_ttc == 230.0
+    # the 50 € invoice is cancelled by its credit note: only the 180 € one is still to collect
+    assert finance.unpaid_count == 1
+    assert finance.unpaid_ttc == 180.0
 
 
 def test_stock_levels_flag_and_sort_low_materials(db):

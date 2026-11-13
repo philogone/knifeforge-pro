@@ -40,6 +40,12 @@ NATURE_LABEL = {
     OperationNature.MIXED: "Livraison de biens et prestation de services",
 }
 TITLE = {DocumentKind.QUOTE: "Devis", DocumentKind.INVOICE: "Facture", DocumentKind.CREDIT_NOTE: "Avoir"}
+DEPOSIT_TYPE_CODE = "386"  # UNTDID 1001: prepayment invoice (facture d'acompte)
+DEPOSIT_TITLE = "Facture d'acompte"
+
+
+def title_of(doc: SalesDocument) -> str:
+    return DEPOSIT_TITLE if doc.is_deposit and doc.kind == DocumentKind.INVOICE else TITLE[doc.kind]
 
 # ------------------------------------------------------------------------------ XML (CII)
 
@@ -123,7 +129,8 @@ def build_cii_xml(doc: SalesDocument, corrected_number: str | None = None, corre
     out.append("</rsm:ExchangedDocumentContext>")
 
     out.append("<rsm:ExchangedDocument>")
-    out.append(f"<ram:ID>{_x(doc.number)}</ram:ID><ram:TypeCode>{TYPE_CODE[doc.kind]}</ram:TypeCode>")
+    type_code = DEPOSIT_TYPE_CODE if doc.is_deposit and doc.kind == DocumentKind.INVOICE else TYPE_CODE[doc.kind]
+    out.append(f"<ram:ID>{_x(doc.number)}</ram:ID><ram:TypeCode>{type_code}</ram:TypeCode>")
     out.append(f"<ram:IssueDateTime>{_d(doc.issue_date)}</ram:IssueDateTime>")
     for subject, content in notes:
         if not content:
@@ -224,7 +231,11 @@ def build_cii_xml(doc: SalesDocument, corrected_number: str | None = None, corre
     out.append(f"<ram:TaxBasisTotalAmount>{_amount(doc.total_ht)}</ram:TaxBasisTotalAmount>")
     out.append(f'<ram:TaxTotalAmount currencyID="EUR">{_amount(doc.total_vat)}</ram:TaxTotalAmount>')
     out.append(f"<ram:GrandTotalAmount>{_amount(doc.total_ttc)}</ram:GrandTotalAmount>")
-    out.append(f"<ram:DuePayableAmount>{_amount(doc.total_ttc)}</ram:DuePayableAmount>")
+    prepaid = doc.prepaid_amount or Decimal("0")
+    if prepaid:
+        # deposits already invoiced (BT-113): BR-CO-16, due = total - prepaid
+        out.append(f"<ram:TotalPrepaidAmount>{_amount(prepaid)}</ram:TotalPrepaidAmount>")
+    out.append(f"<ram:DuePayableAmount>{_amount(doc.total_ttc - prepaid)}</ram:DuePayableAmount>")
     out.append("</ram:SpecifiedTradeSettlementHeaderMonetarySummation>")
     if corrected_number:
         out.append(
@@ -280,7 +291,7 @@ def render_pdf(doc: SalesDocument, *, logo: str | None = None, corrected_number:
     franchise = seller.get("vat_regime", "franchise") == "franchise"
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
-    title = f"{TITLE[doc.kind]} {doc.number}" if doc.number else f"{TITLE[doc.kind]} (brouillon)"
+    title = f"{title_of(doc)} {doc.number}" if doc.number else f"{title_of(doc)} (brouillon)"
     c.setTitle(title)
     c.setAuthor(seller.get("name") or "KnifeForge Pro")
     c.setCreator("KnifeForge Pro")
@@ -319,7 +330,7 @@ def render_pdf(doc: SalesDocument, *, logo: str | None = None, corrected_number:
         yy -= 4 * mm
 
     c.setFont(bold, 18)
-    c.drawRightString(right, height - 22 * mm, TITLE[doc.kind])
+    c.drawRightString(right, height - 22 * mm, title_of(doc))
     c.setFont(regular, 9)
     meta = [
         ("N°", doc.number or "brouillon"),
@@ -423,6 +434,11 @@ def render_pdf(doc: SalesDocument, *, logo: str | None = None, corrected_number:
         for b in vat_breakdown(doc):
             rows.append((f"TVA {_fr_num(b.rate)} % sur {_fr_money(b.base)}", _fr_money(b.amount), False))
         rows.append(("Total TTC", _fr_money(doc.total_ttc), True))
+    # deposits already invoiced for this order, then what is left to pay
+    for ref in doc.prepaid_refs or []:
+        rows.append((f"Acompte facturé {ref['number']} du {_fr_date(date.fromisoformat(ref['date']))}", "− " + _fr_money(Decimal(ref["amount"])), False))
+    if doc.prepaid_amount:
+        rows.append(("Reste à payer", _fr_money(doc.total_ttc - doc.prepaid_amount), True))
     for label, value, strong in rows:
         c.setFont(bold if strong else regular, 10 if strong else 9)
         c.drawRightString(right - 35 * mm, ty, label)
@@ -520,7 +536,7 @@ def facturx_pdf(doc: SalesDocument, *, logo: str | None = None, corrected_number
         pdf_metadata={
             "author": (doc.seller_snapshot or {}).get("name") or "KnifeForge Pro",
             "keywords": "Factur-X",
-            "title": f"{TITLE[doc.kind]} {doc.number}",
-            "subject": f"{TITLE[doc.kind]} {doc.number}",
+            "title": f"{title_of(doc)} {doc.number}",
+            "subject": f"{title_of(doc)} {doc.number}",
         },
     )

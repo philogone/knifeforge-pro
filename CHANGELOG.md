@@ -11,6 +11,10 @@ modification (dossier « Sauvegardes avant mise à jour »), puis mise à niveau
 
 ## [Non publié]
 
+## [0.10.0] — 2026-11-13
+
+Feuille de route initiale terminée : preuves du sérieux (lot 9) et facturation (lot 10).
+
 ### Ajouté
 - **Contrôle de découpe** (Dessin et découpe) : une planche de pièces étalons (plaque percée,
   carré, disque) à découper sur sa machine, une fiche de relevé PDF à l'échelle 1:1, et le
@@ -71,5 +75,6 @@ Première préversion installable.
 - Intégration continue (SQLite, PostgreSQL et migrations, interface, images Docker,
   installeur) et revue de sécurité.
 
-[Non publié]: https://github.com/philogone/knifeforge-pro/compare/v0.9.0...HEAD
+[Non publié]: https://github.com/philogone/knifeforge-pro/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/philogone/knifeforge-pro/releases/tag/v0.10.0
 [0.9.0]: https://github.com/philogone/knifeforge-pro/releases/tag/v0.9.0

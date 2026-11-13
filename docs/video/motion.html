@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>KnifeForge Pro — présentation</title>
+<!--
+  Motion design de présentation, 1920 × 1080, environ 53 s.
+  Chaque image est calculée par render(t) (t en secondes) : render.mjs l'appelle 30 fois par
+  seconde, capture l'écran et assemble la vidéo avec ffmpeg. Ouvert seul dans un navigateur, la
+  page se joue en boucle en temps réel.
+-->
+<style>
+  @font-face { font-family: "IBM Plex Sans"; src: url(assets/ibm-plex-sans-latin-400-normal.woff2); font-weight: 400; }
+  @font-face { font-family: "IBM Plex Sans"; src: url(assets/ibm-plex-sans-latin-600-normal.woff2); font-weight: 600; }
+  @font-face { font-family: "IBM Plex Mono"; src: url(assets/ibm-plex-mono-latin-400-normal.woff2); }
+  :root {
+    --olive: #4d5a1c; --olive-deep: #3f4a17; --olive-mist: #f4f6ea; --olive-wash: #e7ecd2;
+    --ink: #1c1b18; --graphite: #2b2925; --text: #403d37; --muted: #6f6a60; --faint: #a39d90;
+    --rule: #cdc7ba; --hair: #e3dfd5; --paper: #ffffff; --bench: #f8f6f1; --red: #b91c1c; --green: #15803d;
+    --hole: #dc2626; --grind: #0f766e; --dim: #334155;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bench); }
+  body { font-family: "IBM Plex Sans", sans-serif; color: var(--ink); position: relative; }
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--hair) 1px, transparent 1px), linear-gradient(90deg, var(--hair) 1px, transparent 1px),
+      linear-gradient(#efece4 1px, transparent 1px), linear-gradient(90deg, #efece4 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .kicker { position: absolute; left: 140px; top: 110px; font-size: 26px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--olive); }
+  .title { position: absolute; left: 140px; top: 150px; font-size: 76px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; }
+  .caption { position: absolute; left: 140px; bottom: 110px; font-size: 30px; color: var(--text); }
+  .caption b { color: var(--ink); font-weight: 600; }
+  .chip {
+    position: absolute; display: inline-flex; align-items: center; gap: 14px; padding: 16px 26px;
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; font-size: 30px; white-space: nowrap;
+    box-shadow: 0 10px 30px rgba(28, 27, 24, 0.08);
+  }
+  .chip .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--olive); }
+  .chip.ok .dot { background: var(--green); }
+  .chip.warn .dot { background: var(--red); }
+  .mono { font-family: "IBM Plex Mono", monospace; }
+  .frame {
+    position: absolute; background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; overflow: hidden;
+    box-shadow: 0 30px 80px rgba(28, 27, 24, 0.16);
+  }
+  .frame .bar { height: 44px; background: #f2efe8; border-bottom: 1px solid var(--hair); display: flex; align-items: center; gap: 10px; padding: 0 18px; }
+  .frame .bar i { width: 13px; height: 13px; border-radius: 50%; background: var(--rule); display: block; }
+  .frame img { display: block; width: 100%; transform-origin: 0 0; }
+  .logo { position: absolute; display: flex; align-items: center; gap: 30px; }
+  .logo .name { font-size: 96px; font-weight: 600; letter-spacing: -0.03em; }
+  .logo .name span { color: var(--olive); }
+  .tagline { position: absolute; left: 0; right: 0; text-align: center; font-size: 40px; color: var(--text); }
+  svg text { font-family: "IBM Plex Mono", monospace; }
+</style>
+</head>
+<body>
+<div class="grid" id="grid"></div>
+
+<!-- 1. opening -->
+<section class="scene" id="s1">
+  <div class="logo" id="s1logo" style="left: 50%; top: 380px; transform: translateX(-50%);">
+    <svg width="150" height="150" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#4d5a1c"/><path id="s1glyph" d="M4 14h11l2-3h7c3 0 5 2 6 5-2 3-5 5-9 5h-4l-2-3H4z" fill="#e7ecd2"/></svg>
+    <div class="name">KnifeForge <span>Pro</span></div>
+  </div>
+  <p class="tagline" id="s1tag" style="top: 600px;">De l'esquisse à la facture, au centième, chez vous.</p>
+</section>
+
+<!-- 2..4: the drawing board, shared by three scenes -->
+<section class="scene" id="board">
+  <p class="kicker" id="bk"></p>
+  <h1 class="title" id="bt"></h1>
+  <svg id="draw" width="1920" height="1080" style="position:absolute; left:0; top:0;" viewBox="0 0 1920 1080">
+    <g id="blade" transform="translate(500 470) scale(5)">
+      <path id="bladeFill" d="M0 6.4 L64 6.4 L70 0 L150.64 0 C169.68 0 173.04 5.44 182 17.6 C176.4 27.2 154 32 131.6 32 L70 32 L64 22.4 L0 22.4 Z" fill="#ece8de" stroke="none"/>
+      <path id="bladeLine" d="M0 6.4 L64 6.4 L70 0 L150.64 0 C169.68 0 173.04 5.44 182 17.6 C176.4 27.2 154 32 131.6 32 L70 32 L64 22.4 L0 22.4 Z" fill="none" stroke="#1c1b18" stroke-width="0.32" stroke-linejoin="round"/>
+      <path id="grindLine" d="M73 32 C73 22.4 76 16 80 16 L139.4 16 C155 16 168 16.5 182 17.6" fill="none" stroke="#0f766e" stroke-width="0.22" stroke-dasharray="3 1 0.6 1"/>
+      <circle class="pin" cx="15.4" cy="14.4" r="2.5" fill="#f8f6f1" stroke="#dc2626" stroke-width="0.28"/>
+      <circle class="pin" cx="43.4" cy="14.4" r="2.5" fill="#f8f6f1" stroke="#dc2626" stroke-width="0.28"/>
+      <g id="notches"></g>
+      <g id="balance" opacity="0">
+        <circle cx="62" cy="15" r="2.2" fill="none" stroke="#4d5a1c" stroke-width="0.35"/>
+        <path d="M58 15 H66 M62 11 V19" stroke="#4d5a1c" stroke-width="0.35"/>
+      </g>
+    </g>
+    <!-- folder: the blade's ghost turning about its pivot -->
+    <g id="ghostWrap" transform="translate(500 470) scale(5)" opacity="0">
+      <g id="ghost">
+        <path d="M0 6.4 L64 6.4 L70 0 L150.64 0 C169.68 0 173.04 5.44 182 17.6 C176.4 27.2 154 32 131.6 32 L70 32 L64 22.4 L0 22.4 Z" fill="rgba(77,90,28,0.10)" stroke="#4d5a1c" stroke-width="0.26" stroke-dasharray="1.6 0.8"/>
+      </g>
+      <circle cx="15.4" cy="14.4" r="0.8" fill="#4d5a1c"/>
+    </g>
+    <!-- dimension -->
+    <g id="dim" opacity="0">
+      <line id="dimLine" x1="850" y1="680" x2="1410" y2="680" stroke="#334155" stroke-width="2"/>
+      <path d="M850 680 l14 -7 v14 z M1410 680 l-14 -7 v14 z" fill="#334155"/>
+      <line x1="850" y1="635" x2="850" y2="695" stroke="#334155" stroke-width="1.2"/>
+      <line x1="1410" y1="565" x2="1410" y2="695" stroke="#334155" stroke-width="1.2"/>
+      <text id="dimText" x="1130" y="725" text-anchor="middle" font-size="34" fill="#1c1b18">112 mm</text>
+    </g>
+    <!-- nesting: a sheet with the parts placed -->
+    <g id="sheet" opacity="0">
+      <rect x="1010" y="300" width="760" height="460" rx="6" fill="#ffffff" stroke="#a39d90" stroke-width="2"/>
+      <text x="1010" y="285" font-size="24" fill="#6f6a60">G10 · 300 × 180 mm · espacement 3 mm</text>
+    </g>
+    <g id="parts"></g>
+  </svg>
+  <div class="chip" id="c1" style="left:1180px; top:250px; opacity:0;"><span class="dot"></span>Crantage du dos · 14 entailles</div>
+  <div class="chip warn" id="c2" style="left:1180px; top:330px; opacity:0;"><span class="dot"></span>Pliant : contact à 24° avec la butée</div>
+  <div class="chip" id="c3" style="left:1180px; top:250px; opacity:0;"><span class="dot"></span>Point d'équilibre · 186 g</div>
+  <div class="chip ok" id="c4" style="left:140px; top:820px; opacity:0;"><span class="dot"></span>Contrôle de découpe : écart maximal <span class="mono">&nbsp;0,04 mm</span></div>
+  <p class="caption" id="bc"></p>
+</section>
+
+<!-- 5. workshop -->
+<section class="scene" id="s5">
+  <p class="kicker">Suivez l'atelier</p>
+  <h1 class="title">L'atelier,<br>d'un coup d'œil.</h1>
+  <div class="frame" id="s5frame" style="left:880px; top:150px; width:920px; height:780px;">
+    <div class="bar"><i></i><i></i><i></i></div>
+    <img id="s5img" src="assets/tableau-de-bord.png" alt="">
+  </div>
+  <p class="caption" style="max-width:640px;">Étapes d'atelier, dates promises, stock sous le seuil, <b>faisabilité matière</b> avant de confirmer.</p>
+</section>
+
+<!-- 6. invoicing -->
+<section class="scene" id="s6">
+  <p class="kicker">Facturez</p>
+  <h1 class="title">Devis, acomptes,<br>factures conformes</h1>
+  <div class="frame" id="s6frame" style="left:880px; top:150px; width:920px; height:780px;">
+    <div class="bar"><i></i><i></i><i></i></div>
+    <img id="s6img" src="assets/encaissements.png" alt="">
+  </div>
+  <div class="chip ok" id="i1" style="left:140px; top:430px; opacity:0;"><span class="dot"></span>Factur-X EN 16931, validé par Mustang</div>
+  <div class="chip" id="i2" style="left:140px; top:520px; opacity:0;"><span class="dot"></span>Acompte, puis solde déduit</div>
+  <div class="chip" id="i3" style="left:140px; top:610px; opacity:0;"><span class="dot"></span>Encaissements et relances</div>
+  <div class="chip" id="i4" style="left:140px; top:700px; opacity:0;"><span class="dot"></span>CA encaissé, TVA, journal FEC</div>
+  <p class="caption">Prêt pour la facture électronique obligatoire de 2026–2027.</p>
+</section>
+
+<!-- 7. at home -->
+<section class="scene" id="s7">
+  <p class="kicker">Chez vous</p>
+  <h1 class="title" style="max-width:1500px;">Vos données restent dans votre atelier.</h1>
+  <div class="chip" id="h1" style="left:140px; top:440px; opacity:0;"><span class="dot"></span>Installé sur votre ordinateur, sans abonnement</div>
+  <div class="chip" id="h2" style="left:140px; top:530px; opacity:0;"><span class="dot"></span>Aucun compte en ligne, aucune donnée chez l'éditeur</div>
+  <div class="chip" id="h3" style="left:140px; top:620px; opacity:0;"><span class="dot"></span>Sauvegarde automatique chaque jour</div>
+  <div class="frame" id="folder" style="left:1080px; top:330px; width:680px; opacity:0; padding:34px 40px; font-size:30px; line-height:1.9;">
+    <div class="mono" style="color:var(--muted); font-size:24px; margin-bottom:10px;">Sur votre ordinateur</div>
+    <div class="mono">▾ KnifeForge Pro</div>
+    <div class="mono" style="padding-left:44px;">knifeforge.db</div>
+    <div class="mono" style="padding-left:44px;">config.json</div>
+    <div class="mono" style="padding-left:44px;">▸ Sauvegardes</div>
+    <div class="mono" style="padding-left:44px;">▸ Journaux</div>
+  </div>
+  <div id="os" style="position:absolute; left:140px; top:780px; display:flex; gap:24px; opacity:0;">
+    <div class="chip" style="position:static;">Windows</div>
+    <div class="chip" style="position:static;">macOS</div>
+    <div class="chip" style="position:static;">Linux</div>
+  </div>
+</section>
+
+<!-- 8. end card -->
+<section class="scene" id="s8">
+  <div class="logo" style="left: 50%; top: 360px; transform: translateX(-50%);">
+    <svg width="150" height="150" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#4d5a1c"/><path d="M4 14h11l2-3h7c3 0 5 2 6 5-2 3-5 5-9 5h-4l-2-3H4z" fill="#e7ecd2"/></svg>
+    <div class="name">KnifeForge <span>Pro</span></div>
+  </div>
+  <p class="tagline" style="top: 580px;">De l'esquisse à la facture, au centième, chez vous.</p>
+  <p class="tagline" id="s8free" style="top: 680px; font-size: 34px; color: var(--olive); font-weight: 600;">Gratuit · Windows · macOS · Linux</p>
+</section>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const clamp = (x) => Math.max(0, Math.min(1, x));
+const ease = (x) => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const out = (x) => 1 - Math.pow(1 - clamp(x), 3);
+/** 0 → 1 between a and b (eased) */
+const k = (t, a, b, f = ease) => f((t - a) / (b - a));
+/** scene opacity: fades in over `fi`, out over `fo` */
+const vis = (t, a, b, fi = 0.5, fo = 0.5) => Math.min(k(t, a, a + fi), 1 - k(t, b - fo, b));
+const lerp = (a, b, p) => a + (b - a) * p;
+
+const SCENES = { s1: [0, 5], board: [5, 28], s5: [28, 35], s6: [35, 43], s7: [43, 48.4], s8: [48.4, 53.5] };
+const DURATION = 53.5;
+
+// the blade's outline length (in its own units) for the drawing stroke
+const bladeLen = $("bladeLine").getTotalLength();
+$("bladeLine").style.strokeDasharray = `${bladeLen} ${bladeLen}`;
+
+// jimping: 14 V notches on the spine, x 82 → 108
+const NOTCH_X = Array.from({ length: 14 }, (_, i) => 82 + i * 2);
+$("notches").innerHTML = NOTCH_X.map((x) => `<path d="M${x - 0.85} -0.05 L${x + 0.85} -0.05 L${x} 1.3 Z" fill="#f8f6f1" stroke="#1c1b18" stroke-width="0.16" opacity="0"/>`).join("");
+const notchEls = [...$("notches").children];
+
+// nesting parts: [start x, y, scale, end x, y, rotation]
+const BLADE_D = $("bladeLine").getAttribute("d");
+const BLADE = `<g transform="scale(3.4) translate(-91 -16)"><path d="${BLADE_D}" fill="#ece8de" stroke="#1c1b18" stroke-width="0.55" stroke-linejoin="round"/></g>`;
+const SCALE = `<rect x="-115" y="-27" width="230" height="54" rx="14" fill="#ece8de" stroke="#1c1b18" stroke-width="2"/><circle cx="-80" cy="0" r="6" fill="#fff" stroke="#dc2626" stroke-width="2"/><circle cx="80" cy="0" r="6" fill="#fff" stroke="#dc2626" stroke-width="2"/>`;
+const GUARD = `<ellipse rx="70" ry="28" fill="#ece8de" stroke="#1c1b18" stroke-width="2"/><rect x="-30" y="-8" width="60" height="16" rx="8" fill="#fff" stroke="#dc2626" stroke-width="2"/>`;
+const PARTS = [
+  { html: BLADE, from: [420, 900], to: [1340, 365], rot: 0 },
+  { html: BLADE, from: [420, 940], to: [1440, 470], rot: 180 },
+  { html: SCALE, from: [420, 980], to: [1145, 590], rot: 0 },
+  { html: SCALE, from: [420, 1020], to: [1145, 660], rot: 0 },
+  { html: SCALE, from: [420, 1060], to: [1395, 590], rot: 0 },
+  { html: SCALE, from: [420, 1100], to: [1395, 660], rot: 0 },
+  { html: GUARD, from: [420, 1140], to: [1640, 620], rot: 90 },
+];
+$("parts").innerHTML = PARTS.map((p) => `<g>${p.html}</g>`).join("");
+const partEls = [...$("parts").children];
+
+function boardText(t) {
+  if (t < 13) return ["1 · Dessinez", "À la cote, au centième.", "Courbes à <b>0,01 mm</b> · millimètres ou <b>pouces</b> · 14 profils de lames paramétriques"];
+  if (t < 21) return ["2 · Vérifiez", "Les outils du coutelier.", "Crantage · <b>pliants</b> · masse et équilibre · feuille 1:1 · maquette STL"];
+  return ["3 · Découpez juste", "Du dessin à la machine.", "Nesting à espacement garanti · DXF compensé · <b>planche de contrôle</b> de votre machine"];
+}
+
+function render(t) {
+  for (const [id, [a, b]] of Object.entries(SCENES)) $(id).style.opacity = vis(t, a, b);
+  $("grid").style.opacity = 0.55 + 0.45 * k(t, 0, 1);
+
+  // 1. opening
+  $("s1logo").style.transform = `translateX(-50%) scale(${lerp(0.86, 1, out((t - 0.2) / 1.4))})`;
+  $("s1tag").style.opacity = k(t, 1.8, 2.6);
+  $("s1tag").style.transform = `translateY(${lerp(18, 0, out((t - 1.8) / 0.8))}px)`;
+
+  // 2–4. the board
+  const [kick, title, cap] = boardText(t);
+  $("bk").textContent = kick;
+  $("bt").textContent = title;
+  $("bc").innerHTML = cap;
+  const swap = (a) => 1 - Math.min(k(t, a - 0.35, a), 1 - k(t, a, a + 0.35));
+  const textVis = Math.min(swap(13), swap(21));
+  for (const id of ["bk", "bt", "bc"]) $(id).style.opacity = textVis;
+  // the swinging blade passes over the caption: let it step aside meanwhile
+  $("bc").style.opacity = textVis * (1 - 0.85 * Math.min(k(t, 15.4, 15.8), 1 - k(t, 18.6, 19)));
+
+  // draw the blade
+  $("bladeLine").style.strokeDashoffset = bladeLen * (1 - k(t, 5.4, 7.9));
+  $("bladeFill").style.opacity = k(t, 7.6, 8.3);
+  $("grindLine").style.opacity = k(t, 8.0, 8.6);
+  document.querySelectorAll(".pin").forEach((el, i) => {
+    const p = out((t - 8.2 - i * 0.2) / 0.4);
+    el.setAttribute("r", String(2.5 * p));
+  });
+  // dimension, then inches
+  $("dim").style.opacity = Math.min(k(t, 8.6, 9.2), 1 - k(t, 12.6, 13));
+  $("dimLine").setAttribute("x2", String(lerp(850, 1410, k(t, 8.6, 9.4))));
+  $("dimText").textContent = t < 10.6 ? "112 mm" : "4,4094 in";
+  $("dimText").style.opacity = t < 10.6 ? k(t, 9.2, 9.6) : k(t, 10.6, 11);
+
+  // 3. tools: notches, folder swing, balance
+  notchEls.forEach((el, i) => el.setAttribute("opacity", String(k(t, 13.6 + i * 0.09, 13.8 + i * 0.09))));
+  $("c1").style.opacity = Math.min(k(t, 14.4, 14.8), 1 - k(t, 15.4, 15.7));
+  const swingP = k(t, 15.6, 17.6);
+  $("ghostWrap").setAttribute("opacity", String(Math.min(k(t, 15.4, 15.7), 1 - k(t, 18.6, 19))));
+  $("ghost").setAttribute("transform", `rotate(${24 * swingP} 15.4 14.4)`);
+  $("c2").style.opacity = Math.min(k(t, 17.5, 17.8), 1 - k(t, 18.6, 18.9));
+  $("balance").setAttribute("opacity", String(Math.min(k(t, 19, 19.4), 1 - k(t, 20.6, 21))));
+  $("c3").style.opacity = Math.min(k(t, 19.2, 19.6), 1 - k(t, 20.6, 20.9));
+
+  // 4. cutting: the blade moves aside, parts nest onto the sheet
+  const shift = k(t, 21, 22.2);
+  $("blade").setAttribute("transform", `translate(${lerp(500, 120, shift)} ${lerp(470, 470, shift)}) scale(${lerp(5, 3.9, shift)})`);
+  $("sheet").setAttribute("opacity", String(k(t, 21.4, 22)));
+  partEls.forEach((el, i) => {
+    const p = out((t - 22.2 - i * 0.22) / 0.9);
+    const [fx, fy] = PARTS[i].from;
+    const [tx, ty] = PARTS[i].to;
+    el.setAttribute("transform", `translate(${lerp(fx, tx, p)} ${lerp(fy, ty, p)}) rotate(${lerp(PARTS[i].rot - 25, PARTS[i].rot, p)})`);
+    el.setAttribute("opacity", String(k(t, 22.2 + i * 0.22, 22.4 + i * 0.22)));
+  });
+  $("c4").style.opacity = k(t, 25.2, 25.6);
+  $("c4").style.transform = `translateY(${lerp(16, 0, out((t - 25.2) / 0.5))}px)`;
+  $("board").style.opacity = vis(t, 5, 28);
+
+  // 5. workshop: slow push in
+  $("s5frame").style.transform = `translateY(${lerp(60, 0, out((t - 28) / 1))}px)`;
+  $("s5img").style.transform = `scale(${lerp(1, 1.12, k(t, 29, 35, (x) => clamp(x)))})`;
+
+  // 6. invoicing
+  $("s6frame").style.transform = `translateY(${lerp(60, 0, out((t - 35) / 1))}px)`;
+  $("s6img").style.transform = `scale(${lerp(1, 1.06, k(t, 36, 43, (x) => clamp(x)))}) translateY(${lerp(0, -260, k(t, 37.5, 42))}px)`;
+  ["i1", "i2", "i3", "i4"].forEach((id, i) => {
+    $(id).style.opacity = k(t, 36.2 + i * 0.7, 36.6 + i * 0.7);
+    $(id).style.transform = `translateX(${lerp(-24, 0, out((t - 36.2 - i * 0.7) / 0.5))}px)`;
+  });
+
+  // 7. at home
+  ["h1", "h2", "h3"].forEach((id, i) => {
+    $(id).style.opacity = k(t, 43.6 + i * 0.6, 44 + i * 0.6);
+    $(id).style.transform = `translateX(${lerp(-24, 0, out((t - 43.6 - i * 0.6) / 0.5))}px)`;
+  });
+  $("os").style.opacity = k(t, 45.8, 46.3);
+  $("folder").style.opacity = k(t, 43.8, 44.4);
+  $("folder").style.transform = `translateY(${lerp(40, 0, out((t - 43.8) / 0.8))}px)`;
+
+  // 8. end card
+  $("s8free").style.opacity = k(t, 49.6, 50.2);
+}
+
+window.render = render;
+window.DURATION = DURATION;
+window.ready = document.fonts.ready.then(() => Promise.all([...document.images].map((img) => img.decode().catch(() => {}))));
+if (!/render=1/.test(location.search)) {
+  const t0 = performance.now();
+  const loop = () => { render(((performance.now() - t0) / 1000) % DURATION); requestAnimationFrame(loop); };
+  window.ready.then(loop);
+} else {
+  render(0);
+}
+</script>
+</body>
+</html>

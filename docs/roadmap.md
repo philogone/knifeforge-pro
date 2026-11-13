@@ -93,7 +93,10 @@ Terminé quand : chaque point a ses tests de précision et sa page de guide.
 - **Envoi par e-mail** du devis ou de la facture depuis l'application (serveur SMTP de l'atelier).
 - **Paiement** : acomptes et paiements partiels sur une facture.
 - **Plateforme agréée** : connexion à une ou deux plateformes (dépôt automatique du Factur-X),
-  avant l'obligation d'émission du 1er septembre 2027.
+  avant l'obligation d'émission du 1er septembre 2027. **En attente** (décidé le 13 novembre
+  2026) : Indy, plateforme agréée, ne transmet pas les factures émises par un autre logiciel
+  (sa FAQ) et n'a pas d'API publique connue ; Finom n'est pas confirmé plateforme agréée (sa
+  solution « arrive bientôt »). À reprendre dès que l'une ouvre une API ou un import Factur-X.
 - **Sauvegarde et reprise des données** (demandé le 13 novembre 2026). Existe déjà : la
   sauvegarde complète téléchargeable et sa restauration dans les Réglages, l'export JSON lisible,
   la sauvegarde quotidienne automatique. À faire dans ce lot :
@@ -190,7 +193,6 @@ sont visés un jour.
 - Nesting sur les chutes existantes.
 - Matériaux comptés à l'unité dans le nesting.
 - Cotation angulaire et radiale.
-- Licence multi-ateliers.
 
 ## Ordre de marche
 

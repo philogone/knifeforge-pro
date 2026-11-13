@@ -1,15 +1,15 @@
-# Fiche de vente Gumroad — KnifeForge Pro
+# Présentation — KnifeForge Pro
 
-Décisions commerciales de référence : [`docs/decisions-commerciales.md`](docs/decisions-commerciales.md).
+Décisions de référence : [`decisions-commerciales.md`](decisions-commerciales.md).
 
 ## Titre
 
 **KnifeForge Pro — le logiciel d'atelier des couteliers : stock, commandes, factures, et un éditeur qui dessine vos pièces au centième**
 
-## Prix
+## Prix et licence
 
-**99 €** — licence pour un atelier, code source auto-hébergé, **1 an de mises à jour inclus**.
-Mises à jour ensuite : **30 € par an**, facultatif (la version installée reste utilisable sans limite de durée).
+**Gratuit** et **libre** : licence GNU AGPL v3 (voir [`LICENSE`](../LICENSE) et
+[`NOTICE.md`](../NOTICE.md)). Installeurs Windows, macOS et Linux ; aucun abonnement, aucun compte.
 
 ## Accroche
 
@@ -93,13 +93,12 @@ réforme, avec les nouvelles mentions obligatoires. La transmission passe par un
 agréée que vous choisissez ; KnifeForge Pro n'en est pas une. Vérifiez avec votre comptable les
 règles propres à votre situation.
 
-**Que se passe-t-il après un an ?**
-Votre version continue de fonctionner sans limite. Le renouvellement à 30 € par an donne accès
-aux nouvelles versions.
+**Combien ça coûte ?**
+Rien. KnifeForge Pro est gratuit, et les nouvelles versions aussi.
 
 **Y a-t-il du support ?**
 Le support est communautaire (questions et réponses entre utilisateurs). Aucun support
 individuel n'est inclus.
 
 **Puis-je l'installer dans plusieurs ateliers ?**
-Une licence couvre un atelier. Pour plusieurs, contactez l'auteur.
+Oui, autant que vous voulez : la licence AGPL l'autorise.

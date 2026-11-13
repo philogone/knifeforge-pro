@@ -20,7 +20,7 @@ et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à 
 ![Tests backend](https://img.shields.io/badge/tests%20backend-167%20passing-brightgreen)
 ![Tests frontend](https://img.shields.io/badge/tests%20frontend-161%20passing-brightgreen)
 ![Précision](https://img.shields.io/badge/courbes-%E2%89%A4%200%2C01%20mm-6366f1)
-![Licence](https://img.shields.io/badge/licence-commerciale-lightgrey)
+![Licence](https://img.shields.io/badge/licence-AGPL--3.0-2a78d6)
 <br>
 [![CI](https://github.com/philogone/knifeforge-pro/actions/workflows/ci.yml/badge.svg)](https://github.com/philogone/knifeforge-pro/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/github/v/release/philogone/knifeforge-pro?label=version)](CHANGELOG.md)
@@ -467,7 +467,8 @@ then `docker compose up -d --build` and open http://localhost:8080. Design ratio
 
 ## 📄 Licence
 
-Logiciel **commercial**, non open source. Voir [`LICENSE`](LICENSE).
+Logiciel **libre et gratuit**, sous licence **GNU AGPL v3** : voir [`LICENSE`](LICENSE) et les
+avertissements de [`NOTICE.md`](NOTICE.md) (données, factures, calculs d'atelier).
 Commercial software, not open source. See [`LICENSE`](LICENSE).
 
 <div align="center">

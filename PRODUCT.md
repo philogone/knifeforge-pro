@@ -84,7 +84,7 @@ Phone and tablet use in the shop is not a confirmed primary context.
 - **Product screenshots** in `docs/screenshots/`: editor, nesting on a sheet and on a bar, client plan, template library.
 - **Banner:** `docs/banner.svg`.
 - **Precision guarantees:** documented in `README.md` and `HANDOVER.md`, and verified by `backend/tests/test_precision.py`.
-- **Draft sales listing:** `GUMROAD_LISTING.md`. It predates the Pro features and is not confirmed final copy.
+- **Presentation copy:** `docs/presentation.md` (free, AGPL v3).
 - **No customer testimonials, case studies, press, user counts or benchmarks exist.** Do not invent them.
 
 ## Product Principles

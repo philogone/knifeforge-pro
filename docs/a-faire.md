@@ -69,7 +69,25 @@ Reste à faire (hors code) :
 - Les liens « dernière version » du README ne marchent qu'avec une version **publiée** (pas une
   préversion) ; le dépôt étant privé, ils demandent un compte GitHub autorisé.
 
-## Prochain : lot 10 (facturation)
+## Lot 10 — fait le 13 novembre 2026
+
+Encaissements et factures d'acompte, envoi par e-mail (compte SMTP de l'atelier, hors base),
+relances à trois niveaux avec historique, comptabilité (CA facturé / encaissé, TVA due par
+exigibilité, journal au format du FEC, ventes CSV), reprise des sauvegardes d'une version
+précédente, reprise dès l'assistant de bienvenue, rappel de sauvegarde.
+
+Reste à faire ou à décider :
+- **Plateforme agréée** : choisir une ou deux plateformes avec toi (compte, conditions, API),
+  avant de coder le dépôt automatique. Obligation d'émission au 1er septembre 2027.
+- Facture en franchise **sans** n° de TVA : refusée par la règle EN 16931 BR-E-02 ; aucune
+  source fiable ne dit quoi mettre à la place. L'application conseille de demander le numéro.
+- Factures **mixtes** (biens et services) : comptées comme biens pour l'exigibilité de la TVA.
+- Pas d'**envoi automatique** des relances (choix : chaque relance est relue et envoyée par
+  l'atelier).
+- Le journal des ventes n'est pas un FEC complet (il vient du logiciel du comptable).
+- Plus tard : **import depuis un autre outil** (clients, matières, modèles en CSV).
+
+## Prochain : lot 11 (maquette 3D), puis lot 12 (forgeron)
 
 Voir [`roadmap.md`](roadmap.md).
 

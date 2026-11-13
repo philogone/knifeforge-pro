@@ -57,6 +57,7 @@ def upgrade() -> None:
         batch.add_column(sa.Column("account_bank", sa.String(20), nullable=False, server_default="512000"))
         batch.add_column(sa.Column("email_send_template", sa.Text()))
         batch.add_column(sa.Column("reminder_templates", sa.JSON()))
+        batch.add_column(sa.Column("last_backup_at", sa.DateTime(timezone=True)))
 
     # invoices already marked paid keep a trace of that payment (date known, method not)
     op.execute(
@@ -68,7 +69,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     with op.batch_alter_table("shop_settings") as batch:
-        for col in ("reminder_templates", "email_send_template", "account_bank", "account_deposits", "account_vat", "account_sales_services", "account_sales_goods", "account_customers"):
+        for col in ("last_backup_at", "reminder_templates", "email_send_template", "account_bank", "account_deposits", "account_vat", "account_sales_services", "account_sales_goods", "account_customers"):
             batch.drop_column(col)
     with op.batch_alter_table("sales_documents") as batch:
         for col in ("prepaid_refs", "prepaid_amount", "is_deposit"):

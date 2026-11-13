@@ -203,6 +203,14 @@ export interface ShopSettings {
   payment_terms_days: number;
   late_penalty_text: string | null;
   quote_validity_days: number;
+  account_customers: string;
+  account_sales_goods: string;
+  account_sales_services: string;
+  account_vat: string;
+  account_deposits: string;
+  account_bank: string;
+  email_send_template: string | null;
+  reminder_templates: Record<string, string> | null;
 }
 
 export interface Customer {
@@ -267,11 +275,97 @@ export interface SalesDocument {
   total_vat: string;
   total_ttc: string;
   paid_at: string | null;
+  is_deposit: boolean;
+  prepaid_amount: string;
+  prepaid_refs: { number: string; date: string; amount: string }[];
+  amount_payable: string;
+  amount_paid: string;
+  credited: string;
+  balance_due: string;
+  overdue_days: number;
+  payments: Payment[];
+  events: DocumentEvent[];
   created_at: string;
   issued_at: string | null;
   frozen: boolean;
   missing: string[];
   lines: DocumentLine[];
+}
+
+export type PaymentMethod = "transfer" | "card" | "cheque" | "cash" | "other";
+
+export interface Payment {
+  id: number;
+  paid_on: string;
+  amount: string;
+  method: PaymentMethod;
+  reference: string | null;
+}
+
+export interface DocumentEvent {
+  id: number;
+  kind: "sent" | "reminder";
+  at: string;
+  channel: "email" | "letter" | "phone";
+  level: number | null;
+  recipient: string | null;
+  subject: string | null;
+  note: string | null;
+}
+
+export type MailPurpose = "send" | "1" | "2" | "3";
+
+export interface MailDraft {
+  to: string[];
+  subject: string;
+  body: string;
+  attachment: string;
+  configured: boolean;
+}
+
+export interface OverdueInvoice {
+  id: number;
+  number: string;
+  customer_name: string | null;
+  customer_email: string | null;
+  issue_date: string;
+  due_date: string;
+  overdue_days: number;
+  balance_due: string;
+  reminders: number;
+  last_reminder_at: string | null;
+  last_reminder_level: number | null;
+  next_level: number;
+}
+
+export interface AccountingPeriod {
+  key: string;
+  start: string;
+  end: string;
+  invoiced_ht: number;
+  collected_goods: number;
+  collected_services: number;
+  vat: { rate: number; base: number; vat: number }[];
+}
+
+export interface MailSettings {
+  configured: boolean;
+  editable: boolean;
+  host: string;
+  port: number;
+  security: "starttls" | "ssl" | "none";
+  user: string;
+  from_address: string;
+  from_name: string;
+  password_set: boolean;
+}
+
+export interface BackupInfo {
+  created_at: string | null;
+  schema_revision: string | null;
+  compatibility: "same" | "older" | "newer" | "unknown";
+  workshop: string | null;
+  counts: Record<string, number>;
 }
 
 export interface StockMovement {

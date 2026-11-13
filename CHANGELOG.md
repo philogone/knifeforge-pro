@@ -24,7 +24,24 @@ modification (dossier « Sauvegardes avant mise à jour »), puis mise à niveau
   avoir et une facture en franchise par le validateur Mustang (règles EN 16931 et PDF/A-3) ;
   les rapports sont joints à la version.
 
+- **Factures d'acompte** (pourcentage d'une commande, code Factur-X 386) déduites de la facture
+  de solde ; **encaissements** multiples, reste dû, facture payée d'elle-même au solde.
+- **Envoi par e-mail** des devis, factures et avoirs avec leur PDF, par le compte SMTP de
+  l'atelier ; **relances** à trois niveaux (e-mail, courrier, téléphone), liste des factures en
+  retard, historique ; textes modifiables.
+- **Comptabilité** : chiffre d'affaires facturé et encaissé, TVA due par période et par taux,
+  journal des ventes et des encaissements au format du FEC, liste des ventes CSV.
+- **Reprise de sauvegarde** : aperçu du fichier avant restauration, sauvegarde d'une version
+  précédente mise à niveau puis restaurée, reprise proposée dès l'assistant de bienvenue,
+  rappel après 7 jours sans sauvegarde.
+
 ### Modifié
+- Base de données : migration 008 (encaissements, historique, comptes). Les factures déjà
+  marquées payées reçoivent l'encaissement correspondant.
+- « Marquer payée » enregistre le reste dû comme un encaissement ; le tableau de bord compte ce
+  qui reste réellement à encaisser.
+- Factur-X : profil de couleur sRGB (PDF/A-3), adresses électroniques du vendeur et de
+  l'acheteur, n° de TVA du vendeur aussi en franchise, date de la facture corrigée sur un avoir.
 - Le dossier des données suit l'usage de chaque système : `%LOCALAPPDATA%\KnifeForge Pro`
   (Windows), `~/Library/Application Support/KnifeForge Pro` (macOS),
   `~/.local/share/knifeforge-pro` (Linux).

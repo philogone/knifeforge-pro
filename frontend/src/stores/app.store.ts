@@ -3,6 +3,13 @@ import { defineStore } from "pinia";
 import { apiFetch, apiFetchBlob, setToken } from "@/composables/useApi";
 import type { DocNode } from "@/editor/types";
 import type {
+  AccountingPeriod,
+  BackupInfo,
+  MailDraft,
+  MailPurpose,
+  MailSettings,
+  OverdueInvoice,
+  Payment,
   CalibrationFeature,
   CalibrationResult,
   CandidateOrder,
@@ -340,8 +347,50 @@ export const useAppStore = defineStore("app", {
     async deleteDocument(id: number) {
       return apiFetch(`/admin/documents/${id}`, { method: "DELETE" });
     },
-    async documentFromOrder(orderId: number, kind: "quote" | "invoice") {
-      return apiFetch<SalesDocument>(`/admin/documents/from-order/${orderId}?kind=${kind}`, { method: "POST" });
+    async documentFromOrder(orderId: number, kind: "quote" | "invoice", depositPercent?: number) {
+      const deposit = depositPercent ? `&deposit_percent=${depositPercent}` : "";
+      return apiFetch<SalesDocument>(`/admin/documents/from-order/${orderId}?kind=${kind}${deposit}`, { method: "POST" });
+    },
+    async addPayment(id: number, payment: Omit<Payment, "id">) {
+      return apiFetch<SalesDocument>(`/admin/documents/${id}/payments`, { method: "POST", body: JSON.stringify(payment) });
+    },
+    async deletePayment(id: number, paymentId: number) {
+      return apiFetch<SalesDocument>(`/admin/documents/${id}/payments/${paymentId}`, { method: "DELETE" });
+    },
+    async mailDraft(id: number, purpose: MailPurpose) {
+      return apiFetch<MailDraft>(`/admin/documents/${id}/mail?purpose=${purpose}`);
+    },
+    async sendDocument(id: number, mail: { to: string[]; cc: string[]; subject: string; body: string }) {
+      return apiFetch<SalesDocument>(`/admin/documents/${id}/send`, { method: "POST", body: JSON.stringify(mail) });
+    },
+    async remind(id: number, reminder: { level: number; channel: "email" | "letter" | "phone"; to?: string[]; subject?: string; body?: string; note?: string }) {
+      return apiFetch<SalesDocument>(`/admin/documents/${id}/reminders`, { method: "POST", body: JSON.stringify(reminder) });
+    },
+    async fetchOverdue() {
+      return apiFetch<OverdueInvoice[]>("/admin/documents/overdue");
+    },
+    async accountingSummary(start: string, end: string, granularity: "month" | "quarter") {
+      return apiFetch<{ franchise: boolean; periods: AccountingPeriod[] }>(
+        `/admin/accounting/summary?start=${start}&end=${end}&granularity=${granularity}`,
+      );
+    },
+    accountingFile(kind: "journal.txt" | "sales.csv", start: string, end: string) {
+      return apiFetchBlob(`/admin/accounting/${kind}?start=${start}&end=${end}`);
+    },
+    async fetchMailSettings() {
+      return apiFetch<MailSettings>("/admin/settings/mail");
+    },
+    async saveMailSettings(payload: Record<string, unknown>) {
+      return apiFetch<MailSettings>("/admin/settings/mail", { method: "PUT", body: JSON.stringify(payload) });
+    },
+    async testMail(to: string) {
+      return apiFetch<MailSettings>("/admin/settings/mail/test", { method: "POST", body: JSON.stringify({ to }) });
+    },
+    async inspectBackup(data: unknown) {
+      return apiFetch<BackupInfo>("/admin/settings/backup/inspect", { method: "POST", body: JSON.stringify(data) });
+    },
+    async backupStatus() {
+      return apiFetch<{ last_manual_at: string | null; last_auto_at: string | null; remind: boolean }>("/admin/settings/backup/status");
     },
     async documentAction(id: number, action: "issue" | "credit-note" | "to-invoice") {
       return apiFetch<SalesDocument>(`/admin/documents/${id}/${action}`, { method: "POST" });

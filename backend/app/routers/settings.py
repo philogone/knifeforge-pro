@@ -30,7 +30,7 @@ from app.schemas.shop_settings import (
     ShopSettingsUpdate,
 )
 from app.schemas.treatment import TreatmentRecipeOut
-from app.services.backup_service import BackupError, export_backup, restore_backup
+from app.services.backup_service import BackupError, export_backup, inspect_backup, restore_backup
 from app.services.order_service import load_order_with_relations
 from app.services.seed_service import clear_mock_data, seed_mock_data, seed_mock_designs
 from app.services.shop_settings_service import get_shop_settings
@@ -108,7 +108,44 @@ def export_data(db: Session = Depends(get_db)):
 @router.get("/backup")
 def download_backup(db: Session = Depends(get_db)):
     """Restorable backup: every table, raw rows, tagged with the schema version."""
+    shop = get_shop_settings(db)
+    shop.last_backup_at = datetime.now(timezone.utc)
+    db.commit()
     return export_backup(db)
+
+
+@router.post("/backup/inspect")
+def inspect(payload: dict = Body(...)):
+    """What a backup file holds (date, version, counts), before restoring it."""
+    try:
+        return inspect_backup(payload)
+    except BackupError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/backup/status")
+def backup_status(db: Session = Depends(get_db)):
+    """When the data was last saved, and whether to remind the user (desktop build: the daily
+    automatic backup counts; Docker: the nightly dump runs outside the application)."""
+    shop = get_shop_settings(db)
+    last_manual = shop.last_backup_at
+    last_auto = None
+    if get_settings().desktop:
+        from app.services import auto_backup
+
+        state = auto_backup.read_state()
+        last_auto = state.get("last_at") if state.get("enabled") else None
+    stamps = [t for t in (last_manual.isoformat() if last_manual else None, last_auto) if t]
+    last = max(stamps) if stamps else None
+    remind = False
+    if get_settings().desktop:
+        if last is None:
+            remind = True
+        else:
+            when = datetime.fromisoformat(last)
+            when = when if when.tzinfo else when.replace(tzinfo=timezone.utc)
+            remind = (datetime.now(timezone.utc) - when).days >= 7
+    return {"last_manual_at": last_manual, "last_auto_at": last_auto, "remind": remind}
 
 
 @router.post("/restore")

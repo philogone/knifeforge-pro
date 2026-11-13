@@ -5,6 +5,9 @@ import { type Locale, useI18n } from "@/i18n";
 import { type ThemeChoice, useTheme } from "@/composables/useTheme";
 import { CARD_HEIGHT_MM, CARD_WIDTH_MM, isScreenCalibrated, saveScreenCalibration, screenPxPerMm } from "@/editor/screenScale";
 import { errorMessage } from "@/i18n/apiErrors";
+import BackupRestore from "@/components/BackupRestore.vue";
+import SettingsAccounting from "@/components/SettingsAccounting.vue";
+import SettingsMail from "@/components/SettingsMail.vue";
 import { useAppStore } from "@/stores/app.store";
 import type { AutoBackup } from "@/types";
 
@@ -212,33 +215,6 @@ async function downloadBackup() {
   }
 }
 
-async function onRestoreFile(ev: Event) {
-  const input = ev.target as HTMLInputElement;
-  const file = input.files?.[0];
-  input.value = "";
-  if (!file) return;
-  backupMsg.value = "";
-  backupError.value = "";
-  let data: unknown;
-  try {
-    data = JSON.parse(await file.text());
-  } catch {
-    backupError.value = t("settings.restore.notJson");
-    return;
-  }
-  if (!confirm(t("settings.restore.confirm", { name: file.name }))) return;
-  backupBusy.value = true;
-  try {
-    const res = await store.restoreBackup(data);
-    const total = Object.values(res.restored).reduce((a, b) => a + b, 0);
-    backupMsg.value = t("settings.restore.done", { n: total });
-    await refreshShop();
-  } catch (err) {
-    backupError.value = errorMessage(err, t);
-  } finally {
-    backupBusy.value = false;
-  }
-}
 
 async function exportData() {
   exporting.value = true;
@@ -405,6 +381,8 @@ async function exportData() {
           </div>
           <p class="mt-4 text-xs text-slate-500 max-w-prose">{{ t("documents.einvoicingNote") }}</p>
         </section>
+        <SettingsMail />
+        <SettingsAccounting />
       </div>
       <div class="settings-col">
         <div class="sheet p-5">
@@ -472,12 +450,9 @@ async function exportData() {
           <p class="sheet-hint text-sm mt-1 max-w-prose">{{ t("settings.backup.hint") }}</p>
           <div class="mt-3 flex flex-wrap items-center gap-3">
             <button :disabled="backupBusy" class="btn btn-primary" @click="downloadBackup">{{ t("settings.backup.download") }}</button>
-            <label class="btn btn-outline cursor-pointer" :class="backupBusy ? 'opacity-50 pointer-events-none' : ''">
-              {{ t("settings.restore.button") }}
-              <input type="file" accept="application/json,.json" class="sr-only" @change="onRestoreFile" />
-            </label>
             <button :disabled="exporting" class="link-action" @click="exportData">{{ t("settings.backup.export") }}</button>
           </div>
+          <div class="mt-3"><BackupRestore @restored="refreshShop" /></div>
           <p class="sheet-hint mt-2 max-w-prose">{{ t("settings.restore.hint") }}</p>
           <p v-if="backupMsg" class="mt-2 text-sm text-green-700" role="status">{{ backupMsg }}</p>
           <p v-if="backupError" class="mt-2 text-sm text-red-700" role="alert">{{ backupError }}</p>

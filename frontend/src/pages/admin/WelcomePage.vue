@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
+import BackupRestore from "@/components/BackupRestore.vue";
 import { errorMessage } from "@/i18n/apiErrors";
 import { useI18n } from "@/i18n";
 import { useAppStore } from "@/stores/app.store";
@@ -58,6 +59,12 @@ const clearDemo = () =>
     demoOn.value = false;
   }, 3);
 
+async function restored() {
+  // the backup brings its own settings: the workshop is set up, go straight to it
+  await run(() => store.updateShopSettings({ onboarding_done: true }));
+  if (!error.value) router.push("/");
+}
+
 async function finish(to: string) {
   await run(() => store.updateShopSettings({ onboarding_done: true }));
   if (!error.value) router.push(to);
@@ -100,6 +107,13 @@ async function finish(to: string) {
         <button class="btn btn-primary" :disabled="busy" @click="saveWorkshop">{{ t("welcome.next") }}</button>
         <button class="link-action" @click="step = 2">{{ t("welcome.later") }}</button>
       </div>
+    </section>
+
+    <!-- already a KnifeForge user: new computer, reinstallation, Docker -> installer -->
+    <section v-if="step === 1" class="sheet p-6 mt-4">
+      <h2 class="sheet-title">{{ t("welcome.restoreTitle") }}</h2>
+      <p class="sheet-hint text-sm mt-1 max-w-prose">{{ t("welcome.restoreLead") }}</p>
+      <div class="mt-4"><BackupRestore :label="t('welcome.restorePick')" @restored="restored" /></div>
     </section>
 
     <!-- 2. demo data -->

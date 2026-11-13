@@ -1,4 +1,6 @@
-from sqlalchemy import JSON, Boolean, CheckConstraint, Float, String, Text, false
+from datetime import datetime
+
+from sqlalchemy import JSON, Boolean, CheckConstraint, DateTime, Float, String, Text, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -53,3 +55,5 @@ class ShopSettings(Base):
     # ---- e-mails: the workshop's own wording (null: the built-in text). Placeholders in braces.
     email_send_template: Mapped[str | None] = mapped_column(Text, nullable=True)
     reminder_templates: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # {"1": "...", "2": ..., "3": ...}
+    # last complete backup downloaded from Settings (a reminder after 7 days without one)
+    last_backup_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

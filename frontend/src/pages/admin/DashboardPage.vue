@@ -20,7 +20,14 @@ onMounted(async () => {
   } catch (err) {
     error.value = errorMessage(err, t);
   }
+  try {
+    backupReminder.value = (await store.backupStatus()).remind;
+  } catch {
+    // no reminder rather than an error on the home page
+  }
 });
+// desktop build: no backup (automatic or downloaded) for a week
+const backupReminder = ref(false);
 
 const intlLocale = computed(() => (locale.value === "fr" ? "fr-FR" : "en-GB"));
 function parseDay(iso: string): Date {
@@ -94,6 +101,10 @@ const gaugeFill = (q: number, threshold: number) => (threshold > 0 ? Math.min(10
 <template>
   <div class="page max-w-[1600px]">
     <p v-if="error" role="alert" class="sheet p-6 text-sm text-red-700">{{ error }}</p>
+    <p v-if="backupReminder" class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900" role="status">
+      {{ t("dashboard.backupReminder") }}
+      <router-link to="/settings" class="ml-1 underline underline-offset-2">{{ t("dashboard.backupNow") }}</router-link>
+    </p>
 
     <template v-if="data">
       <header class="page-head">

@@ -14,6 +14,22 @@ const EXACT: Record<string, string> = {
   "Too many attempts, try again shortly": "apiError.rateLimited",
   "Invalid credentials": "apiError.invalidCredentials",
   "Read-only demo": "apiError.readOnlyDemo",
+  "The amount is more than what is due": "apiError.paymentTooMuch",
+  "The amount must be positive": "apiError.paymentPositive",
+  "Payments are recorded on an issued invoice": "apiError.paymentOnIssued",
+  "E-mail is not set up": "apiError.mailNotSetUp",
+  "The mail server refused the user name or password": "apiError.mailAuth",
+  "The mail server refused the recipient address": "apiError.mailRecipient",
+  "Issue the document before sending it": "apiError.issueFirst",
+  "Nothing to collect on this document": "apiError.nothingToCollect",
+  "E-mail is configured by the server environment": "apiError.mailByEnv",
+  "Backup made by a newer version of KnifeForge: update this installation first": "apiError.backupNewer",
+  "The deposit must be between 0 and 100 %": "apiError.depositRange",
+  "The order has no price to take a deposit on": "apiError.depositNoPrice",
+  "The deposits are more than the invoice": "apiError.depositsTooMuch",
+  "Three years at most per export": "apiError.periodTooLong",
+  "The end date is before the start date": "apiError.periodOrder",
+  "Remove the payments to mark it unpaid": "apiError.removePayments",
   "Create the account first": "apiError.setupFirst",
   "The account already exists": "apiError.accountExists",
   "Backup folder not writable": "apiError.backupFolder",
@@ -46,6 +62,7 @@ const EXACT: Record<string, string> = {
 /** messages built with values: matched on their fixed start */
 const PREFIX: [string, string][] = [
   ["Too many parts to nest", "apiError.tooManyParts"],
+  ["Could not send through", "apiError.mailSend"],
 ];
 
 /** the message to put on screen for any failure (API error, network down, bug) */

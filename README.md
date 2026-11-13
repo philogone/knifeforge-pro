@@ -17,7 +17,7 @@ et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à 
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 <br>
-![Tests backend](https://img.shields.io/badge/tests%20backend-143%20passing-brightgreen)
+![Tests backend](https://img.shields.io/badge/tests%20backend-165%20passing-brightgreen)
 ![Tests frontend](https://img.shields.io/badge/tests%20frontend-157%20passing-brightgreen)
 ![Précision](https://img.shields.io/badge/courbes-%E2%89%A4%200%2C01%20mm-6366f1)
 ![Licence](https://img.shields.io/badge/licence-commerciale-lightgrey)
@@ -127,6 +127,10 @@ Placement des **vraies formes** (perçages compris) sur vos plaques et barres.
 - **Devis → facture → avoir**, numérotation continue sans trou (F-2026-0001), document figé à l'émission
 - **Factur-X EN 16931** : PDF/A-3 lisible avec le XML structuré embarqué, conforme à la **réforme de la facturation électronique** (mentions obligatoires 2026 : SIREN du client, adresse de livraison, nature de l'opération, option TVA sur les débits)
 - **Franchise en base** (art. 293 B du CGI) ou assujetti à la TVA, au choix dans les réglages
+- **Factures d'acompte** depuis une commande, déduites de la facture de solde ; **encaissements** multiples (virement, carte, chèque, espèces), reste dû et retard calculés
+- **Envoi par e-mail** des devis et factures (compte SMTP de l'atelier) et **relances** à trois niveaux, jusqu'à la mise en demeure, avec historique
+- **Comptabilité** : chiffre d'affaires facturé et encaissé (déclaration URSSAF), TVA due par période selon son exigibilité, journal des ventes au format du FEC pour le comptable, liste des ventes CSV
+- Chaque version fait valider des factures types (TVA, franchise, avoir, acompte, solde) par le validateur indépendant **Mustang**
 
 </td>
 <td valign="top">
@@ -419,7 +423,7 @@ knifeforge-pro/
 ## 🧪 Tests
 
 ```bash
-cd backend && pytest              # 143 tests : géométrie, nesting, exports, API, métrologie
+cd backend && pytest              # 165 tests : géométrie, nesting, exports, API, métrologie
 cd frontend && npm test           # 157 tests : moteur d'édition, calibration, perspective, magnétisme, congés, texte, formes, client API, traductions
 cd frontend && npx vue-tsc --noEmit && npm run build
 ```

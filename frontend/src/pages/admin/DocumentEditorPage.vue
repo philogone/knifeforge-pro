@@ -2,13 +2,16 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import DocumentHistory from "@/components/DocumentHistory.vue";
+import DocumentMailDialog from "@/components/DocumentMailDialog.vue";
+import DocumentPayments from "@/components/DocumentPayments.vue";
 import EditorIcon from "@/components/EditorIcon.vue";
 import { saveBlob } from "@/composables/useApi";
 import { DOCUMENT_STATUS_TAG } from "@/constants/referenceData";
 import { formatDecimal, formatFixed, useI18n } from "@/i18n";
 import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
-import type { Customer, DocumentLine, OperationNature, SalesDocument, ShopSettings } from "@/types";
+import type { Customer, DocumentLine, MailPurpose, OperationNature, SalesDocument, ShopSettings } from "@/types";
 
 const { t, money, locale } = useI18n();
 const store = useAppStore();
@@ -58,6 +61,8 @@ onMounted(async () => {
     customers.value = cs.filter((c) => !c.anonymized_at || c.id === d.customer_id);
     shop.value = s;
     fill(d);
+    // from the list of overdue invoices: open the reminder straight away
+    if (route.query.remind && canRemind.value) mail.value = nextLevel.value;
   } catch (err) {
     error.value = errorMessage(err, t);
   }
@@ -149,6 +154,19 @@ const creditNote = () => run(() => store.documentAction(doc.value!.id, "credit-n
 const toInvoice = () => run(() => store.documentAction(doc.value!.id, "to-invoice"), (d) => router.push(`/documents/${d.id}`));
 const setStatus = (s: string) => run(() => store.documentStatus(doc.value!.id, s));
 
+// e-mail the document, or remind the customer of an unpaid invoice
+const mail = ref<MailPurpose | null>(null);
+const canRemind = computed(() => doc.value?.kind === "invoice" && Number(doc.value.balance_due) > 0);
+const nextLevel = computed(() => {
+  const levels = (doc.value?.events ?? []).filter((e) => e.kind === "reminder").map((e) => e.level ?? 1);
+  return String(Math.min(3, (levels.length ? Math.max(...levels) : 0) + 1)) as MailPurpose;
+});
+function mailed(d: SalesDocument) {
+  mail.value = null;
+  fill(d);
+}
+const docTitle = computed(() => (doc.value?.is_deposit ? t("documents.deposit") : t(`documents.kinds.${doc.value?.kind}`)));
+
 async function openPdf(download: boolean) {
   error.value = "";
   try {
@@ -177,7 +195,7 @@ const units = [
   <div v-if="doc" class="page max-w-4xl">
     <router-link to="/documents" class="back-link">&larr; {{ t("documents.title") }}</router-link>
     <div class="flex items-center gap-3 flex-wrap">
-      <h1 class="page-title">{{ t(`documents.kinds.${doc.kind}`) }} {{ doc.number ?? t("documents.draft") }}</h1>
+      <h1 class="page-title">{{ docTitle }} {{ doc.number ?? t("documents.draft") }}</h1>
       <span class="tag font-medium" :class="DOCUMENT_STATUS_TAG[doc.status]">{{ t(`documents.status.${doc.kind}.${doc.status}`) }}</span>
       <span v-if="doc.corrects_number" class="text-sm text-slate-600">{{ t("doc.corrects", { number: doc.corrects_number }) }}</span>
     </div>
@@ -283,6 +301,14 @@ const units = [
           <dt>{{ franchise ? t("doc.total") : t("doc.totalTtc") }}</dt><dd class="tabular-nums">{{ money(totals.ttc) }}</dd>
         </div>
         <p v-if="franchise" class="text-xs text-slate-500 text-right">{{ t("doc.franchiseMention") }}</p>
+        <template v-if="Number(doc.prepaid_amount) > 0">
+          <div v-for="r in doc.prepaid_refs" :key="r.number" class="flex justify-between gap-3 text-slate-600">
+            <dt>{{ t("doc.depositDeducted", { number: r.number }) }}</dt><dd class="tabular-nums whitespace-nowrap">− {{ money(Number(r.amount)) }}</dd>
+          </div>
+          <div class="flex justify-between pt-1 border-t border-slate-200 font-semibold">
+            <dt>{{ t("doc.leftToPay") }}</dt><dd class="tabular-nums">{{ money(totals.ttc - Number(doc.prepaid_amount)) }}</dd>
+          </div>
+        </template>
       </dl>
     </section>
 
@@ -307,12 +333,18 @@ const units = [
           <button v-if="doc.status === 'issued'" class="btn btn-outline" :disabled="busy" @click="setStatus('refused')">{{ t("doc.markRefused") }}</button>
         </template>
         <template v-else>
-          <button v-if="doc.status === 'issued'" class="btn btn-outline" :disabled="busy" @click="setStatus('paid')">{{ t("doc.markPaid") }}</button>
-          <button v-if="doc.status === 'paid'" class="btn btn-outline" :disabled="busy" @click="setStatus('issued')">{{ t("doc.markUnpaid") }}</button>
+          <button v-if="canRemind" class="btn btn-outline" :disabled="busy" @click="mail = nextLevel">{{ t("doc.remind") }}</button>
           <button v-if="doc.kind === 'invoice'" class="link-action ml-auto" :disabled="busy" @click="creditNote">{{ t("doc.creditNote") }}</button>
         </template>
+        <button class="btn btn-outline" :disabled="busy" @click="mail = 'send'">{{ t("doc.sendByMail") }}</button>
       </template>
     </div>
+
+    <div v-if="!editable" class="mt-6 grid gap-4 lg:grid-cols-2 items-start">
+      <DocumentPayments v-if="doc.kind !== 'quote'" :doc="doc" @update="fill" />
+      <DocumentHistory :events="doc.events" />
+    </div>
+    <DocumentMailDialog v-if="mail && doc" :doc="doc" :purpose="mail" @done="mailed" @close="mail = null" />
     <p v-if="!editable && doc.kind !== 'quote'" class="mt-3 text-xs text-slate-500 max-w-prose">{{ t("documents.einvoicingNote") }}</p>
   </div>
   <p v-else-if="error" class="page text-sm text-red-700">{{ error }}</p>

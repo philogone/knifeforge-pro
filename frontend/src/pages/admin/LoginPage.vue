@@ -145,6 +145,7 @@ async function submit() {
             />
           </label>
           <p v-if="setup" id="setup-hint" class="sheet-hint -mt-2">{{ t("setup.passwordHint") }}</p>
+          <p v-if="setup" class="sheet-hint">{{ t("setup.restoreHint") }}</p>
           <label v-if="setup" class="block">
             <span class="field-label">{{ t("setup.confirm") }}</span>
             <input v-model="confirm" type="password" autocomplete="new-password" required class="input w-full" />

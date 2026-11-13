@@ -50,6 +50,7 @@ const groups: { label: string; items: NavItem[] }[] = [
       { to: "/customers", key: "nav.customers", desc: "nav.desc.customers" },
       { to: "/orders", key: "nav.orders", desc: "nav.desc.orders" },
       { to: "/documents", key: "nav.documents", desc: "nav.desc.documents" },
+      { to: "/accounting", key: "nav.accounting", desc: "nav.desc.accounting" },
     ],
   },
 ];

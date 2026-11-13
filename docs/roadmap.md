@@ -86,7 +86,7 @@ Terminé quand : chaque point a ses tests de précision et sa page de guide.
 - **Validation Factur-X indépendante** (validateur FNFE-MPE ou Mustang) jointe à chaque version.
 - Vidéo courte : de l'esquisse à la facture en 3 minutes.
 
-## Lot 10 — À niveau des outils de facturation (priorité 3)
+## Lot 10 — À niveau des outils de facturation (fait le 13 novembre 2026, sauf la plateforme agréée)
 
 - **Relances** des factures impayées (échéance, modèle de message, historique).
 - **Export pour le comptable** : journal des ventes CSV et récapitulatif de TVA par période.
@@ -194,7 +194,7 @@ sont visés un jour.
 
 ## Ordre de marche
 
-1. ~~Lot 6~~ → 2. ~~Lot 7~~ → 3. ~~Lot 8~~ et ~~lot 9~~ → 4. Lot 10 → 5. Lot 11 → 6. Lot 12
+1. ~~Lot 6~~ → 2. ~~Lot 7~~ → 3. ~~Lot 8~~ et ~~lot 9~~ → 4. ~~Lot 10~~ → 5. Lot 11 → 6. Lot 12
 (la longueur développée peut être avancée seule : elle ne dépend d'aucun autre lot).
 
 À chaque lot : tests verts (`pytest`, `npm test`, `vue-tsc`, build), captures vérifiées,

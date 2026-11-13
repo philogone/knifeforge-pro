@@ -8,7 +8,7 @@ import { DOCUMENT_STATUS_TAG } from "@/constants/referenceData";
 import { useI18n } from "@/i18n";
 import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
-import type { DocumentKind, SalesDocument } from "@/types";
+import type { DocumentKind, OverdueInvoice, SalesDocument } from "@/types";
 
 const { t, locale, money } = useI18n();
 const store = useAppStore();
@@ -16,6 +16,7 @@ const route = useRoute();
 const router = useRouter();
 
 const docs = ref<SalesDocument[]>([]);
+const overdue = ref<OverdueInvoice[]>([]);
 const loading = ref(true);
 const error = ref("");
 const kind = ref<"" | DocumentKind>((route.query.kind as DocumentKind) || "");
@@ -24,7 +25,8 @@ const customerId = computed(() => Number(route.query.customer) || undefined);
 async function load() {
   loading.value = true;
   try {
-    docs.value = await store.fetchDocuments({ customer_id: customerId.value });
+    [docs.value, overdue.value] = await Promise.all([store.fetchDocuments({ customer_id: customerId.value }), store.fetchOverdue()]);
+    if (customerId.value) overdue.value = overdue.value.filter((o) => docs.value.some((d) => d.id === o.id));
   } catch (err) {
     error.value = errorMessage(err, t);
   } finally {
@@ -55,9 +57,12 @@ const sortOptions = computed(() => [
 ]);
 
 const kinds: ("" | DocumentKind)[] = ["", "quote", "invoice", "credit_note"];
+// still to collect: partial payments, deducted deposits and credit notes taken into account
 const unpaidTotal = computed(() =>
-  docs.value.filter((d) => d.kind === "invoice" && d.status === "issued").reduce((sum, d) => sum + Number(d.total_ttc), 0),
+  docs.value.filter((d) => d.kind === "invoice" && d.status === "issued").reduce((sum, d) => sum + Number(d.balance_due), 0),
 );
+const partly = (d: SalesDocument) => d.status === "issued" && Number(d.amount_paid) > 0 && Number(d.balance_due) > 0;
+const label = (d: SalesDocument) => (d.is_deposit ? t("documents.deposit") : t(`documents.kinds.${d.kind}`));
 
 function fmtDate(iso: string | null) {
   return iso ? new Date(iso).toLocaleDateString(locale.value === "fr" ? "fr-FR" : "en-GB") : "—";
@@ -71,12 +76,45 @@ function fmtDate(iso: string | null) {
         <h1 class="page-title">{{ t("documents.title") }}</h1>
         <p class="page-lead">{{ t("documents.lead") }}</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2">
+        <router-link to="/accounting" class="btn btn-outline">{{ t("nav.accounting") }}</router-link>
         <button class="btn btn-outline" @click="create('quote')">+ {{ t("documents.newQuote") }}</button>
         <button class="btn btn-primary" @click="create('invoice')">+ {{ t("documents.newInvoice") }}</button>
       </div>
     </header>
     <p v-if="error" role="alert" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error }}</p>
+
+    <section v-if="overdue.length" class="sheet p-4 mb-6 border-l-4 border-l-red-400" aria-labelledby="overdue-title">
+      <h2 id="overdue-title" class="sheet-title mb-2">{{ t("overdue.title", { n: overdue.length }) }}</h2>
+      <div class="-mx-1 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs text-slate-500">
+              <th class="font-medium pb-1 px-1">{{ t("documents.col.number") }}</th>
+              <th class="font-medium pb-1 px-1">{{ t("documents.col.customer") }}</th>
+              <th class="font-medium pb-1 px-1">{{ t("overdue.late") }}</th>
+              <th class="font-medium pb-1 px-1 text-right">{{ t("payments.due") }}</th>
+              <th class="font-medium pb-1 px-1">{{ t("overdue.reminders") }}</th>
+              <th class="pb-1"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="o in overdue" :key="o.id" class="border-t border-slate-100">
+              <td class="py-1.5 px-1"><router-link :to="`/documents/${o.id}`" class="font-medium hover:underline">{{ o.number }}</router-link></td>
+              <td class="py-1.5 px-1 text-slate-700">{{ o.customer_name ?? "—" }}</td>
+              <td class="py-1.5 px-1 text-red-700 tabular-nums">{{ t("payments.late", { days: o.overdue_days }) }}</td>
+              <td class="py-1.5 px-1 text-right tabular-nums font-medium">{{ money(Number(o.balance_due)) }}</td>
+              <td class="py-1.5 px-1 text-slate-600">
+                {{ o.reminders ? t("overdue.lastReminder", { level: o.last_reminder_level ?? 1, date: fmtDate(o.last_reminder_at) }) : t("overdue.noReminder") }}
+              </td>
+              <td class="py-1.5 px-1 text-right">
+                <router-link :to="`/documents/${o.id}?remind=1`" class="link-action whitespace-nowrap">{{ t("overdue.remind", { level: o.next_level }) }}</router-link>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
     <div class="mb-4 flex flex-wrap items-center gap-2" role="tablist">
       <button
@@ -130,12 +168,15 @@ function fmtDate(iso: string | null) {
             >
               <td class="px-4 py-2.5">
                 <router-link :to="`/documents/${d.id}`" class="font-medium text-slate-900 hover:underline" @click.stop>
-                  {{ t(`documents.kinds.${d.kind}`) }} {{ d.number ?? t("documents.draft") }}
+                  {{ label(d) }} {{ d.number ?? t("documents.draft") }}
                 </router-link>
               </td>
               <td class="px-4 py-2.5 text-slate-700">{{ d.customer_name ?? "—" }}</td>
               <td class="px-4 py-2.5 text-slate-600 tabular-nums">{{ fmtDate(d.issue_date ?? d.created_at) }}</td>
-              <td class="px-4 py-2.5"><span class="tag font-medium" :class="DOCUMENT_STATUS_TAG[d.status]">{{ t(`documents.status.${d.kind}.${d.status}`) }}</span></td>
+              <td class="px-4 py-2.5 whitespace-nowrap">
+                <span class="tag font-medium" :class="DOCUMENT_STATUS_TAG[d.status]">{{ partly(d) ? t("documents.partlyPaid") : t(`documents.status.${d.kind}.${d.status}`) }}</span>
+                <span v-if="d.overdue_days > 0" class="tag tag-danger font-medium ml-1">{{ t("documents.overdue") }}</span>
+              </td>
               <td class="px-4 py-2.5 text-right tabular-nums font-medium" :class="d.kind === 'credit_note' ? 'text-red-700' : 'text-slate-900'">
                 {{ d.kind === "credit_note" ? "− " : "" }}{{ money(Number(d.total_ttc)) }}
               </td>

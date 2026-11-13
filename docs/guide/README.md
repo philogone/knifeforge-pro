@@ -16,7 +16,7 @@ garder pour vous entraîner, puis les effacer d'un clic (*Réglages › Données
 6. [Contrôler sa découpe (planche de contrôle)](#6-contrôler-sa-découpe)
 7. [Placer les pièces sur la matière (nesting)](#7-placer-les-pièces-sur-la-matière)
 8. [Prendre une commande et la suivre à l'atelier](#8-prendre-une-commande-et-la-suivre)
-9. [Devis, factures et avoirs](#9-devis-factures-et-avoirs)
+9. [Devis, factures, acomptes, encaissements, relances, comptabilité](#9-devis-factures-et-avoirs)
 10. [Sauvegarder, mettre à jour, déménager](#10-sauvegarder-mettre-à-jour-déménager)
 11. [Questions fréquentes](#11-questions-fréquentes)
 
@@ -252,11 +252,69 @@ mention obligatoire, la facture le dit et ne s'émet pas.
 - Chaque facture émise est un **Factur-X** : un PDF lisible avec, à l'intérieur, les données
   structurées EN 16931 que lisent les logiciels du client et les plateformes agréées. À chaque
   version, des factures types sont vérifiées par un validateur indépendant (Mustang).
-- Un devis accepté se transforme en facture ; une facture se marque payée.
+- Un devis accepté se transforme en facture.
 
-> **Limite** : KnifeForge ne transmet pas lui-même les factures à une plateforme agréée
+### Acomptes
+
+Depuis une commande, *+ Facture d'acompte* : indiquez le pourcentage (30 % par exemple), une
+facture d'acompte est préparée sur cette part du prix. Elle se numérote comme les autres
+factures et part en Factur-X avec le code des factures d'acompte. La **facture de solde** de la
+commande déduit d'elle-même les acomptes déjà facturés (« Acompte facturé F-… », puis « Reste à
+payer »), et jamais deux fois.
+
+### Encaissements
+
+Sur une facture émise, *Encaisser* : date, montant, moyen (virement, carte, chèque, espèces),
+référence. Plusieurs encaissements se cumulent ; la facture passe d'elle-même à **payée** quand
+il ne reste rien à payer, avoirs et acomptes compris. Un encaissement saisi par erreur se
+supprime : la facture redevient à payer.
+
+![Encaissements et historique d'une facture](img/encaissements.png)
+
+### Envoyer par e-mail
+
+Réglez une fois *Réglages › E-mail* (le compte de messagerie de l'atelier ; la plupart des
+fournisseurs demandent un « mot de passe d'application ») et envoyez-vous un essai. Ensuite,
+*Envoyer par e-mail* sur un document émis prépare le message, avec le PDF (Factur-X pour une
+facture) en pièce jointe ; tout se relit et se modifie avant l'envoi. L'envoi est noté dans
+l'historique du document.
+
+### Relances
+
+*Ventes › Devis et factures* liste en tête les **factures en retard** : jours de retard, reste
+dû, dernière relance. *Relancer* propose le niveau suivant :
+1. un rappel courtois ;
+2. un deuxième rappel, qui mentionne les pénalités ;
+3. une **mise en demeure** (à envoyer de préférence en recommandé avec accusé de réception :
+   copiez le texte, imprimez-le).
+
+Une relance part par e-mail, ou se note quand elle est faite par courrier ou par téléphone (avec
+une note : « promet un virement vendredi »). Les textes sont les vôtres si vous le souhaitez :
+*Réglages › Comptabilité et messages*.
+
+![Relance d'une facture](img/relance.png)
+
+### Comptabilité
+
+*Ventes › Comptabilité*, pour une période (mois, trimestre, année, ou dates choisies) :
+- **en micro-entreprise** : le chiffre d'affaires **encaissé**, ventes de biens et prestations
+  séparées, c'est-à-dire ce que vous déclarez à l'URSSAF ;
+- **assujetti à la TVA** : en plus, la **TVA due** par taux et par période, selon la règle de
+  chaque opération (à la livraison pour les biens, à l'encaissement pour les prestations et pour
+  tous les acomptes, à la facture si vous avez opté pour les débits) ;
+- **Journal des ventes (FEC)** : les écritures des ventes et des encaissements au format des
+  colonnes du fichier des écritures comptables, que votre comptable importe dans son logiciel ;
+  les comptes se règlent dans *Réglages › Comptabilité et messages* ;
+- **Liste des ventes (CSV)** : une ligne par facture ou avoir, pour un tableur.
+
+![Comptabilité](img/comptabilite.png)
+
+> **Limites** : KnifeForge ne transmet pas lui-même les factures à une plateforme agréée
 > (obligatoire en émission au 1er septembre 2027 pour les TPE / PME) : déposez-y le PDF
-> Factur-X. Pas de relances automatiques ni d'export comptable pour l'instant (prévu).
+> Factur-X. Le journal des ventes n'est pas un FEC complet (celui-ci vient du logiciel
+> comptable, avec tous les journaux). Une facture mixte (biens et services) est comptée comme
+> une vente de biens pour la TVA. Ces chiffres préparent vos déclarations ; ils ne remplacent
+> pas votre comptabilité.
 
 ## 10. Sauvegarder, mettre à jour, déménager
 
@@ -266,14 +324,21 @@ second disque, dossier synchronisé. *Sauvegarder maintenant* en fait une tout d
 
 ![Réglages](img/reglages.png)
 
-- **Restaurer** : *Réglages › Sauvegarde des données › Restaurer une sauvegarde…* — tout ou
-  rien, sur la même version du programme.
+- **Sauvegarder à la main** : *Réglages › Sauvegarde des données › Télécharger une sauvegarde
+  complète* (un fichier `.json` daté). Sans sauvegarde depuis 7 jours, le tableau de bord le
+  rappelle (version installée).
+- **Restaurer** : *Réglages › Sauvegarde des données › Restaurer une sauvegarde…*. KnifeForge
+  montre d'abord ce que contient le fichier (date, atelier, nombre de clients, commandes,
+  factures…), puis remplace tout, en une fois. Une sauvegarde faite avec une **version
+  précédente** est mise à niveau comme lors d'une mise à jour, puis restaurée ; une sauvegarde
+  faite avec une version plus récente est refusée (mettez d'abord ce KnifeForge à jour).
 - **Mettre à jour** : lancez l'installeur de la nouvelle version, par-dessus. Au démarrage, la
   base est copiée dans *Sauvegardes avant mise à jour*, puis mise à niveau. Pour revenir en
   arrière : réinstaller l'ancienne version et remettre cette copie à la place de
   `knifeforge.db`.
-- **Changer d'ordinateur** : installez KnifeForge sur le nouveau, puis restaurez la dernière
-  sauvegarde.
+- **Changer d'ordinateur** : installez KnifeForge sur le nouveau, créez votre accès, puis, dans
+  l'assistant de bienvenue, *Reprendre ma sauvegarde…* : tout revient. De même pour passer d'un
+  serveur Docker à l'installeur, ou l'inverse.
 - **Désinstaller** ne supprime jamais vos données.
 
 ## 11. Questions fréquentes

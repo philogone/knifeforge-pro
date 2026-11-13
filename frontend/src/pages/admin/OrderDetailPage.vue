@@ -26,11 +26,20 @@ async function patch(payload: Record<string, unknown>) {
   order.value = await store.updateOrder(order.value.id, payload);
 }
 
-async function newDocument(kind: "quote" | "invoice") {
+async function newDocument(kind: "quote" | "invoice", depositPercent?: number) {
   if (!order.value) return;
-  const doc = await store.documentFromOrder(order.value.id, kind);
-  router.push(`/documents/${doc.id}`);
+  docError.value = "";
+  try {
+    const doc = await store.documentFromOrder(order.value.id, kind, depositPercent);
+    router.push(`/documents/${doc.id}`);
+  } catch (err) {
+    docError.value = errorMessage(err, t);
+  }
 }
+// facture d'acompte: a share of the order invoiced before the work
+const depositPercent = ref(30);
+const showDeposit = ref(false);
+const docError = ref("");
 const route = useRoute();
 const router = useRouter();
 const store = useAppStore();
@@ -172,12 +181,22 @@ async function remove() {
             <h2 class="sheet-title">{{ t("documents.title") }}</h2>
             <div class="flex gap-2">
               <button class="btn btn-outline btn-sm" @click="newDocument('quote')">+ {{ t("documents.newQuote") }}</button>
+              <button class="btn btn-outline btn-sm" @click="showDeposit = !showDeposit">+ {{ t("documents.newDeposit") }}</button>
               <button class="btn btn-primary btn-sm" @click="newDocument('invoice')">+ {{ t("documents.newInvoice") }}</button>
             </div>
           </div>
+          <form v-if="showDeposit" class="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 p-3" @submit.prevent="newDocument('invoice', depositPercent)">
+            <label class="block">
+              <span class="field-label">{{ t("documents.depositPercent") }}</span>
+              <input v-model.number="depositPercent" type="number" min="1" max="100" step="1" required class="input-sm w-24 text-right" />
+            </label>
+            <button type="submit" class="btn btn-primary btn-sm">{{ t("documents.createDeposit") }}</button>
+            <p class="basis-full text-xs text-slate-500">{{ t("documents.depositHint") }}</p>
+          </form>
+          <p v-if="docError" role="alert" class="mt-2 text-sm text-red-700">{{ docError }}</p>
           <ul v-if="documents.length" class="mt-3 divide-y divide-slate-100 text-sm">
             <li v-for="d in documents" :key="d.id" class="py-2 flex items-center gap-3">
-              <router-link :to="`/documents/${d.id}`" class="link-action font-medium">{{ t(`documents.kinds.${d.kind}`) }} {{ d.number ?? t("documents.draft") }}</router-link>
+              <router-link :to="`/documents/${d.id}`" class="link-action font-medium">{{ d.is_deposit ? t("documents.deposit") : t(`documents.kinds.${d.kind}`) }} {{ d.number ?? t("documents.draft") }}</router-link>
               <span class="tag" :class="DOCUMENT_STATUS_TAG[d.status]">{{ t(`documents.status.${d.kind}.${d.status}`) }}</span>
               <span class="ml-auto tabular-nums">{{ money(Number(d.total_ttc)) }}</span>
             </li>

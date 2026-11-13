@@ -360,11 +360,14 @@ async function exportData() {
               <label class="field-label" for="bi-siret">{{ t("billing.siret") }}</label>
               <input id="bi-siret" v-model="billing.siret" inputmode="numeric" maxlength="14" pattern="\d{14}" class="input w-full" />
             </div>
+            <div :class="billing.vat_regime === 'franchise' ? 'sm:col-span-2' : ''">
+              <label class="field-label" for="bi-vat">{{ t("customers.vatNumber") }}</label>
+              <input id="bi-vat" v-model="billing.vat_number" class="input w-full" placeholder="FR00123456789" :aria-describedby="billing.vat_regime === 'franchise' ? 'bi-vat-hint' : undefined" />
+              <p v-if="billing.vat_regime === 'franchise'" id="bi-vat-hint" class="mt-1 text-xs" :class="billing.vat_number ? 'text-slate-500' : 'text-amber-700'">
+                {{ t("billing.franchiseVatHint") }}
+              </p>
+            </div>
             <template v-if="billing.vat_regime === 'normal'">
-              <div>
-                <label class="field-label" for="bi-vat">{{ t("customers.vatNumber") }}</label>
-                <input id="bi-vat" v-model="billing.vat_number" class="input w-full" placeholder="FR00123456789" />
-              </div>
               <div>
                 <label class="field-label" for="bi-rate">{{ t("billing.defaultRate") }}</label>
                 <input id="bi-rate" v-model.number="billing.default_vat_rate" type="number" min="0" max="100" step="0.1" class="input w-full" />

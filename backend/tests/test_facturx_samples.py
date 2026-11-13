@@ -43,7 +43,8 @@ def test_write_samples(client, tmp_path):
     assert note.status_code == 201, note.text
     samples["avoir"] = _issue_pdf(client, note.json()["id"])
 
-    seller(client, vat_regime="franchise", vat_number=None)
+    # a micro-entrepreneur under the VAT franchise who has an intra-EU VAT number (BR-E-02)
+    seller(client, vat_regime="franchise", vat_number="FR12123456789")
     private = customer(client, name="Sam Petit", email="sam@example.com")
     samples["facture-franchise"] = _issue_pdf(client, invoice(client, private["id"])["id"])
 

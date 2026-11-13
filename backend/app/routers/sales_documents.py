@@ -180,7 +180,9 @@ def document_pdf(doc_id: int, download: bool = False, db: Session = Depends(get_
         pdf = facturx_service.render_pdf(doc, logo=settings.workshop_logo)
         name = f"devis-{doc.number}.pdf"
     else:
-        pdf = facturx_service.facturx_pdf(doc, logo=settings.workshop_logo, corrected_number=corrected_number)
+        pdf = facturx_service.facturx_pdf(
+            doc, logo=settings.workshop_logo, corrected_number=corrected_number, corrected_date=corrected.issue_date if corrected else None
+        )
         name = f"{'facture' if doc.kind == DocumentKind.INVOICE else 'avoir'}-{doc.number}.pdf"
     headers = {"Content-Disposition": f'{"attachment" if download else "inline"}; filename="{name}"'}
     return Response(pdf, media_type="application/pdf", headers=headers)

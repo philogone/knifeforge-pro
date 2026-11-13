@@ -1227,4 +1227,5 @@ export const fr: Record<string, string> = {
   "demo.enter": "Entrer dans la démo",
   "demo.band": "Démonstration : données fictives, en lecture seule. Les calculs et les exports fonctionnent ; les modifications ne sont pas enregistrées.",
   "apiError.readOnlyDemo": "Démonstration en lecture seule : cette modification n'est pas enregistrée.",
+  "billing.franchiseVatHint": "Facultatif en franchise, mais conseillé : la norme de la facture électronique (EN 16931, règle BR-E-02) demande l'identifiant de TVA du vendeur sur une facture exonérée. Sans lui, le fichier Factur-X peut être refusé par une plateforme agréée. Le numéro intracommunautaire s'obtient gratuitement auprès de votre service des impôts des entreprises.",
 };

@@ -183,3 +183,32 @@ def test_stock_ledger_explains_every_change(client, db):
     assert moves[1]["delta"] == -(200 + kerf) * 2 and moves[1]["order_id"] == order.id
     assert moves[0]["balance_after"] == 4000.0  # 3000 + 1000 restocked, deducted then given back
     assert Decimal(str(moves[2]["cost"])) == Decimal("45")
+
+
+def test_independent_validator_requirements(client):
+    """What the Mustang validator asked for (CI job "Factur-X"): sRGB output intent (PDF/A-3),
+    electronic addresses (BR-FR-12/13), seller VAT number on an exempt invoice (BR-E-02),
+    date of the corrected invoice on a credit note (BR-FR-CO-05)."""
+    from pypdf import PdfReader
+    import io
+
+    seller(client, vat_regime="franchise", vat_number="FR12123456789")
+    c = customer(client)  # a private buyer: no SIREN, an e-mail
+    doc = invoice(client, c["id"])
+    issued = client.post(f"/api/admin/documents/{doc['id']}/issue").json()
+    pdf = client.get(f"/api/admin/documents/{doc['id']}/pdf").content
+    intents = PdfReader(io.BytesIO(pdf)).trailer["/Root"]["/OutputIntents"]
+    assert intents[0].get_object()["/S"] == "/GTS_PDFA1"
+    root = etree.fromstring(get_xml_from_pdf(pdf, check_xsd=True)[1])
+    x = lambda path: root.xpath(path, namespaces=CII)  # noqa: E731
+    assert x("//ram:SellerTradeParty/ram:URIUniversalCommunication/ram:URIID[@schemeID='0225']/text()") == ["123456789"]
+    assert x("//ram:BuyerTradeParty/ram:URIUniversalCommunication/ram:URIID[@schemeID='EM']/text()") == ["camille@example.com"]
+    assert x("//ram:SellerTradeParty/ram:SpecifiedTaxRegistration/ram:ID[@schemeID='VA']/text()") == ["FR12123456789"]
+
+    note = client.post(f"/api/admin/documents/{doc['id']}/credit-note").json()
+    client.post(f"/api/admin/documents/{note['id']}/issue")
+    root = etree.fromstring(get_xml_from_pdf(client.get(f"/api/admin/documents/{note['id']}/pdf").content, check_xsd=True)[1])
+    ref = "//ram:InvoiceReferencedDocument"
+    assert root.xpath(f"{ref}/ram:IssuerAssignedID/text()", namespaces=CII) == [issued["number"]]
+    qdt = {"qdt": "urn:un:unece:uncefact:data:standard:QualifiedDataType:100", **CII}
+    assert root.xpath(f"{ref}/ram:FormattedIssueDateTime/qdt:DateTimeString/text()", namespaces=qdt) == [issued["issue_date"].replace("-", "")]

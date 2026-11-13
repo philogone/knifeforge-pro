@@ -1227,4 +1227,5 @@ export const en: Record<string, string> = {
   "demo.enter": "Enter the demo",
   "demo.band": "Demo: fictitious data, read-only. Calculations and exports work; changes are not saved.",
   "apiError.readOnlyDemo": "Read-only demo: this change is not saved.",
+  "billing.franchiseVatHint": "Optional under the VAT franchise, but advised: the e-invoicing standard (EN 16931, rule BR-E-02) asks for the seller's VAT identifier on an exempt invoice. Without it, the Factur-X file may be refused by an approved platform. The intra-EU number is free from your business tax office.",
 };

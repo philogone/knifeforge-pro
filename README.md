@@ -212,7 +212,7 @@ Le détail des choix techniques est dans [`HANDOVER.md`](HANDOVER.md#knifeforge-
 |---|---|---|
 | **Windows 10 / 11** | [KnifeForge-Pro-Windows.exe](https://github.com/philogone/knifeforge-pro/releases/latest/download/KnifeForge-Pro-Windows.exe) | SmartScreen affiche « Windows a protégé votre ordinateur » (programme non signé) : *Informations complémentaires › Exécuter quand même*. |
 | **Linux** x86_64 | [KnifeForge-Pro-Linux-x86_64.AppImage](https://github.com/philogone/knifeforge-pro/releases/latest/download/KnifeForge-Pro-Linux-x86_64.AppImage) | Rendre le fichier exécutable (*Propriétés › Autoriser l'exécution*, ou `chmod +x`), puis double-cliquer. Ubuntu 22.04, Debian 12, Fedora 38 ou plus récents. |
-| **macOS** 12 et plus, puce Apple | [KnifeForge-Pro-macOS.dmg](https://github.com/philogone/knifeforge-pro/releases/latest/download/KnifeForge-Pro-macOS.dmg) | Glisser KnifeForge Pro dans Applications. Au premier lancement (application non notariée) : *Réglages Système › Confidentialité et sécurité › Ouvrir quand même*. |
+| **macOS** récent, puce Apple (M1 et suivantes) | [KnifeForge-Pro-macOS.dmg](https://github.com/philogone/knifeforge-pro/releases/latest/download/KnifeForge-Pro-macOS.dmg) | Glisser KnifeForge Pro dans Applications. Au premier lancement (application non notariée) : *Réglages Système › Confidentialité et sécurité › Ouvrir quand même*. |
 
 Chaque version publie aussi `SHA256SUMS.txt` (empreintes des fichiers) et les rapports de
 validation Factur-X. Le dépôt étant privé, les liens demandent d'être connecté à un compte

@@ -80,7 +80,18 @@ def _address(prefix: str, line1: str | None, postal: str | None, city: str | Non
     return "".join(parts)
 
 
-def build_cii_xml(doc: SalesDocument, corrected_number: str | None = None) -> str:
+def _electronic_address(siren: str | None, email: str | None) -> str:
+    """BT-34 / BT-49: where the invoice is delivered. French rules (XP Z12-012, BR-FR-12/13/21):
+    the SIREN under scheme 0225 for a company; a private buyer has none, so their e-mail (EAS
+    "EM")."""
+    if siren:
+        return f'<ram:URIUniversalCommunication><ram:URIID schemeID="0225">{_x(siren)}</ram:URIID></ram:URIUniversalCommunication>'
+    if email:
+        return f'<ram:URIUniversalCommunication><ram:URIID schemeID="EM">{_x(email)}</ram:URIID></ram:URIUniversalCommunication>'
+    return ""
+
+
+def build_cii_xml(doc: SalesDocument, corrected_number: str | None = None, corrected_date: date | None = None) -> str:
     """EN 16931 (Factur-X profile EN16931) for an issued invoice or credit note."""
     if doc.kind not in TYPE_CODE or not doc.number or not doc.issue_date:
         raise ValueError("Only an issued invoice or credit note has a Factur-X XML")
@@ -158,13 +169,17 @@ def build_cii_xml(doc: SalesDocument, corrected_number: str | None = None) -> st
             + "</ram:SpecifiedLegalOrganization>"
         )
     out.append(_address("", seller.get("address_line1"), seller.get("postal_code"), seller.get("city"), seller.get("country")))
-    if seller.get("vat_number") and not franchise:
+    out.append(_electronic_address(seller.get("siren"), seller.get("email")))
+    # also under the VAT franchise: an exempt line (category E) needs the seller's VAT
+    # identifier (EN 16931, BR-E-02); the PDF keeps the "TVA non applicable" mention
+    if seller.get("vat_number"):
         out.append(f'<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">{_x(seller["vat_number"])}</ram:ID></ram:SpecifiedTaxRegistration>')
     out.append("</ram:SellerTradeParty>")
     out.append(f"<ram:BuyerTradeParty><ram:Name>{_x(buyer.get('name') or '')}</ram:Name>")
     if buyer.get("siren"):
         out.append(f'<ram:SpecifiedLegalOrganization><ram:ID schemeID="0002">{_x(buyer["siren"])}</ram:ID></ram:SpecifiedLegalOrganization>')
     out.append(_address("", buyer.get("address_line1"), buyer.get("postal_code"), buyer.get("city"), buyer.get("country")))
+    out.append(_electronic_address(buyer.get("siren"), buyer.get("email")))
     if buyer.get("vat_number"):
         out.append(f'<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">{_x(buyer["vat_number"])}</ram:ID></ram:SpecifiedTaxRegistration>')
     out.append("</ram:BuyerTradeParty>")
@@ -214,7 +229,9 @@ def build_cii_xml(doc: SalesDocument, corrected_number: str | None = None) -> st
     if corrected_number:
         out.append(
             f"<ram:InvoiceReferencedDocument><ram:IssuerAssignedID>{_x(corrected_number)}</ram:IssuerAssignedID>"
-            "</ram:InvoiceReferencedDocument>"
+            # the date of the corrected invoice (BT-26, required with BT-25 by BR-FR-CO-05)
+            + (f"<ram:FormattedIssueDateTime><qdt:DateTimeString format=\"102\">{corrected_date:%Y%m%d}</qdt:DateTimeString></ram:FormattedIssueDateTime>" if corrected_date else "")
+            + "</ram:InvoiceReferencedDocument>"
         )
     out.append("</ram:ApplicableHeaderTradeSettlement>")
     out.append("</rsm:SupplyChainTradeTransaction></rsm:CrossIndustryInvoice>")
@@ -462,12 +479,38 @@ def _wrap(text: str, width: int) -> list[str]:
     return lines
 
 
-def facturx_pdf(doc: SalesDocument, *, logo: str | None = None, corrected_number: str | None = None) -> bytes:
+def _with_srgb_output_intent(pdf: bytes) -> bytes:
+    """PDF/A requires device colours to be tied to a colour profile (ISO 19005-3, 6.2.4.3): the
+    page is drawn in DeviceRGB, so the file declares an sRGB output intent."""
+    from PIL import ImageCms
+    from pypdf import PdfReader, PdfWriter
+    from pypdf.generic import ArrayObject, DictionaryObject, NameObject, NumberObject, StreamObject, TextStringObject
+
+    writer = PdfWriter(clone_from=PdfReader(io.BytesIO(pdf)))
+    icc = StreamObject()
+    icc.set_data(ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes())
+    icc[NameObject("/N")] = NumberObject(3)
+    intent = DictionaryObject(
+        {
+            NameObject("/Type"): NameObject("/OutputIntent"),
+            NameObject("/S"): NameObject("/GTS_PDFA1"),
+            NameObject("/OutputConditionIdentifier"): TextStringObject("sRGB"),
+            NameObject("/Info"): TextStringObject("sRGB IEC61966-2.1"),
+            NameObject("/DestOutputProfile"): writer._add_object(icc),
+        }
+    )
+    writer._root_object[NameObject("/OutputIntents")] = ArrayObject([writer._add_object(intent)])
+    out = io.BytesIO()
+    writer.write(out)
+    return out.getvalue()
+
+
+def facturx_pdf(doc: SalesDocument, *, logo: str | None = None, corrected_number: str | None = None, corrected_date: date | None = None) -> bytes:
     """The PDF/A-3 with the XML embedded, checked against the Factur-X EN 16931 schema."""
     from facturx import generate_from_binary
 
-    pdf = render_pdf(doc, logo=logo, corrected_number=corrected_number)
-    xml = build_cii_xml(doc, corrected_number=corrected_number).encode("utf-8")
+    pdf = _with_srgb_output_intent(render_pdf(doc, logo=logo, corrected_number=corrected_number))
+    xml = build_cii_xml(doc, corrected_number=corrected_number, corrected_date=corrected_date).encode("utf-8")
     return generate_from_binary(
         pdf,
         xml,

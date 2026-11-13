@@ -203,7 +203,7 @@ jobs:
 
   macos:
     name: macOS app (desktop build, Apple Silicon)
-    runs-on: macos-14
+    runs-on: macos-latest  # Apple Silicon
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -277,7 +277,9 @@ jobs:
           for pdf in *.pdf; do
             report="${pdf%.pdf}.validation.xml"
             java -jar "$RUNNER_TEMP/mustang.jar" --action validate --source "$pdf" > "$report" || true
-            if grep -q '<summary status="valid"' "$report"; then echo "✓ $pdf"; else echo "✗ $pdf"; cat "$report"; failed=1; fi
+            # the report has one summary for the PDF/A part, one for the XML and one overall:
+            # every one must be valid (the overall one alone lets a PDF/A failure through)
+            if grep -q '<summary status="valid"' "$report" && ! grep -q 'status="invalid"' "$report"; then echo "✓ $pdf"; else echo "✗ $pdf"; cat "$report"; failed=1; fi
           done
           exit $failed
       - uses: actions/upload-artifact@v4

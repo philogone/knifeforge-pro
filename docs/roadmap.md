@@ -87,6 +87,29 @@ Terminé quand : chaque point a ses tests de précision et sa page de guide.
 - **Plateforme agréée** : connexion à une ou deux plateformes (dépôt automatique du Factur-X),
   avant l'obligation d'émission du 1er septembre 2027.
 
+## Lot 11 — Maquette 3D du couteau monté (idée du 13 novembre 2026)
+
+Juger la prise, l'équilibre et l'encombrement avant de toucher à l'acier, montrer le projet au
+client. Les uns impriment en 3D, les autres usinent à la CNC : un seul assemblage, deux sorties.
+
+- **Assemblage** : chaque pièce a un rôle (lame, plaquettes gauche / droite, garde, mitre,
+  entretoise, rivets) et une épaisseur (celle de sa matière par défaut) ; empilement automatique
+  aligné sur les perçages communs ; rivets et goupilles générés depuis les perçages. Vue 3D dans
+  l'éditeur pour vérifier avant d'exporter.
+- **Impression 3D** : 3MF (une pièce par objet, multi-couleurs) ou zip de STL, en mm, maillage à
+  0,01 mm ; jeu des rivets réglable (0,2 mm par défaut) ; pièces posées à plat, sans supports.
+- **Usinage CNC** (fraiseuse 3 axes, bois, résine, mousse) : un DXF par plaque avec son
+  épaisseur, perçages en points de perçage, zéro Z en surface ; contrôle du diamètre de fraise
+  (angles intérieurs trop serrés, trous plus petits que l'outil) ; solide exact STEP pour la FAO
+  — choisir entre un moteur de CAO (fiable, ~100 Mo de plus) et une écriture maison (légère,
+  plus de travail), après mesure.
+- Limites écrites dès le départ : pièces à bords droits (ni émouture ni galbe au départ ;
+  biseau simplifié jusqu'à la ligne d'émouture en deuxième temps) ; les attaches d'usinage se
+  posent dans la FAO.
+
+Terminé quand : volumes fermés et exacts, empilement juste au centième, rivets en face des trous,
+un fichier de chaque sorte ouvert sans erreur dans un trancheur et une FAO courants.
+
 ## Plus tard
 
 - Vue téléphone de l'atelier (commandes du jour, étape, stock) en lecture.
@@ -97,7 +120,7 @@ Terminé quand : chaque point a ses tests de précision et sa page de guide.
 
 ## Ordre de marche
 
-1. ~~Lot 6~~ → 2. ~~Lot 7~~ → 3. ~~Lot 8~~ et ~~lot 9~~ → 4. Lot 10.
+1. ~~Lot 6~~ → 2. ~~Lot 7~~ → 3. ~~Lot 8~~ et ~~lot 9~~ → 4. Lot 10 → 5. Lot 11.
 
 À chaque lot : tests verts (`pytest`, `npm test`, `vue-tsc`, build), captures vérifiées,
 documentation à jour, puis fusion.

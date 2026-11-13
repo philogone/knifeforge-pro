@@ -8,6 +8,7 @@ import { MAX_GRID_MM, MAX_ZOOM, MIN_GRID_MM, MIN_ZOOM, PX_PER_MM_CSS, ROLE_STYLE
 import { screenPxPerMm } from "./screenScale";
 import { formatLengthWithUnit, type LengthUnit } from "./units";
 import { notchContours, type NotchPattern } from "./notches";
+import { pointInRing, type Ring } from "./balance";
 import { History } from "./history";
 import { createTool, type ToolHandler } from "./tools";
 import type {
@@ -1338,6 +1339,50 @@ export class EditorEngine {
     const added = this.addItem(result as paper.Item, { layerId, name });
     this.selectItems([added]);
     this.commit();
+  }
+
+  /**
+   * The closed parts on cut layers, flattened to 0.01 mm, each with the hole-layer outlines that
+   * lie inside it (as inner rings: even-odd removes them). Input of the mass / balance estimate.
+   */
+  plateParts(): { id: string; name: string; rings: Ring[] }[] {
+    const ringsOf = (item: paper.Item): Ring[] => {
+      const paths = item instanceof paper.CompoundPath ? (item.children as paper.Path[]) : [item as paper.Path];
+      return paths.map((path) => {
+        const flat = path.clone({ insert: false }) as paper.Path;
+        flat.flatten(0.01);
+        const ring: Ring = flat.segments.map((sg) => [sg.point.x, sg.point.y]);
+        flat.remove();
+        return ring;
+      });
+    };
+    const closed = (i: paper.Item) => (i instanceof paper.Path && i.closed) || i instanceof paper.CompoundPath;
+    const items = this.docItems().filter(closed);
+    const holes = items.filter((i) => this.roleOf(i) === "hole").flatMap(ringsOf);
+    return items
+      .filter((i) => this.roleOf(i) === "cut")
+      .map((item, index) => {
+        const rings = ringsOf(item);
+        const inside = holes.filter((h) => h.length >= 3 && rings.some((r) => pointInRing(h[0], r)));
+        return { id: item.data.id as string, name: (item.data?.name as string | null) || `#${index + 1}`, rings: [...rings, ...inside] };
+      });
+  }
+
+  /** Mark the balance point on the drawing (null removes the mark). */
+  showBalancePoint(point: [number, number] | null): void {
+    this.clearUi("balance");
+    if (!point) return;
+    const c = new paper.Point(point);
+    const r = 3;
+    const mark = new paper.Group({
+      children: [
+        new paper.Path.Circle({ center: c, radius: r, strokeColor: UI_COLOR, strokeWidth: 1.5, strokeScaling: false, fillColor: new paper.Color(1, 1, 1, 0.6) }),
+        new paper.Path.Line({ from: c.subtract([r * 1.8, 0]), to: c.add([r * 1.8, 0]), strokeColor: UI_COLOR, strokeWidth: 1, strokeScaling: false }),
+        new paper.Path.Line({ from: c.subtract([0, r * 1.8]), to: c.add([0, r * 1.8]), strokeColor: UI_COLOR, strokeWidth: 1, strokeScaling: false }),
+      ],
+      insert: false,
+    });
+    this.addUi(mark, "balance");
   }
 
   /**

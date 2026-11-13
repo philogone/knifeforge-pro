@@ -21,6 +21,7 @@ import { useTheme } from "@/composables/useTheme";
 import { screenPxPerMm } from "@/editor/screenScale";
 import { formatArea, formatLength, fromDisplay, toDisplay, useLengthUnit, type LengthUnit } from "@/editor/units";
 import { NOTCH_PRESETS, type NotchShape } from "@/editor/notches";
+import { guessDensity, massProperties, type MassResult } from "@/editor/balance";
 import { useAppStore } from "@/stores/app.store";
 import type { Design, DesignKind, DesignSummary } from "@/types";
 
@@ -684,6 +685,43 @@ function cutNotches() {
   }
 }
 
+// ---- mass and balance point: each cut part is a plate of a stock material
+interface BalanceRow { id: string; name: string; materialId: number; thickness: number; density: number }
+const balance = reactive({ rows: [] as BalanceRow[], result: null as MassResult | null });
+
+function computeBalance() {
+  const e = engine.value;
+  if (!e) return;
+  const parts = e.plateParts();
+  const previous = new Map(balance.rows.map((r) => [r.id, r]));
+  const fallback = store.materials.find((m) => m.id === meta.material_id);
+  balance.rows = parts.map((p) => {
+    const kept = previous.get(p.id);
+    if (kept) return { ...kept, name: p.name };
+    return {
+      id: p.id,
+      name: p.name,
+      materialId: fallback?.id ?? 0,
+      thickness: D(fallback?.standard_thickness_mm ?? 4),
+      density: fallback ? guessDensity(fallback) : 7.85,
+    };
+  });
+  const byId = new Map(balance.rows.map((r) => [r.id, r]));
+  balance.result = massProperties(
+    parts.map((p) => ({ id: p.id, rings: p.rings, thicknessMm: L(byId.get(p.id)!.thickness), density: Number(byId.get(p.id)!.density) || 0 })),
+  );
+  e.showBalancePoint(balance.result.centre);
+}
+
+function onBalanceMaterial(row: BalanceRow) {
+  const m = store.materials.find((x) => x.id === row.materialId);
+  if (m) {
+    row.density = guessDensity(m);
+    if (m.standard_thickness_mm) row.thickness = D(m.standard_thickness_mm);
+  }
+  computeBalance();
+}
+
 function openHoles() {
   [holes.x, holes.y] = defaultPoint().map(D);
   holes.open = true;
@@ -1141,6 +1179,7 @@ watch(unit, (next: LengthUnit, prev: LengthUnit) => {
     form[key] = toDisplay(fromDisplay(Number(v), prev), next);
   }
   cornerSize.value = toDisplay(fromDisplay(cornerSize.value, prev), next);
+  for (const row of balance.rows) row.thickness = toDisplay(fromDisplay(row.thickness, prev), next);
   engine.value?.setUnit(next);
   paintRulers();
 });
@@ -1583,6 +1622,36 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                 <p>{{ t("editor.docParts") }} : {{ design.part_count }}</p>
                 <p class="text-slate-500">{{ t("editor.docMetricsHint") }}</p>
               </div>
+              <section class="space-y-2 border-t border-slate-100 pt-3" aria-labelledby="balance-title">
+                <div class="flex items-center justify-between gap-2">
+                  <h3 id="balance-title" class="text-xs font-medium text-slate-700">{{ t("balance.title") }}</h3>
+                  <button type="button" class="link-action text-xs" @click="computeBalance">{{ balance.result ? t("balance.refresh") : t("balance.compute") }}</button>
+                </div>
+                <p class="text-xs text-slate-500 leading-snug">{{ t("balance.hint") }}</p>
+                <template v-if="balance.rows.length">
+                  <div class="grid grid-cols-[1fr_4.5rem_3.75rem] gap-1 text-[11px] text-slate-500">
+                    <span>{{ t("balance.material") }}</span><span>{{ tu("balance.thickness") }}</span><span>{{ t("balance.density") }}</span>
+                  </div>
+                  <div v-for="row in balance.rows" :key="row.id" class="space-y-0.5">
+                    <p class="text-xs text-slate-800 truncate">{{ row.name }}</p>
+                    <div class="grid grid-cols-[1fr_4.5rem_3.75rem] gap-1">
+                      <select v-model.number="row.materialId" class="input-sm text-xs min-w-0" :aria-label="t('balance.material')" @change="onBalanceMaterial(row)">
+                        <option :value="0">—</option>
+                        <option v-for="m in store.materials" :key="m.id" :value="m.id">{{ m.name }}</option>
+                      </select>
+                      <input v-model.number="row.thickness" type="number" min="0.1" step="any" class="input-sm text-xs" :aria-label="tu('balance.thickness')" @change="computeBalance" />
+                      <input v-model.number="row.density" type="number" min="0.1" step="0.01" class="input-sm text-xs" :aria-label="t('balance.density')" @change="computeBalance" />
+                    </div>
+                  </div>
+                </template>
+                <div v-if="balance.result" class="text-xs space-y-0.5">
+                  <p>{{ t("balance.mass") }} : <b class="tabular-nums">{{ num(balance.result.massG, 1) }} g</b></p>
+                  <p v-if="balance.result.centre">
+                    {{ t("balance.point") }} : <span class="font-mono">X {{ formatLength(balance.result.centre[0], unit) }} · Y {{ formatLength(balance.result.centre[1], unit) }} {{ unit }}</span>
+                  </p>
+                  <p v-else class="text-slate-500">{{ t("balance.empty") }}</p>
+                </div>
+              </section>
               <div class="space-y-2 border-t border-slate-100 pt-3">
                 <p class="text-xs font-medium text-slate-700">{{ t("guides.title") }}</p>
                 <p class="text-xs text-slate-500">{{ t("guides.help") }}</p>

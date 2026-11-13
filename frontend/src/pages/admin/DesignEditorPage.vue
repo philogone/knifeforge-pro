@@ -19,6 +19,7 @@ import { useI18n } from "@/i18n";
 import { errorMessage } from "@/i18n/apiErrors";
 import { useTheme } from "@/composables/useTheme";
 import { screenPxPerMm } from "@/editor/screenScale";
+import { formatArea, formatLength, fromDisplay, toDisplay, useLengthUnit, type LengthUnit } from "@/editor/units";
 import { useAppStore } from "@/stores/app.store";
 import type { Design, DesignKind, DesignSummary } from "@/types";
 
@@ -158,7 +159,7 @@ function paintRulers() {
   if (!ctx) return;
   const dpr = window.devicePixelRatio || 1;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawRulers(ctx, e.viewTransform, e.cursor, e.guides, e.previewGuide, tool.value === "pen" ? e.symmetry : null);
+  drawRulers(ctx, e.viewTransform, e.cursor, e.guides, e.previewGuide, tool.value === "pen" ? e.symmetry : null, unit.value);
 }
 
 function sizeCanvases() {
@@ -193,21 +194,30 @@ function refreshState() {
 
 function syncSelectionForms(s: SelectionInfo) {
   if (s.bounds) {
-    bounds.x = round(s.bounds.x);
-    bounds.y = round(s.bounds.y);
-    bounds.w = round(s.bounds.w);
-    bounds.h = round(s.bounds.h);
+    bounds.x = D(s.bounds.x);
+    bounds.y = D(s.bounds.y);
+    bounds.w = D(s.bounds.w);
+    bounds.h = D(s.bounds.h);
   }
   if (s.singleNode) {
-    nodeXY.x = s.singleNode.x;
-    nodeXY.y = s.singleNode.y;
+    nodeXY.x = D(s.singleNode.x);
+    nodeXY.y = D(s.singleNode.y);
   }
   if (s.dimension) {
-    dimForm.offset = s.dimension.offset;
+    dimForm.offset = D(s.dimension.offset);
     dimForm.label = s.dimension.label ?? "";
   }
 }
-const round = (n: number) => Math.round(n * 1000) / 1000;
+// ---- display unit (mm or in): forms hold values in the display unit, the engine works in mm
+const unit = useLengthUnit();
+/** typed in the display unit → mm */
+const L = (v: unknown) => fromDisplay(Number(v), unit.value);
+/** mm → the display unit, for a form field */
+const D = (mm: number) => toDisplay(mm, unit.value);
+/** mm → "12.5 mm" / "0.4921 in" */
+const fmt = (mm: number) => `${formatLength(mm, unit.value)} ${unit.value}`;
+/** a label that names the unit: "(mm)" in the strings became "({u})" */
+const tu = (key: string, vars: Record<string, string | number> = {}) => t(key, { u: unit.value, ...vars });
 
 function attachEngine(doc: Design) {
   const canvas = paperCanvas.value!;
@@ -217,7 +227,8 @@ function attachEngine(doc: Design) {
     (["node", "intersection", "midpoint", "center", "path", "guide"] as SnapKind[]).map((k) => [k, t(`snap.${k}`)]),
   );
   e.loadDocument(doc.document, { resetHistory: true, fit: false });
-  e.gridSize = opts.gridSize;
+  e.gridSize = L(opts.gridSize);
+  e.setUnit(unit.value);
   e.snapOptions = { ...snapOpts };
   guides.value = e.guides.map((g) => ({ ...g }));
   offs = [
@@ -345,10 +356,10 @@ watch(
   () => {
     const e = engine.value;
     if (!e) return;
-    e.setGridSize(Number(opts.gridSize));
+    e.setGridSize(L(opts.gridSize));
     e.snapOptions = { ...snapOpts };
     e.snapRadiusPx = Math.min(40, Math.max(2, Number(opts.snapRadius) || 10));
-    e.cornerRadius = Math.max(0, Number(opts.cornerRadius) || 0);
+    e.cornerRadius = Math.max(0, L(opts.cornerRadius) || 0);
     e.polygonSides = Math.min(64, Math.max(3, Math.round(Number(opts.polygonSides) || 6)));
     paintBackground();
   },
@@ -490,7 +501,8 @@ function removeBackground() {
 function setBgField(field: "cx" | "cy" | "width_mm" | "height_mm" | "rotation_deg", ev: Event) {
   const e = engine.value;
   const b = bg.value;
-  const value = Number((ev.target as HTMLInputElement).value);
+  const typed = Number((ev.target as HTMLInputElement).value);
+  const value = field === "rotation_deg" ? typed : L(typed);
   if (!e || !b || !Number.isFinite(value)) return;
   if (field === "width_mm" || field === "height_mm") {
     if (value <= 0) return;
@@ -504,7 +516,7 @@ function setBgField(field: "cx" | "cy" | "width_mm" | "height_mm" | "rotation_de
 
 function applyCalibration() {
   const e = engine.value;
-  const real = Number(calib.real);
+  const real = L(calib.real);
   if (!e || !(real > 0)) return;
   e.calibrateBackground(calib.a, calib.b, real, calib.straighten, calib.origin);
   calib.open = false;
@@ -527,13 +539,13 @@ function setPerspectivePreset(key: string) {
   const [a, b, c] = persp.corners;
   const first = Math.hypot(b[0] - a[0], b[1] - a[1]);
   const second = Math.hypot(c[0] - b[0], c[1] - b[1]);
-  [persp.width, persp.height] = first >= second ? [preset.w, preset.h] : [preset.h, preset.w];
+  [persp.width, persp.height] = first >= second ? [D(preset.w), D(preset.h)] : [D(preset.h), D(preset.w)];
 }
 
 async function applyPerspective() {
   const e = engine.value;
-  const w = Number(persp.width);
-  const h = Number(persp.height);
+  const w = L(persp.width);
+  const h = L(persp.height);
   const before = e?.background;
   if (!e || !before || !(w > 0) || !(h > 0) || persp.busy) return;
   persp.busy = true;
@@ -549,7 +561,7 @@ async function applyPerspective() {
     e.clearUi("persp");
     e.setTool("select");
     e.zoomToFit();
-    setStatus(t("persp.done", { w: formatMm(w), h: formatMm(h), mm: formatMm(plan.sourceMmPerPx) }));
+    setStatus(tu("persp.done", { w: formatLength(w, unit.value), h: formatLength(h, unit.value), mm: formatMm(plan.sourceMmPerPx) }));
   } catch (err) {
     persp.error = t(err instanceof Error && err.message === "tooLarge" ? "persp.tooLarge" : "bg.loadFailed");
   } finally {
@@ -573,7 +585,7 @@ function undoPerspective() {
 watch([() => symmetry.axis, () => symmetry.pos, tool], () => {
   const e = engine.value;
   if (!e) return;
-  const pos = Number(symmetry.pos);
+  const pos = L(symmetry.pos);
   e.symmetry = symmetry.axis && Number.isFinite(pos) ? { axis: symmetry.axis, pos } : null;
   paintRulers();
 });
@@ -587,7 +599,7 @@ function applyNumeric() {
     (document.activeElement as HTMLElement | null)?.blur();
     return;
   }
-  const length = Number(numeric.length);
+  const length = L(numeric.length);
   if (length > 0 && e.toolNumeric(length, Number(numeric.angle) || 0)) numeric.length = "";
 }
 
@@ -607,7 +619,7 @@ function roundCorners(kind: "fillet" | "chamfer") {
   const e = engine.value;
   if (!e) return;
   if (!e.selectedSegments.length) return setStatus(t("corner.none"), true);
-  const report = e.roundCorners(kind, Number(cornerSize.value));
+  const report = e.roundCorners(kind, L(cornerSize.value));
   setStatus(cornerMessage(report), !report.done);
 }
 
@@ -622,14 +634,14 @@ function defaultPoint(): [number, number] {
 }
 
 function openHoles() {
-  [holes.x, holes.y] = defaultPoint();
+  [holes.x, holes.y] = defaultPoint().map(D);
   holes.open = true;
 }
 
 function addHoles() {
   const e = engine.value;
   if (!e) return;
-  const n = e.addHoles({ x: Number(holes.x), y: Number(holes.y), diameter: Number(holes.diameter), count: Number(holes.count), pitch: Number(holes.pitch), angle: Number(holes.angle) || 0 });
+  const n = e.addHoles({ x: L(holes.x), y: L(holes.y), diameter: L(holes.diameter), count: Number(holes.count), pitch: L(holes.pitch), angle: Number(holes.angle) || 0 });
   if (n) {
     holes.open = false;
     setStatus(t("holes.done", { n }));
@@ -671,7 +683,7 @@ const libraryPreview = computed(() => {
 function centreLibraryPlacement() {
   const size = librarySize.value;
   const [cx, cy] = defaultPoint();
-  if (size) [library.x, library.y] = [Math.round((cx - size.w / 2) * 100) / 100, Math.round((cy - size.h / 2) * 100) / 100];
+  if (size) [library.x, library.y] = [D(cx - size.w / 2), D(cy - size.h / 2)];
 }
 
 async function openLibrary() {
@@ -704,7 +716,7 @@ async function pickLibraryDesign(id: number) {
 function insertLibrary() {
   const e = engine.value;
   if (!e || !libraryParts.value.length) return;
-  const n = e.insertParts(placeParts(libraryParts.value, Number(library.x) || 0, Number(library.y) || 0));
+  const n = e.insertParts(placeParts(libraryParts.value, L(library.x) || 0, L(library.y) || 0));
   if (n) {
     library.open = false;
     setStatus(t("library.done", { n }));
@@ -712,7 +724,7 @@ function insertLibrary() {
 }
 
 function openText() {
-  [textForm.x, textForm.y] = defaultPoint();
+  [textForm.x, textForm.y] = defaultPoint().map(D);
   textForm.error = "";
   textForm.open = true;
 }
@@ -734,7 +746,7 @@ async function onFontFile(ev: Event) {
 async function addText() {
   const e = engine.value;
   const text = textForm.text.trim();
-  if (!e || !text || !(Number(textForm.capHeight) > 0)) return;
+  if (!e || !text || !(L(textForm.capHeight) > 0)) return;
   textForm.busy = true;
   textForm.error = "";
   try {
@@ -744,7 +756,7 @@ async function addText() {
       textForm.error = t("text.missing", { chars: missing.join(" ") });
       return;
     }
-    const contours = textContours(font, text, { x: Number(textForm.x), y: Number(textForm.y), capHeight: Number(textForm.capHeight), letterSpacing: Number(textForm.letterSpacing) || 0 });
+    const contours = textContours(font, text, { x: L(textForm.x), y: L(textForm.y), capHeight: L(textForm.capHeight), letterSpacing: L(textForm.letterSpacing) || 0 });
     const layerId = e.layerWithRole("engrave") ?? e.activeLayerId;
     if (e.addContours(contours, { closed: true, layerId, name: text.slice(0, 100) })) textForm.open = false;
   } catch {
@@ -765,7 +777,7 @@ function startGuide(axis: Guide["axis"], ev: PointerEvent) {
   const onMove = (m: PointerEvent) => {
     const [x, y] = screenToWorld(e.viewTransform, m.clientX - rect.left, m.clientY - rect.top);
     e.previewGuide = { axis, pos: e.snapAxis(axis === "x" ? x : y) };
-    valueHint.value = `${axis === "x" ? "X" : "Y"} = ${formatMm(e.previewGuide.pos)} mm`;
+    valueHint.value = `${axis === "x" ? "X" : "Y"} = ${fmt(e.previewGuide.pos)}`;
     paintRulers();
   };
   const onUp = (u: PointerEvent) => {
@@ -784,12 +796,12 @@ function startGuide(axis: Guide["axis"], ev: PointerEvent) {
 }
 
 function addGuideAt(axis: Guide["axis"]) {
-  const pos = Number(axis === "x" ? guideForm.x : guideForm.y);
+  const pos = L(axis === "x" ? guideForm.x : guideForm.y);
   if (Number.isFinite(pos)) engine.value?.addGuide(axis, pos);
 }
 
 function setGuidePos(index: number, ev: Event) {
-  const pos = Number((ev.target as HTMLInputElement).value);
+  const pos = L((ev.target as HTMLInputElement).value);
   if (Number.isFinite(pos)) engine.value?.moveGuide(index, pos);
 }
 
@@ -900,11 +912,11 @@ function onKeyUp(ev: KeyboardEvent) {
 function setBound(field: "x" | "y" | "w" | "h") {
   const e = engine.value;
   if (!e || !sel.value.bounds) return;
-  const patch: Record<string, number> = { [field]: Number(bounds[field]) };
+  const patch: Record<string, number> = { [field]: L(bounds[field]) };
   if (lockRatio.value && (field === "w" || field === "h") && sel.value.bounds.w > 0 && sel.value.bounds.h > 0) {
     const ratio = sel.value.bounds.h / sel.value.bounds.w;
-    if (field === "w") patch.h = Number(bounds.w) * ratio;
-    else patch.w = Number(bounds.h) / ratio;
+    if (field === "w") patch.h = L(bounds.w) * ratio;
+    else patch.w = L(bounds.h) / ratio;
   }
   e.setSelectionBounds(patch);
 }
@@ -925,7 +937,7 @@ async function applyOffset() {
     return;
   }
   try {
-    const result = await store.offsetContours(contours, Number(offsetForm.distance), offsetForm.join);
+    const result = await store.offsetContours(contours, L(offsetForm.distance), offsetForm.join);
     e.replaceSelectionWithContours(result, offsetForm.keep);
     setStatus("");
   } catch (err) {
@@ -943,11 +955,11 @@ function setName(ev: Event) {
 }
 
 function applyDimension() {
-  engine.value?.setDimensionProps({ offset: Number(dimForm.offset) || 0, label: dimForm.label.trim() || null });
+  engine.value?.setDimensionProps({ offset: L(dimForm.offset) || 0, label: dimForm.label.trim() || null });
 }
 
 function applyNodeXY() {
-  engine.value?.setSingleNodePosition(Number(nodeXY.x), Number(nodeXY.y));
+  engine.value?.setSingleNodePosition(L(nodeXY.x), L(nodeXY.y));
 }
 
 // ------------------------------------------------------------------ layers
@@ -1058,7 +1070,27 @@ function printPlan() {
 
 // ------------------------------------------------------------------- misc
 const roleColor = (role: LayerRole) => ROLE_STYLE[role].stroke;
-const cursorText = computed(() => `${formatMm(cursor.value[0])}, ${formatMm(cursor.value[1])} mm`);
+const cursorText = computed(() => `${formatLength(cursor.value[0], unit.value)}, ${formatLength(cursor.value[1], unit.value)} ${unit.value}`);
+
+// switching the unit converts what the forms hold, so the same lengths stay on screen
+const LENGTH_FIELDS: [Record<string, unknown>, string][] = [
+  [opts, "gridSize"], [opts, "cornerRadius"], [symmetry, "pos"], [numeric, "length"],
+  [holes, "diameter"], [holes, "x"], [holes, "y"], [holes, "pitch"],
+  [textForm, "x"], [textForm, "y"], [textForm, "capHeight"], [textForm, "letterSpacing"],
+  [library, "x"], [library, "y"], [guideForm, "x"], [guideForm, "y"],
+  [bounds, "x"], [bounds, "y"], [bounds, "w"], [bounds, "h"], [nodeXY, "x"], [nodeXY, "y"],
+  [dimForm, "offset"], [offsetForm, "distance"], [calib, "real"], [persp, "width"], [persp, "height"],
+];
+watch(unit, (next: LengthUnit, prev: LengthUnit) => {
+  for (const [form, key] of LENGTH_FIELDS) {
+    const v = form[key];
+    if (v === "" || v === null || !Number.isFinite(Number(v))) continue;
+    form[key] = toDisplay(fromDisplay(Number(v), prev), next);
+  }
+  cornerSize.value = toDisplay(fromDisplay(cornerSize.value, prev), next);
+  engine.value?.setUnit(next);
+  paintRulers();
+});
 const toolLabel = (name: ToolName) => t(`tool.${name}`);
 </script>
 
@@ -1123,12 +1155,27 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
 
       <!-- options bar -->
       <div class="bg-paper border-b border-slate-200 px-3 py-1.5 flex items-center gap-4 flex-wrap text-xs text-slate-600">
+        <div class="flex rounded-md border border-slate-300 overflow-hidden" role="radiogroup" :aria-label="t('units.label')">
+          <button
+            v-for="u in (['mm', 'in'] as const)"
+            :key="u"
+            type="button"
+            role="radio"
+            :aria-checked="unit === u"
+            :title="t(`units.${u}`)"
+            class="px-2 py-0.5 font-mono"
+            :class="unit === u ? 'bg-slate-900 text-paper' : 'hover:bg-slate-100'"
+            @click="unit = u"
+          >
+            {{ u }}
+          </button>
+        </div>
         <label class="flex items-center gap-1"><input v-model="snapOpts.grid" type="checkbox" /> {{ t("editor.snapGrid") }}</label>
         <label class="flex items-center gap-1"><input v-model="snapOpts.nodes" type="checkbox" /> {{ t("editor.snapNodes") }}</label>
         <label class="flex items-center gap-1">
-          {{ t("editor.gridSize") }}
+          {{ tu("editor.gridSize") }}
           <input v-model.number="opts.gridSize" type="number" min="0.01" max="1000" step="any" list="grid-presets" class="w-16 input-sm px-1 py-0.5 text-xs" />
-          <datalist id="grid-presets"><option v-for="g in [0.1, 0.25, 0.5, 1, 2, 5, 10, 25]" :key="g" :value="g"></option></datalist>
+          <datalist id="grid-presets"><option v-for="g in unit === 'in' ? [0.0625, 0.125, 0.25, 0.5, 1] : [0.1, 0.25, 0.5, 1, 2, 5, 10, 25]" :key="g" :value="g"></option></datalist>
         </label>
         <label class="flex items-center gap-1"><input v-model="opts.showGrid" type="checkbox" /> {{ t("editor.showGrid") }}</label>
         <details class="relative">
@@ -1142,7 +1189,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           </div>
         </details>
         <label v-if="tool === 'rect'" class="flex items-center gap-1">
-          {{ t("editor.cornerRadius") }}
+          {{ tu("editor.cornerRadius") }}
           <input v-model.number="opts.cornerRadius" type="number" min="0" step="0.5" class="w-16 input-sm px-1 py-0.5 text-xs" />
         </label>
         <template v-if="tool === 'pen'">
@@ -1223,8 +1270,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
               <div v-if="tool === 'measure'" class="bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-700 space-y-0.5" aria-live="polite">
                 <p class="font-medium text-slate-900">{{ t("measure.title") }}</p>
                 <template v-if="measurement">
-                  <p>{{ t("measure.distance") }} : <b class="font-mono">{{ formatMm(measurement.distance) }} mm</b></p>
-                  <p class="font-mono">ΔX {{ formatMm(measurement.dx) }} · ΔY {{ formatMm(measurement.dy) }} mm</p>
+                  <p>{{ t("measure.distance") }} : <b class="font-mono">{{ fmt(measurement.distance) }}</b></p>
+                  <p class="font-mono">ΔX {{ formatLength(measurement.dx, unit) }} · ΔY {{ formatLength(measurement.dy, unit) }} {{ unit }}</p>
                   <p>{{ t("measure.angle") }} : <span class="font-mono">{{ measurement.angle }}°</span></p>
                   <button class="mt-1 w-full btn btn-outline btn-sm" @click="engine?.measurementToDimension()">{{ t("measure.toDimension") }}</button>
                 </template>
@@ -1250,7 +1297,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
 
                 <div>
                   <div class="flex items-center justify-between mb-1">
-                    <span class="text-xs text-slate-500">{{ t("editor.position") }}</span>
+                    <span class="text-xs text-slate-500">{{ tu("editor.position") }}</span>
                     <label class="text-xs text-slate-500 flex items-center gap-1"><input v-model="lockRatio" type="checkbox" /> {{ t("editor.lockRatio") }}</label>
                   </div>
                   <div class="grid grid-cols-2 gap-2">
@@ -1299,13 +1346,13 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                   <p class="font-medium text-slate-700">{{ t("editor.shapeInfo") }}</p>
                   <p>{{ sel.path.closed ? t("editor.closedShape") : t("editor.openPath") }}</p>
                   <p>{{ t("editor.nodeCount") }} : {{ sel.path.nodeCount }}</p>
-                  <p v-if="sel.path.closed">{{ t("editor.area") }} : {{ formatMm(sel.path.area) }} mm² ({{ formatMm(sel.path.area / 100) }} cm²)</p>
-                  <p>{{ t("editor.perimeter") }} : {{ formatMm(sel.path.perimeter) }} mm</p>
+                  <p v-if="sel.path.closed">{{ t("editor.area") }} : {{ formatArea(sel.path.area, unit) }}<template v-if="unit === 'mm'"> ({{ formatMm(sel.path.area / 100) }} cm²)</template></p>
+                  <p>{{ t("editor.perimeter") }} : {{ fmt(sel.path.perimeter) }}</p>
                 </div>
 
                 <div v-if="sel.path && sel.path.closed" class="space-y-2">
                   <p class="text-xs font-medium text-slate-700">{{ t("editor.offsetTitle") }}</p>
-                  <label class="field-label">{{ t("editor.offsetDistance") }}
+                  <label class="field-label">{{ tu("editor.offsetDistance") }}
                     <input v-model.number="offsetForm.distance" type="number" step="0.1" class="input-sm w-full" />
                   </label>
                   <label class="field-label">{{ t("editor.offsetJoin") }}
@@ -1321,8 +1368,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
 
                 <div v-if="sel.dimension" class="space-y-2">
                   <p class="text-xs font-medium text-slate-700">{{ t("editor.dimTitle") }}</p>
-                  <p class="text-xs text-slate-500">{{ t("editor.dimLength") }} : {{ formatMm(sel.dimension.length) }} mm</p>
-                  <label class="field-label">{{ t("editor.dimOffset") }}
+                  <p class="text-xs text-slate-500">{{ t("editor.dimLength") }} : {{ fmt(sel.dimension.length) }}</p>
+                  <label class="field-label">{{ tu("editor.dimOffset") }}
                     <input v-model.number="dimForm.offset" type="number" step="any" class="input-sm w-full" @change="applyDimension" />
                   </label>
                   <label class="field-label">{{ t("editor.dimLabel") }}
@@ -1355,7 +1402,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                   <p class="text-xs font-medium text-slate-700">{{ t("corner.title") }}</p>
                   <div class="flex items-center gap-1">
                     <input v-model.number="cornerSize" type="number" min="0" step="any" class="w-16 input-sm px-1 py-0.5 text-xs text-sm" />
-                    <span class="text-xs text-slate-500">mm</span>
+                    <span class="text-xs text-slate-500">{{ unit }}</span>
                     <button class="flex-1 px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="roundCorners('fillet')">{{ t("corner.fillet") }}</button>
                     <button class="flex-1 px-1 py-1 rounded-md border border-slate-300 bg-paper text-xs text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" @click="roundCorners('chamfer')">{{ t("corner.chamfer") }}</button>
                   </div>
@@ -1425,12 +1472,12 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                   <p v-if="bg.calibrated && bgResolution && bgResolution > 0.1" class="text-amber-700">{{ t("bg.resolutionWarn") }}</p>
                 </div>
                 <div>
-                  <p class="text-xs text-slate-500 mb-1">{{ t("bg.placement") }}</p>
+                  <p class="text-xs text-slate-500 mb-1">{{ tu("bg.placement") }}</p>
                   <div class="grid grid-cols-2 gap-2">
-                    <label class="text-xs text-slate-500">{{ t("bg.centerX") }} <input :value="bg.cx" type="number" step="any" class="input-sm w-full" @change="setBgField('cx', $event)" /></label>
-                    <label class="text-xs text-slate-500">{{ t("bg.centerY") }} <input :value="bg.cy" type="number" step="any" class="input-sm w-full" @change="setBgField('cy', $event)" /></label>
-                    <label class="text-xs text-slate-500">{{ t("bg.width") }} <input :value="bg.width_mm" type="number" step="any" min="0" class="input-sm w-full" @change="setBgField('width_mm', $event)" /></label>
-                    <label class="text-xs text-slate-500">{{ t("bg.height") }} <input :value="bg.height_mm" type="number" step="any" min="0" class="input-sm w-full" @change="setBgField('height_mm', $event)" /></label>
+                    <label class="text-xs text-slate-500">{{ t("bg.centerX") }} <input :value="D(bg.cx)" type="number" step="any" class="input-sm w-full" @change="setBgField('cx', $event)" /></label>
+                    <label class="text-xs text-slate-500">{{ t("bg.centerY") }} <input :value="D(bg.cy)" type="number" step="any" class="input-sm w-full" @change="setBgField('cy', $event)" /></label>
+                    <label class="text-xs text-slate-500">{{ t("bg.width") }} <input :value="D(bg.width_mm)" type="number" step="any" min="0" class="input-sm w-full" @change="setBgField('width_mm', $event)" /></label>
+                    <label class="text-xs text-slate-500">{{ t("bg.height") }} <input :value="D(bg.height_mm)" type="number" step="any" min="0" class="input-sm w-full" @change="setBgField('height_mm', $event)" /></label>
                     <label class="text-xs text-slate-500 col-span-2">{{ t("bg.rotation") }} <input :value="bg.rotation_deg" type="number" step="any" class="input-sm w-full" @change="setBgField('rotation_deg', $event)" /></label>
                   </div>
                 </div>
@@ -1474,9 +1521,9 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
               </div>
               <div v-if="design" class="bg-slate-50 rounded-lg p-2 text-xs text-slate-600 space-y-0.5">
                 <p class="font-medium text-slate-700">{{ t("editor.docMetrics") }}</p>
-                <p>{{ num(design.width_mm) }} × {{ num(design.height_mm) }} mm</p>
+                <p>{{ formatLength(design.width_mm, unit) }} × {{ formatLength(design.height_mm, unit) }} {{ unit }}</p>
                 <p>{{ t("editor.area") }} : {{ num(design.area_mm2 / 100, 2) }} cm²</p>
-                <p>{{ t("editor.perimeter") }} : {{ num(design.perimeter_mm) }} mm</p>
+                <p>{{ t("editor.perimeter") }} : {{ fmt(design.perimeter_mm) }}</p>
                 <p>{{ t("editor.docParts") }} : {{ design.part_count }}</p>
                 <p class="text-slate-500">{{ t("editor.docMetricsHint") }}</p>
               </div>
@@ -1486,7 +1533,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
                 <p v-if="!guides.length" class="text-xs text-slate-500">{{ t("guides.none") }}</p>
                 <div v-for="(g, i) in guides" :key="i" class="flex items-center gap-1 text-xs">
                   <span class="w-28 text-slate-500">{{ g.axis === "x" ? t("guides.vertical") : t("guides.horizontal") }}</span>
-                  <input :value="g.pos" type="number" step="any" class="flex-1 min-w-0 input-sm px-1 py-0.5 text-xs" @change="setGuidePos(i, $event)" />
+                  <input :value="D(g.pos)" type="number" step="any" class="flex-1 min-w-0 input-sm px-1 py-0.5 text-xs" @change="setGuidePos(i, $event)" />
                   <button class="p-0.5 rounded text-slate-400 hover:text-red-700 hover:bg-slate-100" :aria-label="t('common.delete')" @click="engine?.removeGuide(i)"><EditorIcon name="close" :size="14" /></button>
                 </div>
                 <div class="grid grid-cols-2 gap-1 text-xs">
@@ -1534,13 +1581,13 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
             <template v-else>
               <p v-if="!library.designs.length" class="text-xs text-slate-500">{{ t("library.noDesigns") }}</p>
               <button v-for="d in library.designs" :key="d.id" type="button" class="w-full text-left px-2 py-1 rounded" :class="library.designId === d.id ? 'bg-accent-50 text-accent-700 font-medium' : 'hover:bg-slate-50'" @click="pickLibraryDesign(d.id)">
-                {{ d.name }}<span class="block text-xs text-slate-500">{{ t(`designs.kind.${d.kind}`) }} · {{ formatMm(d.width_mm) }} × {{ formatMm(d.height_mm) }} mm</span>
+                {{ d.name }}<span class="block text-xs text-slate-500">{{ t(`designs.kind.${d.kind}`) }} · {{ formatLength(d.width_mm, unit) }} × {{ formatLength(d.height_mm, unit) }} {{ unit }}</span>
               </button>
             </template>
           </div>
           <div class="space-y-2">
             <div class="h-40 rounded-lg bg-slate-50 border border-slate-200 p-2 [&>svg]:w-full [&>svg]:h-full" v-html="libraryPreview"></div>
-            <p v-if="librarySize" class="text-xs text-slate-500">{{ t("library.size", { w: formatMm(librarySize.w), h: formatMm(librarySize.h) }) }}</p>
+            <p v-if="librarySize" class="text-xs text-slate-500">{{ tu("library.size", { w: formatLength(librarySize.w, unit), h: formatLength(librarySize.h, unit) }) }}</p>
             <p v-else-if="library.source === 'designs'" class="text-xs text-slate-500">{{ library.loading ? t("library.loading") : t("library.pick") }}</p>
             <div v-if="library.source === 'shapes'" class="grid grid-cols-2 gap-2">
               <label v-for="p in currentShape.params" :key="p.key" class="text-xs text-slate-500">{{ t(p.label) }}
@@ -1548,8 +1595,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
               </label>
             </div>
             <div class="grid grid-cols-2 gap-2">
-              <label class="text-xs text-slate-500">{{ t("library.x") }}<input v-model.number="library.x" type="number" step="any" class="input-sm w-full" /></label>
-              <label class="text-xs text-slate-500">{{ t("library.y") }}<input v-model.number="library.y" type="number" step="any" class="input-sm w-full" /></label>
+              <label class="text-xs text-slate-500">{{ tu("library.x") }}<input v-model.number="library.x" type="number" step="any" class="input-sm w-full" /></label>
+              <label class="text-xs text-slate-500">{{ tu("library.y") }}<input v-model.number="library.y" type="number" step="any" class="input-sm w-full" /></label>
             </div>
             <p class="text-xs text-slate-500">{{ t("library.help") }}</p>
           </div>
@@ -1565,18 +1612,18 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
     <div v-if="holes.open" class="fixed inset-0 bg-black/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="holes.open = false">
       <form class="bg-paper rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="addHoles">
         <h2 class="sheet-title">{{ t("holes.title") }}</h2>
-        <label class="field-label">{{ t("holes.diameter") }}
+        <label class="field-label">{{ tu("holes.diameter") }}
           <input v-model.number="holes.diameter" type="number" min="0.1" step="any" list="hole-sizes" required class="input-sm w-full" />
-          <datalist id="hole-sizes"><option v-for="h in STANDARD_HOLES_MM" :key="h.d" :value="h.d">{{ h.label }}</option></datalist>
+          <datalist id="hole-sizes"><option v-for="h in STANDARD_HOLES_MM" :key="h.d" :value="D(h.d)">{{ h.label }}</option></datalist>
         </label>
         <div class="flex flex-wrap gap-1">
-          <button v-for="h in STANDARD_HOLES_MM" :key="h.d" type="button" class="px-1.5 py-0.5 rounded border text-xs" :class="holes.diameter === h.d ? 'border-accent-500 bg-accent-50' : 'border-slate-300'" @click="holes.diameter = h.d">{{ h.label }}</button>
+          <button v-for="h in STANDARD_HOLES_MM" :key="h.d" type="button" class="px-1.5 py-0.5 rounded border text-xs" :class="holes.diameter === D(h.d) ? 'border-accent-500 bg-accent-50' : 'border-slate-300'" @click="holes.diameter = D(h.d)">{{ h.label }}</button>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <label class="text-xs text-slate-500">{{ t("holes.x") }}<input v-model.number="holes.x" type="number" step="any" class="input-sm w-full" /></label>
           <label class="text-xs text-slate-500">{{ t("holes.y") }}<input v-model.number="holes.y" type="number" step="any" class="input-sm w-full" /></label>
           <label class="text-xs text-slate-500">{{ t("holes.count") }}<input v-model.number="holes.count" type="number" min="1" max="200" step="1" class="input-sm w-full" /></label>
-          <label class="text-xs text-slate-500">{{ t("holes.pitch") }}<input v-model.number="holes.pitch" type="number" step="any" class="input-sm w-full" /></label>
+          <label class="text-xs text-slate-500">{{ tu("holes.pitch") }}<input v-model.number="holes.pitch" type="number" step="any" class="input-sm w-full" /></label>
           <label class="text-xs text-slate-500 col-span-2">{{ t("holes.angle") }}<input v-model.number="holes.angle" type="number" step="any" class="input-sm w-full" /></label>
         </div>
         <p class="text-xs text-slate-500">{{ t("holes.help") }}</p>
@@ -1595,8 +1642,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <input v-model="textForm.text" maxlength="100" required autofocus class="input-sm w-full" />
         </label>
         <div class="grid grid-cols-2 gap-2">
-          <label class="text-xs text-slate-500">{{ t("text.capHeight") }}<input v-model.number="textForm.capHeight" type="number" min="0.5" step="any" class="input-sm w-full" /></label>
-          <label class="text-xs text-slate-500">{{ t("text.spacing") }}<input v-model.number="textForm.letterSpacing" type="number" step="any" class="input-sm w-full" /></label>
+          <label class="text-xs text-slate-500">{{ tu("text.capHeight") }}<input v-model.number="textForm.capHeight" type="number" min="0.5" step="any" class="input-sm w-full" /></label>
+          <label class="text-xs text-slate-500">{{ tu("text.spacing") }}<input v-model.number="textForm.letterSpacing" type="number" step="any" class="input-sm w-full" /></label>
           <label class="text-xs text-slate-500">{{ t("text.x") }}<input v-model.number="textForm.x" type="number" step="any" class="input-sm w-full" /></label>
           <label class="text-xs text-slate-500">{{ t("text.y") }}<input v-model.number="textForm.y" type="number" step="any" class="input-sm w-full" /></label>
         </div>
@@ -1631,11 +1678,11 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           </select>
         </label>
         <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
-          <label class="text-xs text-slate-500">{{ t("persp.side12") }}
+          <label class="text-xs text-slate-500">{{ tu("persp.side12") }}
             <input v-model.number="persp.width" type="number" min="0.01" step="any" required class="input-sm w-full" />
           </label>
           <button type="button" class="px-2 py-1 rounded-md border border-slate-300 bg-paper text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors" :title="t('persp.swap')" :aria-label="t('persp.swap')" @click="[persp.width, persp.height] = [persp.height, persp.width]"><EditorIcon name="swap" :size="16" /></button>
-          <label class="text-xs text-slate-500">{{ t("persp.side23") }}
+          <label class="text-xs text-slate-500">{{ tu("persp.side23") }}
             <input v-model.number="persp.height" type="number" min="0.01" step="any" required class="input-sm w-full" />
           </label>
         </div>
@@ -1653,8 +1700,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
     <div v-if="calib.open" class="fixed inset-0 bg-black/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="cancelCalibration">
       <form class="bg-paper rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 text-sm" @submit.prevent="applyCalibration">
         <h2 class="sheet-title">{{ t("calib.title") }}</h2>
-        <p class="text-xs text-slate-500">{{ t("calib.measured", { d: formatMm(Math.hypot(calib.b[0] - calib.a[0], calib.b[1] - calib.a[1])) }) }}</p>
-        <label class="field-label">{{ t("calib.real") }}
+        <p class="text-xs text-slate-500">{{ tu("calib.measured", { d: formatLength(Math.hypot(calib.b[0] - calib.a[0], calib.b[1] - calib.a[1]), unit) }) }}</p>
+        <label class="field-label">{{ tu("calib.real") }}
           <input v-model.number="calib.real" type="number" min="0.01" step="any" required autofocus :placeholder="t('calib.example')" class="input-sm w-full" />
         </label>
         <label class="field-label">{{ t("calib.straighten") }}

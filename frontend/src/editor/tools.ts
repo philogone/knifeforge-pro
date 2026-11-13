@@ -2,7 +2,7 @@ import paper from "paper";
 
 import { UI_COLOR } from "./constants";
 import { arcThrough, circleThrough, dragCurvePoint, mirrorNode, symmetricComplete } from "./drafting";
-import { formatMm, type EditorEngine, type Mods } from "./engine";
+import { type EditorEngine, type Mods } from "./engine";
 import type { DocNode, ToolName } from "./types";
 import { RULER_SIZE } from "./view";
 
@@ -181,7 +181,7 @@ class SelectTool extends BaseTool {
       if (g) {
         const pos = this.e.snapAxis(g.axis === "x" ? p.x : p.y);
         this.e.moveGuide(this.guideIndex, pos, false);
-        this.e.hintValue(`${g.axis === "x" ? "X" : "Y"} = ${formatMm(pos)} mm`);
+        this.e.hintValue(`${g.axis === "x" ? "X" : "Y"} = ${this.e.fmtLen(pos)}`);
       }
     }
     this.last = p.clone();
@@ -823,7 +823,7 @@ class PenTool extends BaseTool {
     const end = this.e.snap(p, [], { from: last.point, constrain: m.shift });
     rubber.add(end);
     const v = end.subtract(last.point);
-    this.e.hintValue(`${formatMm(v.length)} mm · ${Math.round(-v.angle * 10) / 10}°`);
+    this.e.hintValue(`${this.e.fmtLen(v.length)} · ${Math.round(-v.angle * 10) / 10}°`);
     this.drawMirror(end);
     this.uiStroke(rubber, true);
     this.rubber = rubber;
@@ -1121,14 +1121,14 @@ class MeasureTool extends BaseTool {
     line.strokeScaling = false;
     line.dashArray = this.fixed ? [] : [5, 3];
     e.addUi(line, "measure");
-    const text = `${formatMm(m.distance)} mm · ${m.angle}°`;
+    const text = `${e.fmtLen(m.distance)} · ${m.angle}°`;
     const label = e.screenText(this.a.add(this.b).divide(2).add([0, -e.px(8)]), text, 12, "#0369a1", "center");
     // white backing so the reading stays legible over shapes, guides and a busy photo
     const backing = new paper.Path.Rectangle({ rectangle: label.bounds.expand(e.px(6), e.px(3)), radius: e.px(3), insert: false });
     backing.fillColor = new paper.Color(1, 1, 1, 0.9);
     e.addUi(backing, "measure");
     e.addUi(label, "measure");
-    e.hintValue(`${text} · ΔX ${formatMm(m.dx)} · ΔY ${formatMm(m.dy)}`);
+    e.hintValue(`${text} · ΔX ${e.fmtLen(m.dx)} · ΔY ${e.fmtLen(m.dy)}`);
   }
 }
 
@@ -1200,7 +1200,7 @@ class CalibrateTool extends BaseTool {
     line.strokeScaling = false;
     line.dashArray = [5, 3];
     e.addUi(line, "calib");
-    e.hintValue(`${formatMm(p.getDistance(from))} mm (${e.background?.calibrated ? "✓" : "?"})`);
+    e.hintValue(`${e.fmtLen(p.getDistance(from))} (${e.background?.calibrated ? "✓" : "?"})`);
   }
 }
 
@@ -1323,7 +1323,7 @@ class ArcTool extends BaseTool {
       const nodes = arcThrough([this.start.x, this.start.y], [through.x, through.y], [this.end.x, this.end.y]);
       preview = this.e.contourToPath(nodes, false);
       const circle = circleThrough([this.start.x, this.start.y], [through.x, through.y], [this.end.x, this.end.y]);
-      this.e.hintValue(circle ? `R ${formatMm(circle.r)} mm` : "");
+      this.e.hintValue(circle ? `R ${this.e.fmtLen(circle.r)}` : "");
     }
     this.uiStroke(preview, true);
     this.e.addUi(preview, "arc");

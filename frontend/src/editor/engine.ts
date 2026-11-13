@@ -6,6 +6,7 @@ import { docToPixel, planRectify, rectangleTargets, rectifiedPlacement, rectifyI
 import { chamferCorner, circleNodes, filletCorner, holeCentres, type Axis, type CornerError, type HolePattern } from "./drafting";
 import { MAX_GRID_MM, MAX_ZOOM, MIN_GRID_MM, MIN_ZOOM, PX_PER_MM_CSS, ROLE_STYLE, UI_COLOR, defaultLayers } from "./constants";
 import { screenPxPerMm } from "./screenScale";
+import { formatLengthWithUnit, type LengthUnit } from "./units";
 import { History } from "./history";
 import { createTool, type ToolHandler } from "./tools";
 import type {
@@ -125,6 +126,8 @@ export class EditorEngine {
   activeLayerId = "cut";
 
   gridSize = 1;
+  /** display unit of labels and hints; the document itself is always in millimetres */
+  unit: LengthUnit = "mm";
   snapOptions: SnapOptions = { nodes: true, intersections: true, midpoints: true, centers: true, path: false, guides: true, grid: true };
   /** attraction distance, in screen pixels (so it feels the same at any zoom) */
   snapRadiusPx = 10;
@@ -795,6 +798,19 @@ export class EditorEngine {
     return group;
   }
 
+  /** a length (mm) written in the display unit: "12.5 mm", "0.4921 in" */
+  fmtLen(mm: number): string {
+    return formatLengthWithUnit(mm, this.unit);
+  }
+
+  /** switch the display unit: dimension labels follow at once */
+  setUnit(unit: LengthUnit): void {
+    if (unit === this.unit) return;
+    this.unit = unit;
+    for (const item of this.docItems()) if (item.data?.kind === "dim") this.rebuildDimension(item as paper.Group);
+    this.emit("view");
+  }
+
   rebuildDimension(group: paper.Group): void {
     const base = group.children[0] as paper.Path;
     const a = base.firstSegment.point.clone();
@@ -829,7 +845,7 @@ export class EditorEngine {
       return new paper.Path({ segments: [tip, back.add(side), back.subtract(side)], closed: true, fillColor: color, strokeColor: color, strokeWidth: 0.5, strokeScaling: false, insert: false });
     };
     parts.push(arrow(a2, u.multiply(-1)), arrow(b2, u));
-    const text: string = group.data.label || `${formatMm(length)} mm`;
+    const text: string = group.data.label || this.fmtLen(length);
     const lineMid = a2.add(b2).divide(2);
     let angle = (Math.atan2(v.y, v.x) * 180) / Math.PI;
     if (angle > 90 || angle < -90) angle += 180;
@@ -1508,7 +1524,7 @@ export class EditorEngine {
     const layerId = this.layerWithRole("hole") ?? this.activeLayerId;
     const added: paper.Item[] = [];
     for (const [cx, cy] of holeCentres(pattern)) {
-      added.push(this.addItem(this.contourToPath(circleNodes(cx, cy, r), true), { layerId, name: `Ø ${formatMm(pattern.diameter)}` }));
+      added.push(this.addItem(this.contourToPath(circleNodes(cx, cy, r), true), { layerId, name: `Ø ${this.fmtLen(pattern.diameter)}` }));
     }
     this.selectItems(added);
     this.commit();

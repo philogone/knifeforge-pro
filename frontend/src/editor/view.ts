@@ -1,4 +1,5 @@
 import { UI_COLOR } from "./constants";
+import { MM_PER_IN, rulerSteps, type LengthUnit } from "./units";
 
 /** theme colours of the drawing surface, from the CSS variables in main.css */
 function cssVar(name: string, fallback: string): string {
@@ -116,6 +117,13 @@ export interface RulerGuide {
   pos: number;
 }
 
+/** Ruler tick spacing (mm) for the display unit: 1-2-5 in millimetres, binary fractions in inches. */
+export function rulerStep(zoom: number, minPx: number, unit: LengthUnit): number {
+  if (unit === "mm") return niceStep(zoom, minPx);
+  const steps = rulerSteps("in");
+  return steps.find((s) => s * zoom >= minPx) ?? steps[steps.length - 1];
+}
+
 export function drawRulers(
   ctx: CanvasRenderingContext2D,
   v: ViewTransform,
@@ -123,6 +131,7 @@ export function drawRulers(
   guides: RulerGuide[] = [],
   preview: RulerGuide | null = null,
   mirrorAxis: RulerGuide | null = null,
+  unit: LengthUnit = "mm",
 ): void {
   ctx.clearRect(0, 0, v.width, v.height);
   // guides live on this top canvas so they stay visible over shapes and over a reference photo
@@ -173,8 +182,8 @@ export function drawRulers(
 
   ctx.fillStyle = cssVar("--ruler-text", "#57534b");
   ctx.font = "10px \"IBM Plex Mono\", ui-monospace, monospace";
-  const minor = niceStep(v.zoom, 8);
-  const label = niceStep(v.zoom, 60);
+  const minor = rulerStep(v.zoom, 8, unit);
+  const label = rulerStep(v.zoom, 60, unit);
   const [wx0, wy0] = screenToWorld(v, 0, 0);
   const [wx1, wy1] = screenToWorld(v, v.width, v.height);
 
@@ -185,7 +194,7 @@ export function drawRulers(
     const isLabel = Math.abs(x / label - Math.round(x / label)) < 1e-6;
     ctx.moveTo(sx, RULER_SIZE);
     ctx.lineTo(sx, RULER_SIZE - (isLabel ? 10 : 4));
-    if (isLabel) ctx.fillText(formatTick(x), sx + 2, 9);
+    if (isLabel) ctx.fillText(formatTick(x, unit), sx + 2, 9);
   }
   for (let y = Math.floor(wy0 / minor) * minor; y <= wy1; y += minor) {
     const sy = Math.round((y - v.centerY) * v.zoom + v.height / 2) + 0.5;
@@ -196,7 +205,7 @@ export function drawRulers(
       ctx.save();
       ctx.translate(9, sy - 2);
       ctx.rotate(-Math.PI / 2);
-      ctx.fillText(formatTick(y), 0, 0);
+      ctx.fillText(formatTick(y, unit), 0, 0);
       ctx.restore();
     }
   }
@@ -211,10 +220,11 @@ export function drawRulers(
   ctx.fillStyle = cssVar("--ruler-corner", "#e3dfd5");
   ctx.fillRect(0, 0, RULER_SIZE, RULER_SIZE);
   ctx.fillStyle = cssVar("--ruler-corner-text", "#6f6a60");
-  ctx.fillText("mm", 2, 13);
+  ctx.fillText(unit, 2, 13);
 }
 
-function formatTick(value: number): string {
+function formatTick(value: number, unit: LengthUnit): string {
+  if (unit === "in") return String(Math.round((value / MM_PER_IN) * 1e4) / 1e4);
   const rounded = Math.round(value * 1000) / 1000;
   return String(rounded);
 }

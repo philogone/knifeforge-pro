@@ -21,7 +21,12 @@ export interface ShapeParam {
   max: number;
   /** whole number (a count) */
   integer?: boolean;
+  /** a share in %, not a length (shown as is, whatever the display unit) */
+  percent?: boolean;
 }
+
+/** a length parameter follows the editor's display unit (mm or in) */
+export const isLengthParam = (p: ShapeParam) => !p.integer && !p.percent;
 
 export interface ShapeDef {
   key: string;
@@ -167,7 +172,7 @@ export const SHAPES: ShapeDef[] = [
       { key: "tangW", label: "shape.p.tangWidth", value: 16, min: 3, max: 100 },
       { key: "pins", label: "shape.p.pins", value: 2, min: 0, max: 6, integer: true },
       { key: "pinD", label: "shape.p.pinD", value: 5, min: 0.5, max: 20 },
-      { key: "grind", label: "shape.p.grindHeight", value: 50, min: 0, max: 100 },
+      { key: "grind", label: "shape.p.grindHeight", value: 50, min: 0, max: 100, percent: true },
     ],
     build: (p) => dropPoint(p),
   },
@@ -181,11 +186,173 @@ export const SHAPES: ShapeDef[] = [
       { key: "tangW", label: "shape.p.tangWidth", value: 14, min: 3, max: 100 },
       { key: "pins", label: "shape.p.pins", value: 2, min: 0, max: 6, integer: true },
       { key: "pinD", label: "shape.p.pinD", value: 4, min: 0.5, max: 20 },
-      { key: "grind", label: "shape.p.grindHeight", value: 45, min: 0, max: 100 },
+      { key: "grind", label: "shape.p.grindHeight", value: 45, min: 0, max: 100, percent: true },
     ],
     build: (p) => wharncliffe(p),
   },
+  bladeShape("clipPoint", 100, 30, 65, 15, 2, 4.76, 50, clipPoint),
+  bladeShape("spearPoint", 95, 26, 60, 14, 2, 4.76, 50, spearPoint),
+  bladeShape("tanto", 110, 30, 70, 16, 2, 5, 55, tanto),
+  bladeShape("sheepsfoot", 85, 24, 60, 14, 2, 4, 45, sheepsfoot),
+  bladeShape("trailingPoint", 105, 30, 70, 16, 2, 5, 50, trailingPoint),
+  bladeShape("skinner", 90, 34, 70, 16, 3, 4.76, 55, skinner),
+  bladeShape("bowie", 200, 40, 110, 22, 3, 6.35, 50, bowie),
+  bladeShape("paring", 85, 20, 70, 12, 2, 3.18, 60, dropPointBlade),
+  bladeShape("gyuto", 210, 48, 110, 22, 3, 4.76, 70, gyuto),
+  bladeShape("santoku", 170, 46, 105, 22, 3, 4.76, 70, santoku),
+  bladeShape("nakiri", 165, 50, 105, 22, 3, 4.76, 70, nakiri),
+  bladeShape("kiritsuke", 240, 46, 115, 22, 3, 4.76, 70, kiritsuke),
 ];
+
+/**
+ * A blade profile with the same parameters as the drop point: blade length and height, tang,
+ * pins, grind height. `outline` gives the nodes from the spine at the ricasso (t, 0), round the
+ * tip, back to the edge at the ricasso (t, h); the tang and pins are added around it.
+ */
+function bladeShape(
+  key: string,
+  blade: number,
+  height: number,
+  tangLength: number,
+  tangW: number,
+  pins: number,
+  pinD: number,
+  grind: number,
+  outline: (t: number, l: number, h: number) => { nodes: DocNode[]; tip: [number, number] },
+): ShapeDef {
+  return {
+    key,
+    label: `shape.${key}`,
+    params: [
+      { key: "blade", label: "shape.p.bladeLength", value: blade, min: 30, max: 400 },
+      { key: "height", label: "shape.p.bladeHeight", value: height, min: 10, max: 120 },
+      { key: "tang", label: "shape.p.tangLength", value: tangLength, min: 0, max: 300 },
+      { key: "tangW", label: "shape.p.tangWidth", value: tangW, min: 3, max: 100 },
+      { key: "pins", label: "shape.p.pins", value: pins, min: 0, max: 6, integer: true },
+      { key: "pinD", label: "shape.p.pinD", value: pinD, min: 0.5, max: 20 },
+      { key: "grind", label: "shape.p.grindHeight", value: grind, min: 0, max: 100, percent: true },
+    ],
+    build: (p) => {
+      const { blade: l, height: h, tang: t, tangW: tw } = p;
+      const tg = tang(t, h, Math.min(tw, h));
+      const { nodes, tip } = outline(t, l, h);
+      const grindTip: [number, number] = [tip[0] - Math.min(2, l * 0.02), tip[1]];
+      return [
+        { role: "cut", name: "Lame", closed: true, contours: [dedupe([...tg.nodesFront, ...nodes, ...tg.nodesBack])] },
+        ...grindLine(t, grindTip[0] - t, h, p.grind, grindTip),
+        ...(t > 0 ? pinRow(p.pins, t, Math.min(t * 0.22, t / 2), tg.top + Math.min(tw, h) / 2, p.pinD) : []),
+      ];
+    },
+  };
+}
+
+// Each outline runs spine → tip → edge, y down (spine at 0, edge at h). Handles are relative.
+
+function dropPointBlade(t: number, l: number, h: number) {
+  const tip: [number, number] = [t + l, h * 0.55];
+  return {
+    tip,
+    nodes: [n(t, 0), n(t + l * 0.7, 0, 0, 0, l * 0.18, 0), n(tip[0], tip[1], -l * 0.06, -h * 0.4, -l * 0.06, h * 0.3), n(t + l * 0.5, h, l * 0.25, 0, 0, 0), n(t, h)],
+  };
+}
+
+function clipPoint(t: number, l: number, h: number) {
+  // straight spine, then a concave clip down to a tip a third of the way down
+  const tip: [number, number] = [t + l, h * 0.32];
+  return {
+    tip,
+    nodes: [n(t, 0), n(t + l * 0.62, 0, 0, 0, l * 0.16, h * 0.2), n(tip[0], tip[1], -l * 0.1, -h * 0.02, -l * 0.04, h * 0.38), n(t + l * 0.55, h, l * 0.24, 0, 0, 0), n(t, h)],
+  };
+}
+
+function spearPoint(t: number, l: number, h: number) {
+  const tip: [number, number] = [t + l, h * 0.5];
+  return {
+    tip,
+    nodes: [n(t, 0), n(t + l * 0.5, 0, 0, 0, l * 0.28, 0), n(tip[0], tip[1], -l * 0.08, -h * 0.32, -l * 0.08, h * 0.32), n(t + l * 0.5, h, l * 0.28, 0, 0, 0), n(t, h)],
+  };
+}
+
+function tanto(t: number, l: number, h: number) {
+  // straight edge to a secondary point, then a straight front edge up to the tip
+  const tip: [number, number] = [t + l, h * 0.12];
+  return {
+    tip,
+    nodes: [n(t, 0), n(t + l * 0.72, 0), n(tip[0], tip[1]), n(t + l * 0.86, h), n(t, h)],
+  };
+}
+
+function sheepsfoot(t: number, l: number, h: number) {
+  // straight edge, the spine rolls down to meet it
+  const tip: [number, number] = [t + l, h];
+  return {
+    tip,
+    nodes: [n(t, 0), n(t + l * 0.55, 0, 0, 0, l * 0.36, 0), n(tip[0], tip[1], 0, -h * 0.7, 0, 0), n(t, h)],
+  };
+}
+
+function trailingPoint(t: number, l: number, h: number) {
+  // the tip rises above the spine line, long sweeping belly
+  const tip: [number, number] = [t + l, -h * 0.15];
+  return {
+    tip,
+    nodes: [n(t, 0), n(t + l * 0.5, h * 0.05, -l * 0.2, 0, l * 0.25, 0), n(tip[0], tip[1], -l * 0.12, h * 0.05, -l * 0.05, h * 0.45), n(t + l * 0.45, h, l * 0.3, 0, 0, 0), n(t, h)],
+  };
+}
+
+function skinner(t: number, l: number, h: number) {
+  // broad belly for long sweeping cuts, tip well below the spine
+  const tip: [number, number] = [t + l, h * 0.42];
+  return {
+    tip,
+    nodes: [n(t, 0), n(t + l * 0.45, 0, 0, 0, l * 0.3, h * 0.05), n(tip[0], tip[1], -l * 0.08, -h * 0.3, -l * 0.02, h * 0.42), n(t + l * 0.38, h, l * 0.36, 0, 0, 0), n(t, h)],
+  };
+}
+
+function bowie(t: number, l: number, h: number) {
+  // long concave clip starting before the middle, generous belly
+  const tip: [number, number] = [t + l, h * 0.28];
+  return {
+    tip,
+    nodes: [n(t, 0), n(t + l * 0.5, 0, 0, 0, l * 0.24, h * 0.24), n(tip[0], tip[1], -l * 0.12, -h * 0.04, -l * 0.05, h * 0.4), n(t + l * 0.55, h, l * 0.26, 0, 0, 0), n(t, h)],
+  };
+}
+
+function gyuto(t: number, l: number, h: number) {
+  // chef's knife: flat heel, curve rising to a tip near the spine
+  const tip: [number, number] = [t + l, h * 0.22];
+  return {
+    tip,
+    nodes: [n(t, 0), n(t + l * 0.6, h * 0.03, -l * 0.3, 0, l * 0.25, 0), n(tip[0], tip[1], -l * 0.1, -h * 0.1, -l * 0.12, h * 0.42), n(t + l * 0.62, h, l * 0.2, 0, 0, 0), n(t, h)],
+  };
+}
+
+function santoku(t: number, l: number, h: number) {
+  // sheepsfoot-like nose dropping to a tip just above the edge, nearly flat edge
+  const tip: [number, number] = [t + l, h * 0.9];
+  return {
+    tip,
+    nodes: [n(t, 0), n(t + l * 0.55, 0, 0, 0, l * 0.32, h * 0.04), n(tip[0], tip[1], -l * 0.02, -h * 0.55, -l * 0.04, h * 0.05), n(t + l * 0.6, h, l * 0.25, 0, 0, 0), n(t, h)],
+  };
+}
+
+function nakiri(t: number, l: number, h: number) {
+  // rectangular vegetable cleaver, slightly rounded front corners
+  const r = Math.min(4, h * 0.1);
+  return {
+    tip: [t + l, h - r] as [number, number],
+    nodes: [n(t, 0), n(t + l - r, 0, 0, 0, r * 0.55, 0), n(t + l, r, 0, -r * 0.55, 0, 0), n(t + l, h - r, 0, 0, 0, r * 0.55), n(t + l - r, h, r * 0.55, 0, 0, 0), n(t, h)],
+  };
+}
+
+function kiritsuke(t: number, l: number, h: number) {
+  // straight edge, straight angled front from the spine down to the tip (reverse tanto)
+  const tip: [number, number] = [t + l, h * 0.92];
+  return {
+    tip,
+    nodes: [n(t, 0), n(t + l * 0.72, 0), n(tip[0], tip[1]), n(t + l * 0.7, h, l * 0.18, 0, 0, 0), n(t, h)],
+  };
+}
 
 /** Tang of a full-tang blade: a step down from the blade's spine, `tangW` tall, with its pin holes. */
 function tang(t: number, h: number, tangW: number): { top: number; nodesBack: DocNode[]; nodesFront: DocNode[] } {

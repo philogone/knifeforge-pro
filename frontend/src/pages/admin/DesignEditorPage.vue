@@ -8,7 +8,7 @@ import { useSnapshotDirty } from "@/composables/useSnapshotDirty";
 import { initialPlacement, loadImageFile, mmPerPixel, type BackgroundState, type Straighten } from "@/editor/background";
 import { ROLE_STYLE } from "@/editor/constants";
 import { STANDARD_HOLES_MM, type Axis } from "@/editor/drafting";
-import { SHAPES, documentParts, normalizeParams, partsBounds, placeParts, type ShapePart } from "@/editor/shapes";
+import { SHAPES, documentParts, isLengthParam, normalizeParams, partsBounds, placeParts, type ShapeParam, type ShapePart } from "@/editor/shapes";
 import { documentToSvg } from "@/editor/svgPreview";
 import { BUNDLED_FONTS, loadFont, missingGlyphs, textContours } from "@/editor/text";
 import { EditorEngine, formatMm } from "@/editor/engine";
@@ -803,6 +803,16 @@ function shapeValues(key: string) {
   const def = SHAPES.find((d) => d.key === key)!;
   if (!library.params[key]) library.params[key] = Object.fromEntries(def.params.map((p) => [p.key, p.value]));
   return library.params[key];
+}
+
+// parameters are kept in mm; a length field shows and takes the display unit
+function shapeParamShown(p: ShapeParam): number | "" {
+  const v = shapeValues(currentShape.value.key)[p.key];
+  return v === "" || !isLengthParam(p) ? v : D(Number(v));
+}
+function setShapeParam(p: ShapeParam, ev: Event) {
+  const raw = (ev.target as HTMLInputElement).value;
+  shapeValues(currentShape.value.key)[p.key] = raw === "" ? "" : isLengthParam(p) ? L(raw) : Number(raw);
 }
 
 /** Parts of the current choice, drawn from (0, 0); empty while a design is loading. */
@@ -1798,8 +1808,16 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
             <p v-if="librarySize" class="text-xs text-slate-500">{{ tu("library.size", { w: formatLength(librarySize.w, unit), h: formatLength(librarySize.h, unit) }) }}</p>
             <p v-else-if="library.source === 'designs'" class="text-xs text-slate-500">{{ library.loading ? t("library.loading") : t("library.pick") }}</p>
             <div v-if="library.source === 'shapes'" class="grid grid-cols-2 gap-2">
-              <label v-for="p in currentShape.params" :key="p.key" class="text-xs text-slate-500">{{ t(p.label) }}
-                <input v-model.number="shapeValues(currentShape.key)[p.key]" type="number" :min="p.min" :max="p.max" :step="p.integer ? 1 : 'any'" class="input-sm w-full" />
+              <label v-for="p in currentShape.params" :key="p.key" class="text-xs text-slate-500">{{ tu(p.label) }}
+                <input
+                  :value="shapeParamShown(p)"
+                  type="number"
+                  :min="isLengthParam(p) ? D(p.min) : p.min"
+                  :max="isLengthParam(p) ? D(p.max) : p.max"
+                  :step="p.integer ? 1 : 'any'"
+                  class="input-sm w-full"
+                  @input="setShapeParam(p, $event)"
+                />
               </label>
             </div>
             <div class="grid grid-cols-2 gap-2">

@@ -14,6 +14,14 @@ Dolibarr) resteront des concurrents, c'est le marché. Ils ne doivent pas être 
 sur ce qu'ils font bien, KnifeForge fait au moins aussi bien, et sur le reste, il fait ce qu'ils
 ne font pas.
 
+### Pour qui
+
+Les **couteliers** d'abord : c'est le message de vente (« le seul outil fait pour les
+couteliers ») et l'ordre des priorités. Les **forgerons et ferronniers** ont des besoins voisins
+(stock de barres, débit, gabarits 1:1, découpe, devis et factures) : ils sont servis par le même
+programme grâce à un profil métier (lot 12), sans diluer le message ni ajouter d'outils
+coutelier chez eux, ou l'inverse. Décidé le 13 novembre 2026.
+
 ### Règle « pas de gadget »
 
 Une fonction n'entre dans une version que si elle est :
@@ -110,6 +118,56 @@ client. Les uns impriment en 3D, les autres usinent à la CNC : un seul assembla
 Terminé quand : volumes fermés et exacts, empilement juste au centième, rivets en face des trous,
 un fichier de chaque sorte ouvert sans erreur dans un trancheur et une FAO courants.
 
+## Lot 12 — Un cœur neutre, deux métiers : coutelier et forgeron (décidé le 13 novembre 2026)
+
+**0. Avant le code** : interroger deux ou trois forgerons / ferronniers et regarder ce qu'ils
+utilisent aujourd'hui (tableur, logiciel de devis du bâtiment), pour confirmer les besoins
+ci-dessous plutôt que les supposer.
+
+**1. Longueur développée** (demandée explicitement ; indépendante du reste, peut être avancée
+dès qu'un lot laisse de la place) : on dessine une volute, un enroulement, un crochet ou un
+anneau, KnifeForge donne la longueur de barre à débiter.
+- Mesurée sur la **fibre neutre** : le tracé est la ligne médiane, ou un bord avec la section
+  et le côté indiqués (décalage de la demi-épaisseur, ou du coefficient de fibre neutre réglable
+  pour les cintrages serrés à froid).
+- Section de la barre (rond, carré, plat sur chant ou à plat) prise dans le stock ; **surlongueurs**
+  saisies (prise en pince, perte au feu, chutes de mise à longueur) ; résultat en mm, en pouces,
+  et en **poids** de barre.
+- Report direct dans la commande ou la liste de débit (optimiseur de barres existant).
+- Utile aussi au coutelier : garde ou bélière cintrée, fil d'enroulement, et en variante
+  « **débit de forge** » : la longueur de barre d'une section donnée qui contient le volume de la
+  lame dessinée (conservation du volume, perte au feu en %).
+- Juste : comparée à des longueurs calculées indépendamment (cercle, spirale d'Archimède,
+  clothoïde) à mieux que 0,1 mm ; limites écrites (le refoulement et l'étirage à la forge
+  ne se calculent pas, ils se saisissent en surlongueur).
+
+**2. Cœur neutre** (profite aussi aux couteliers) :
+- **Étapes d'atelier personnalisables** : nom, ordre, ajout, retrait (aujourd'hui écrites en dur
+  pour le couteau). Un coutelier qui forge son damas ou coud ses étuis les veut aussi.
+- **« Modèle »** au lieu de « Modèle de couteau » ; catégories de matières génériques (acier,
+  profilés, bois, cuir…) avec celles du couteau comme exemples.
+- **Stock au poids** et **profilés normalisés** (rond, carré, plat, tube, cornière, fer en T) :
+  poids calculé par section × longueur × densité, achat et coût au kilo.
+
+**3. Profil métier** au premier lancement, modifiable dans les Réglages : *Coutelier* ou
+*Forgeron / ferronnier*. Il règle le vocabulaire, les étapes par défaut, les catégories de
+matières, les formes de la bibliothèque (profils de lames d'un côté ; volutes, rinceaux,
+pointes de lance, feuilles, colliers de l'autre) et les outils affichés (crantage, pliants,
+équilibre chez le coutelier ; longueur développée en avant chez le forgeron). Un seul programme,
+une seule base, rien de perdu en changeant de profil.
+
+**4. Temps passé** par commande (pointage simple, comparé au devis) : en ferronnerie la
+main-d'œuvre pèse plus que la matière ; le coutelier y gagne aussi un prix de revient réel.
+
+Terminé quand : un forgeron fait un devis de rampe ou de chenets de bout en bout sans voir un
+mot de coutellerie ; un coutelier ne voit aucun changement qu'il n'a pas choisi ; longueur
+développée et poids vérifiés par des tests de précision ; guide complété.
+
+Laissé de côté (décidé le 13 novembre 2026) : le **volet bâtiment** des ferronniers poseurs
+(mention de l'assurance décennale sur devis et factures, situations de travaux, retenue de
+garantie, TVA réduite en rénovation). À ne reprendre que comme un lot complet, si ces clients
+sont visés un jour.
+
 ## Plus tard
 
 - Vue téléphone de l'atelier (commandes du jour, étape, stock) en lecture.
@@ -120,7 +178,8 @@ un fichier de chaque sorte ouvert sans erreur dans un trancheur et une FAO coura
 
 ## Ordre de marche
 
-1. ~~Lot 6~~ → 2. ~~Lot 7~~ → 3. ~~Lot 8~~ et ~~lot 9~~ → 4. Lot 10 → 5. Lot 11.
+1. ~~Lot 6~~ → 2. ~~Lot 7~~ → 3. ~~Lot 8~~ et ~~lot 9~~ → 4. Lot 10 → 5. Lot 11 → 6. Lot 12
+(la longueur développée peut être avancée seule : elle ne dépend d'aucun autre lot).
 
 À chaque lot : tests verts (`pytest`, `npm test`, `vue-tsc`, build), captures vérifiées,
 documentation à jour, puis fusion.

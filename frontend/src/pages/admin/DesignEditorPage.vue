@@ -46,6 +46,7 @@ const booleanOps: BooleanOp[] = ["unite", "subtract", "intersect", "exclude"];
 const designId = computed(() => Number(route.params.id));
 // the 3D view (three.js) loads only when the mock-up is opened
 const MockupDialog = defineAsyncComponent(() => import("@/components/MockupDialog.vue"));
+const DevelopedLengthDialog = defineAsyncComponent(() => import("@/components/DevelopedLengthDialog.vue"));
 const design = ref<Design | null>(null);
 const loadError = ref("");
 const meta = reactive({ name: "", kind: "other" as DesignKind, notes: "", knife_model_id: 0, material_id: 0 });
@@ -459,6 +460,13 @@ async function exportStl() {
     setStatus(t("designs.exportFailed", { error: errorMessage(err, t) }), true);
   }
 }
+
+// developed length of the selected line, bar for a forged part
+const developed = ref<{ open: boolean; line: { points: [number, number][]; closed: boolean; area: number } | null }>({ open: false, line: null });
+function openDeveloped() {
+  developed.value = { open: true, line: engine.value?.selectedLine() ?? null };
+}
+const designThickness = computed(() => store.materials.find((m) => m.id === meta.material_id)?.standard_thickness_mm ?? 4);
 
 // 3D mock-up of the assembled knife (3D printer, CNC router): the server reads the saved design
 const mockupOpen = ref(false);
@@ -1449,6 +1457,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('library.title')" :aria-label="t('library.title')" @click="openLibrary"><EditorIcon name="library" /></button>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('holes.title')" :aria-label="t('holes.title')" @click="openHoles"><EditorIcon name="holes" /></button>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('notch.title')" :aria-label="t('notch.title')" @click="openNotches"><EditorIcon name="notch" /></button>
+          <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('dl.title')" :aria-label="t('dl.title')" @click="openDeveloped"><EditorIcon name="scroll" /></button>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-slate-100" :class="swing.open ? 'bg-slate-100 text-slate-900' : 'text-slate-600'" :title="t('swing.title')" :aria-label="t('swing.title')" :aria-pressed="swing.open" @click="swing.open = !swing.open"><EditorIcon name="swing" /></button>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('text.title')" :aria-label="t('text.title')" @click="openText"><EditorIcon name="text" /></button>
         </div>
@@ -2099,4 +2108,5 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
     </div>
   </div>
   <MockupDialog v-if="mockupOpen && design" :design-id="designId" :design-name="meta.name" :unit="unit" @close="mockupOpen = false" />
+  <DevelopedLengthDialog v-if="developed.open" :line="developed.line" :unit="unit" :default-thickness="designThickness" @close="developed.open = false" />
 </template>

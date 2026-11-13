@@ -5,7 +5,7 @@ import { computed } from "vue";
 
 export type EditorIconName =
   | "select" | "node" | "pen" | "rect" | "ellipse" | "line" | "polygon" | "arc" | "dimension" | "measure" | "pan"
-  | "library" | "holes" | "notch" | "swing" | "text" | "undo" | "redo" | "fit" | "magnet" | "eye" | "eye-off" | "lock" | "unlock"
+  | "library" | "holes" | "notch" | "swing" | "scroll" | "text" | "undo" | "redo" | "fit" | "magnet" | "eye" | "eye-off" | "lock" | "unlock"
   | "close" | "chevron-down" | "chevron-up" | "warning" | "swap"
   | "flip-h" | "flip-v" | "mirror-h" | "mirror-v" | "rotate" | "duplicate";
 
@@ -28,6 +28,7 @@ const PATHS: Record<EditorIconName, string> = {
   // a spine with three V notches
   notch: "M2.5 7h3l1.5 2.5 1.5-2.5h1l1.5 2.5 1.5-2.5h1l1.5 2.5 1.5-2.5h1.5M2.5 7v6.5h15V7",
   // a blade swinging about its pivot
+  scroll: "M10 10a1.5 1.5 0 1 1 1.5 1.5A3 3 0 0 1 8.5 8.5a4.5 4.5 0 0 1 4.5-4.5 6 6 0 0 1 6 6M2.5 16.5h7",
   swing: "M5 14.5h11l1.5-2.5H5zM5 14.5a1.2 1.2 0 1 0 0 .01M5 12.5L13 5.5l2 .5-1 1.8-8.5 5.2M9 16.8a7 7 0 0 0 1.5-11.6",
   text: "M4.5 5V3.5h11V5M10 3.5v13M7.5 16.5h5",
   undo: "M7.5 4.5L4 8l3.5 3.5M4 8h7.5a4.5 4.5 0 0 1 0 9H8",

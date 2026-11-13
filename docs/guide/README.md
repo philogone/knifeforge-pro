@@ -182,6 +182,36 @@ Le menu **Fichier** de l'éditeur :
 - **Pièce 3D (STL)** : les pièces extrudées à l'épaisseur indiquée, pour imprimer en 3D un
   gabarit de traçage ou de perçage, ou une maquette.
 
+### Maquette 3D du couteau monté
+
+*Fichier › Maquette 3D (impression, CNC)…* : pour juger la prise, l'encombrement et l'allure
+avant de toucher à l'acier, ou pour montrer le projet à un client.
+
+1. Donnez à chaque pièce son **rôle** et son **épaisseur** (devinés d'après leur nom :
+   « Lame », « Plaquette », « Garde »…). Lame, garde, mitre et entretoise sont centrées ;
+   platines puis plaquettes s'ajoutent de chaque côté. Un seul contour réglé sur
+   « Plaquettes (paire) » donne la plaquette gauche et la droite.
+2. Les **goupilles** sont créées d'elles-mêmes dans chaque perçage qui traverse au moins deux
+   pièces, sur toute l'épaisseur traversée. La garde, la mitre ou l'entretoise sont **fendues**
+   à la forme de la lame, pour s'enfiler sur la soie.
+3. La **vue 3D** se tourne à la souris ; *Vue éclatée* écarte les plaques.
+
+![Maquette 3D](img/maquette-3d.png)
+
+Puis selon votre machine :
+- **Impression 3D** : un fichier **3MF** (une pièce par objet, en millimètres, couleurs par
+  matière), pièces posées à plat ou couteau assemblé ; ou un **zip de STL**, un fichier par
+  pièce. Le *jeu des goupilles* (0,2 mm par défaut) les rend un peu plus fines que leurs trous et
+  élargit la fente de la garde d'autant.
+- **Usinage CNC** (fraiseuse 3 axes : bois, résine, mousse, laiton) : un **DXF par plaque**, à la
+  cote, l'épaisseur dans le nom du fichier, et un *LISEZMOI* avec les goupilles à couper. Saisissez
+  le **diamètre de votre fraise** : KnifeForge signale les angles intérieurs trop serrés pour elle
+  (et l'épaisseur de matière qu'elle y laissera) et les perçages plus étroits qu'elle (à percer).
+
+> **Limites** : plaques à bords droits (ni émouture, ni plaquettes arrondies ou galbées) ; pas
+> encore de fichier STEP pour la FAO (les DXF par plaque suffisent à un usinage 2,5D) ; les
+> attaches qui tiennent les pièces pendant l'usinage se posent dans la FAO.
+
 ## 6. Contrôler sa découpe
 
 *Dessin et découpe › Contrôle de découpe*. La preuve que la chaîne entière — dessin, export,

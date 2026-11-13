@@ -87,7 +87,18 @@ Reste à faire ou à décider :
 - Le journal des ventes n'est pas un FEC complet (il vient du logiciel du comptable).
 - Plus tard : **import depuis un autre outil** (clients, matières, modèles en CSV).
 
-## Prochain : lot 11 (maquette 3D), puis lot 12 (forgeron)
+## Lot 11 — fait le 13 novembre 2026
+
+Maquette 3D : rôles et épaisseurs, empilement, goupilles, garde fendue pour la soie, vue 3D
+(three.js), 3MF / STL, DXF par plaque avec contrôle de la fraise.
+
+Laissé en l'état :
+- Pas de STEP : les DXF par plaque suffisent à l'usinage 2,5D ; un solide exact demanderait un
+  moteur de CAO (~100 Mo) ou une écriture maison. À reprendre si un utilisateur en a besoin.
+- Plaques à bords droits ; pas d'émouture ni de galbe.
+- 3MF vérifié par sa structure (tests) ; pas encore ouvert dans un trancheur réel.
+
+## Prochain : lot 12 (forgeron)
 
 Voir [`roadmap.md`](roadmap.md).
 

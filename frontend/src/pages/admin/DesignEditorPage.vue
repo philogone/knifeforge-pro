@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from "vue";
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from "vue";
 import { onBeforeRouteLeave, useRoute } from "vue-router";
 
 import EditorIcon, { type EditorIconName } from "@/components/EditorIcon.vue";
@@ -44,6 +44,8 @@ const alignKinds: AlignKind[] = ["left", "centerH", "right", "top", "middleV", "
 const booleanOps: BooleanOp[] = ["unite", "subtract", "intersect", "exclude"];
 
 const designId = computed(() => Number(route.params.id));
+// the 3D view (three.js) loads only when the mock-up is opened
+const MockupDialog = defineAsyncComponent(() => import("@/components/MockupDialog.vue"));
 const design = ref<Design | null>(null);
 const loadError = ref("");
 const meta = reactive({ name: "", kind: "other" as DesignKind, notes: "", knife_model_id: 0, material_id: 0 });

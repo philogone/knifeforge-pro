@@ -49,6 +49,8 @@ ROLE_COLOUR = {
 }
 MAX_THICKNESS_MM = 60.0
 LAYOUT_GAP_MM = 6.0
+# below the tool's precision: polygonisation slivers, not material really left
+MIN_ISSUE_MM = 0.01
 
 
 class MockupError(ValueError):
@@ -69,6 +71,8 @@ class Solid:
     polygons: list[Polygon]  # drawing coordinates (mm, y down)
     z0: float
     z1: float
+    # a guard slotted for the tang: (polygons, z0, z1) layers that replace the plain extrusion
+    slabs: list[tuple[list[Polygon], float, float]] | None = None
 
     @property
     def thickness(self) -> float:
@@ -110,9 +114,19 @@ def assemble(doc: DesignDocument, specs: list[PartSpec], pin_clearance_mm: float
     centre = [s for s in specs if s.role in CENTRE]
     # the side stacks start on the blade's faces (or the thickest centre part)
     base = max((s.thickness_mm / 2 for s in centre if s.role == "blade"), default=max((s.thickness_mm / 2 for s in centre), default=0.0))
+    blade = next((s for s in centre if s.role == "blade"), None)
+    blade_shape = parts[blade.object_id].geometry if blade else None
     for s in centre:
         geom = parts[s.object_id].geometry
-        asm.solids.append(Solid(names[s.object_id] or ROLE_LABEL[s.role], s.role, _polygons(geom), -s.thickness_mm / 2, s.thickness_mm / 2))
+        solid = Solid(names[s.object_id] or ROLE_LABEL[s.role], s.role, _polygons(geom), -s.thickness_mm / 2, s.thickness_mm / 2)
+        # a guard, bolster or spacer thicker than the blade and over it: slot it for the tang
+        # (the blade's own outline, widened by the clearance), so the pieces fit together
+        if blade and s is not blade and s.thickness_mm > blade.thickness_mm and geom.intersects(blade_shape):
+            half = min(s.thickness_mm / 2, blade.thickness_mm / 2 + pin_clearance_mm / 2)
+            slot = blade_shape.buffer(pin_clearance_mm / 2, join_style="mitre") if pin_clearance_mm else blade_shape
+            middle = _polygons(geom.difference(slot))
+            solid.slabs = [(solid.polygons, -s.thickness_mm / 2, -half), (middle, -half, half), (solid.polygons, half, s.thickness_mm / 2)]
+        asm.solids.append(solid)
     for side, sign in (("left", 1), ("right", -1)):
         stack = sorted(
             ((s, role) for s in specs for sd, role in _side_parts(s) if sd == side),
@@ -155,11 +169,12 @@ def assemble(doc: DesignDocument, specs: list[PartSpec], pin_clearance_mm: float
 
 def solid_triangles(solid: Solid, flat: bool = False, dx: float = 0.0, dy: float = 0.0) -> list[Triangle]:
     """The solid's closed mesh, in place (z0..z1) or laid flat on z = 0, shifted by (dx, dy)."""
-    z0 = 0.0 if flat else solid.z0
+    shift = -solid.z0 if flat else 0.0
     tris: list[Triangle] = []
-    for poly in solid.polygons:
-        for a, b, c in part_triangles(poly, solid.thickness):
-            tris.append(tuple((x + dx, y + dy, z + z0) for x, y, z in (a, b, c)))  # type: ignore[misc]
+    for polys, z0, z1 in solid.slabs or [(solid.polygons, solid.z0, solid.z1)]:
+        for poly in polys:
+            for a, b, c in part_triangles(poly, z1 - z0):
+                tris.append(tuple((x + dx, y + dy, z + z0 + shift) for x, y, z in (a, b, c)))  # type: ignore[misc]
     return tris
 
 
@@ -285,9 +300,10 @@ def tool_check(asm: Assembly, tool_diameter_mm: float) -> list[ToolIssue]:
             outer = Polygon(poly.exterior)
             left = outer.buffer(r, quad_segs=32).buffer(-r, quad_segs=32).difference(outer)
             for g in _polygons(left):
-                if g.area > 1e-4:
+                depth = _depth(g, outer) if g.area > 1e-6 else 0.0
+                if depth >= MIN_ISSUE_MM:
                     c = g.representative_point()
-                    issues.append(ToolIssue(s.name, "corner", c.x, c.y, round(_depth(g, outer), 3)))
+                    issues.append(ToolIssue(s.name, "corner", c.x, c.y, round(depth, 3)))
             for ring in poly.interiors:
                 hole = Polygon(ring)
                 inner = hole.buffer(-r, quad_segs=32)
@@ -298,9 +314,10 @@ def tool_check(asm: Assembly, tool_diameter_mm: float) -> list[ToolIssue]:
                     continue
                 left = hole.difference(inner.buffer(r, quad_segs=32))
                 for g in _polygons(left):
-                    if g.area > 1e-4:
+                    depth = _depth(g, hole.exterior) if g.area > 1e-6 else 0.0
+                    if depth >= MIN_ISSUE_MM:
                         p = g.representative_point()
-                        issues.append(ToolIssue(s.name, "hole_corner", p.x, p.y, round(_depth(g, hole.exterior), 3)))
+                        issues.append(ToolIssue(s.name, "hole_corner", p.x, p.y, round(depth, 3)))
     return issues
 
 

@@ -111,7 +111,7 @@ Terminé quand : chaque point a ses tests de précision et sa page de guide.
 - Plus tard, à part : **import depuis un autre outil** (clients, matières, modèles en CSV ou
   tableur), pour un atelier qui arrive avec ses données.
 
-## Lot 11 — Maquette 3D du couteau monté (idée du 13 novembre 2026)
+## Lot 11 — Maquette 3D du couteau monté (fait le 13 novembre 2026, sauf le STEP)
 
 Juger la prise, l'équilibre et l'encombrement avant de toucher à l'acier, montrer le projet au
 client. Les uns impriment en 3D, les autres usinent à la CNC : un seul assemblage, deux sorties.
@@ -194,7 +194,7 @@ sont visés un jour.
 
 ## Ordre de marche
 
-1. ~~Lot 6~~ → 2. ~~Lot 7~~ → 3. ~~Lot 8~~ et ~~lot 9~~ → 4. ~~Lot 10~~ → 5. Lot 11 → 6. Lot 12
+1. ~~Lot 6~~ → 2. ~~Lot 7~~ → 3. ~~Lot 8~~ et ~~lot 9~~ → 4. ~~Lot 10~~ → 5. ~~Lot 11~~ → 6. Lot 12
 (la longueur développée peut être avancée seule : elle ne dépend d'aucun autre lot).
 
 À chaque lot : tests verts (`pytest`, `npm test`, `vue-tsc`, build), captures vérifiées,

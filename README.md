@@ -17,7 +17,7 @@ et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à 
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 <br>
-![Tests backend](https://img.shields.io/badge/tests%20backend-167%20passing-brightgreen)
+![Tests backend](https://img.shields.io/badge/tests%20backend-179%20passing-brightgreen)
 ![Tests frontend](https://img.shields.io/badge/tests%20frontend-161%20passing-brightgreen)
 ![Précision](https://img.shields.io/badge/courbes-%E2%89%A4%200%2C01%20mm-6366f1)
 ![Licence](https://img.shields.io/badge/licence-commerciale-lightgrey)
@@ -99,7 +99,8 @@ Placement des **vraies formes** (perçages compris) sur vos plaques et barres.
 - **Compensation du trait de coupe** à l'export : la pièce sort à la cote
 - **Contrôle de découpe** : pièces étalons à découper, fiche de relevé 1:1, calcul du trait réel, de l'échelle de la machine et de la compensation à saisir
 - **Feuille de pièces PDF à l'échelle 1:1** (A4 / A3) à coller sur la matière : croix de pointage des perçages, grandes pièces réparties sur plusieurs pages à assembler
-- **STL** : pièces extrudées pour imprimer en 3D un gabarit de traçage ou une maquette
+- **STL** : pièces extrudées pour imprimer en 3D un gabarit de traçage
+- **Maquette 3D du couteau monté** : plaques empilées, goupilles, garde fendue, vue 3D ; 3MF ou STL pour l'impression 3D, DXF par plaque et contrôle de la fraise pour la CNC
 - Plaques de nesting en SVG / DXF
 - **Plans clients cotés** A4 / A3, échelle normalisée, cartouche au nom et au logo de l'atelier, **barre de contrôle de 100 mm** pour vérifier l'impression
 - **Zoom 1:1 calibré** sur votre écran avec une carte bancaire
@@ -423,7 +424,7 @@ knifeforge-pro/
 ## 🧪 Tests
 
 ```bash
-cd backend && pytest              # 167 tests : géométrie, nesting, exports, API, métrologie
+cd backend && pytest              # 179 tests : géométrie, nesting, exports, API, métrologie
 cd frontend && npm test           # 161 tests : moteur d'édition, calibration, perspective, magnétisme, congés, texte, formes, client API, traductions
 cd frontend && npx vue-tsc --noEmit && npm run build
 ```

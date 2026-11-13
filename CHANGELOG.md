@@ -11,6 +11,16 @@ modification (dossier « Sauvegardes avant mise à jour »), puis mise à niveau
 
 ## [Non publié]
 
+### Ajouté
+- **Maquette 3D du couteau monté** (éditeur › Fichier) : rôle et épaisseur par pièce, plaques
+  empilées, goupilles générées dans les perçages communs, garde fendue pour la soie, vue 3D
+  éclatée ; **3MF** (à plat ou assemblé) ou **STL** pour l'impression 3D ; **DXF par plaque** et
+  contrôle du diamètre de fraise pour l'usinage CNC.
+- **Vidéo de présentation** (docs/video).
+
+### Modifié
+- Licence : **GNU AGPL v3**, logiciel gratuit (NOTICE.md pour les avertissements).
+
 ## [0.10.1] — 2026-11-13
 
 Finitions de l'outil initial.

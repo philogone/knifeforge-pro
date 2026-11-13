@@ -156,3 +156,26 @@ def test_mockup_api(client):
     assert {i["kind"] for i in cnc["issues"]} == {"hole_too_small"}  # Ø 5 holes, Ø 6 cutter
     bad = client.post(f"/api/admin/designs/{design['id']}/mockup", json={"parts": [{"object_id": "zz", "role": "blade", "thickness_mm": 4}]})
     assert bad.status_code == 422
+
+
+def test_round_holes_wider_than_the_cutter_raise_nothing():
+    doc = DesignDocument(
+        layers=[Layer(id="cut", name="Découpe", role="cut"), Layer(id="hole", name="Perçages", role="hole")],
+        objects=[
+            PathObject(id="p", layer="cut", name="Plaque", contours=[rect(0, 0, 60, 30)]),
+            PathObject(id="h", layer="hole", name="h", contours=[circle(30, 15, 5)]),
+        ],
+    )
+    assert tool_check(assemble(doc, [PartSpec("p", "blade", 4)]), 3) == []
+
+
+def test_the_guard_is_slotted_for_the_tang():
+    asm = assemble(knife(), SPECS, pin_clearance_mm=0.2)
+    guard = next(s for s in asm.solids if s.name == "Garde")
+    assert [(round(a, 3), round(b, 3)) for _, a, b in guard.slabs] == [(-6, -2.1), (-2.1, 2.1), (2.1, 6)]
+    # the slot is the blade's section through the guard (30 mm high, 8 mm long), plus the clearance
+    full = 8 * 40 * 12
+    slot = (30 + 0.2) * 8 * 4.2
+    assert volume(solid_triangles(guard)) == pytest.approx(full - slot, rel=1e-3)
+    # laid flat, the slotted guard still sits on z = 0
+    assert min(v[2] for t in solid_triangles(guard, flat=True) for v in t) == pytest.approx(0)

@@ -20,6 +20,7 @@ import { errorMessage } from "@/i18n/apiErrors";
 import { useTheme } from "@/composables/useTheme";
 import { screenPxPerMm } from "@/editor/screenScale";
 import { formatArea, formatLength, fromDisplay, toDisplay, useLengthUnit, type LengthUnit } from "@/editor/units";
+import { NOTCH_PRESETS, type NotchShape } from "@/editor/notches";
 import { useAppStore } from "@/stores/app.store";
 import type { Design, DesignKind, DesignSummary } from "@/types";
 
@@ -96,6 +97,7 @@ const numeric = reactive({ length: "" as number | "", angle: 0 as number | "" })
 const lengthInput = ref<HTMLInputElement | null>(null);
 const symmetry = reactive({ axis: "" as "" | Axis["axis"], pos: 0 });
 const cornerSize = ref(3);
+const notches = reactive({ open: false, kind: "jimping" as "jimping" | "serration" | "custom", ax: 0, ay: 0, bx: 0, by: 0, ...NOTCH_PRESETS.jimping });
 const holes = reactive({ open: false, diameter: 4.76, x: 0, y: 0, count: 2, pitch: 20, angle: 0 });
 const textForm = reactive({ open: false, busy: false, text: "", capHeight: 5, letterSpacing: 0, x: 0, y: 0, weight: "regular" as "regular" | "bold" | "custom", customName: "", error: "" });
 let customFont: ArrayBuffer | null = null;
@@ -645,6 +647,43 @@ function defaultPoint(): [number, number] {
   return [Math.round(v.centerX), Math.round(v.centerY)];
 }
 
+// ---- jimping / serrations: a row of notches cut along a straight stretch of the selected part
+function setNotchPreset(kind: "jimping" | "serration") {
+  const p = NOTCH_PRESETS[kind];
+  Object.assign(notches, { kind, pitch: D(p.pitch), width: D(p.width), depth: D(p.depth), shape: p.shape });
+}
+
+function openNotches() {
+  const e = engine.value;
+  if (!e) return;
+  // two nodes picked with the node tool give the stretch; otherwise the fields stay as they were
+  const segs = e.selectedSegments;
+  if (segs.length === 2) {
+    [notches.ax, notches.ay, notches.bx, notches.by] = [segs[0].point.x, segs[0].point.y, segs[1].point.x, segs[1].point.y].map(D);
+  }
+  if (notches.kind !== "custom") setNotchPreset(notches.kind);
+  notches.open = true;
+}
+
+function cutNotches() {
+  const e = engine.value;
+  if (!e) return;
+  const result = e.cutNotches({
+    a: [L(notches.ax), L(notches.ay)],
+    b: [L(notches.bx), L(notches.by)],
+    pitch: L(notches.pitch),
+    width: L(notches.width),
+    depth: L(notches.depth),
+    shape: notches.shape as NotchShape,
+  });
+  if (typeof result === "number") {
+    notches.open = false;
+    setStatus(t("notch.done", { n: result }));
+  } else {
+    setStatus(t(`notch.${result}`), true);
+  }
+}
+
 function openHoles() {
   [holes.x, holes.y] = defaultPoint().map(D);
   holes.open = true;
@@ -839,7 +878,7 @@ function onKeyDown(ev: KeyboardEvent) {
   const e = engine.value;
   if (!e) return;
   // a dialog is open: Esc closes it (even from a field inside), nothing else reaches the canvas
-  if (shortcutsOpen.value || planOpen.value || calib.open || persp.open || holes.open || textForm.open || library.open) {
+  if (shortcutsOpen.value || planOpen.value || calib.open || persp.open || holes.open || notches.open || textForm.open || library.open) {
     if (ev.key === "Escape") {
       ev.preventDefault();
       shortcutsOpen.value = false;
@@ -847,6 +886,7 @@ function onKeyDown(ev: KeyboardEvent) {
       calib.open = false;
       persp.open = false;
       holes.open = false;
+      notches.open = false;
       textForm.open = false;
       library.open = false;
     }
@@ -1088,6 +1128,7 @@ const cursorText = computed(() => `${formatLength(cursor.value[0], unit.value)},
 const LENGTH_FIELDS: [Record<string, unknown>, string][] = [
   [opts, "gridSize"], [opts, "cornerRadius"], [symmetry, "pos"], [numeric, "length"],
   [holes, "diameter"], [holes, "x"], [holes, "y"], [holes, "pitch"],
+  [notches, "ax"], [notches, "ay"], [notches, "bx"], [notches, "by"], [notches, "pitch"], [notches, "width"], [notches, "depth"],
   [textForm, "x"], [textForm, "y"], [textForm, "capHeight"], [textForm, "letterSpacing"],
   [library, "x"], [library, "y"], [guideForm, "x"], [guideForm, "y"],
   [bounds, "x"], [bounds, "y"], [bounds, "w"], [bounds, "h"], [nodeXY, "x"], [nodeXY, "y"],
@@ -1250,6 +1291,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <div class="w-7 border-t border-slate-200 my-1"></div>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('library.title')" :aria-label="t('library.title')" @click="openLibrary"><EditorIcon name="library" /></button>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('holes.title')" :aria-label="t('holes.title')" @click="openHoles"><EditorIcon name="holes" /></button>
+          <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('notch.title')" :aria-label="t('notch.title')" @click="openNotches"><EditorIcon name="notch" /></button>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('text.title')" :aria-label="t('text.title')" @click="openText"><EditorIcon name="text" /></button>
         </div>
 
@@ -1644,6 +1686,48 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         <div class="flex gap-2 justify-end">
           <button type="button" class="btn btn-outline btn-sm" @click="holes.open = false">{{ t("common.cancel") }}</button>
           <button type="submit" class="btn btn-primary btn-sm">{{ t("holes.add") }}</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- jimping / serration dialog -->
+    <div v-if="notches.open" class="fixed inset-0 bg-black/45 backdrop-blur-[1px] z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" @click.self="notches.open = false">
+      <form class="bg-paper rounded-xl shadow-xl w-full max-w-md p-4 space-y-3 text-sm" @submit.prevent="cutNotches">
+        <h2 class="sheet-title">{{ t("notch.title") }}</h2>
+        <div class="flex gap-1" role="radiogroup" :aria-label="t('notch.kind')">
+          <button
+            v-for="k in (['jimping', 'serration'] as const)"
+            :key="k"
+            type="button"
+            role="radio"
+            :aria-checked="notches.kind === k"
+            class="btn btn-sm border"
+            :class="notches.kind === k ? 'btn-primary' : 'btn-outline'"
+            @click="setNotchPreset(k)"
+          >
+            {{ t(`notch.${k}`) }}
+          </button>
+        </div>
+        <p class="text-xs text-slate-500">{{ t("notch.help") }}</p>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="text-xs text-slate-500">{{ tu("notch.ax") }}<input v-model.number="notches.ax" type="number" step="any" class="input-sm w-full" /></label>
+          <label class="text-xs text-slate-500">{{ tu("notch.ay") }}<input v-model.number="notches.ay" type="number" step="any" class="input-sm w-full" /></label>
+          <label class="text-xs text-slate-500">{{ tu("notch.bx") }}<input v-model.number="notches.bx" type="number" step="any" class="input-sm w-full" /></label>
+          <label class="text-xs text-slate-500">{{ tu("notch.by") }}<input v-model.number="notches.by" type="number" step="any" class="input-sm w-full" /></label>
+          <label class="text-xs text-slate-500">{{ tu("notch.pitch") }}<input v-model.number="notches.pitch" type="number" min="0.1" step="any" required class="input-sm w-full" @input="notches.kind = 'custom'" /></label>
+          <label class="text-xs text-slate-500">{{ tu("notch.width") }}<input v-model.number="notches.width" type="number" min="0.1" step="any" required class="input-sm w-full" @input="notches.kind = 'custom'" /></label>
+          <label class="text-xs text-slate-500">{{ tu("notch.depth") }}<input v-model.number="notches.depth" type="number" min="0.05" step="any" required class="input-sm w-full" @input="notches.kind = 'custom'" /></label>
+          <label class="text-xs text-slate-500">{{ t("notch.shape") }}
+            <select v-model="notches.shape" class="input-sm w-full" @change="notches.kind = 'custom'">
+              <option value="v">{{ t("notch.shape.v") }}</option>
+              <option value="round">{{ t("notch.shape.round") }}</option>
+              <option value="square">{{ t("notch.shape.square") }}</option>
+            </select>
+          </label>
+        </div>
+        <div class="flex gap-2 justify-end">
+          <button type="button" class="btn btn-outline btn-sm" @click="notches.open = false">{{ t("common.cancel") }}</button>
+          <button type="submit" class="btn btn-primary btn-sm">{{ t("notch.cut") }}</button>
         </div>
       </form>
     </div>

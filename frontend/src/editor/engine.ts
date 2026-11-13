@@ -7,6 +7,7 @@ import { chamferCorner, circleNodes, filletCorner, holeCentres, type Axis, type 
 import { MAX_GRID_MM, MAX_ZOOM, MIN_GRID_MM, MIN_ZOOM, PX_PER_MM_CSS, ROLE_STYLE, UI_COLOR, defaultLayers } from "./constants";
 import { screenPxPerMm } from "./screenScale";
 import { formatLengthWithUnit, type LengthUnit } from "./units";
+import { notchContours, type NotchPattern } from "./notches";
 import { History } from "./history";
 import { createTool, type ToolHandler } from "./tools";
 import type {
@@ -1337,6 +1338,47 @@ export class EditorEngine {
     const added = this.addItem(result as paper.Item, { layerId, name });
     this.selectItems([added]);
     this.commit();
+  }
+
+  /**
+   * Cut a row of notches (jimping, serrations) into the selected part along the straight stretch
+   * A→B, which must follow its outline. Returns the number of notches, or why nothing was cut.
+   */
+  cutNotches(pattern: NotchPattern): number | "noPart" | "notOnEdge" | "none" {
+    const items = this.docItems().filter(
+      (i): i is EditableItem => this.selected.includes(i) && ((i instanceof paper.Path && i.closed) || i instanceof paper.CompoundPath),
+    );
+    if (items.length !== 1) return "noPart";
+    const part = items[0];
+    const a = new paper.Point(pattern.a);
+    const b = new paper.Point(pattern.b);
+    const len = b.getDistance(a);
+    if (!(len > 0)) return "notOnEdge";
+    const u = b.subtract(a).divide(len);
+    const n = new paper.Point(-u.y, u.x);
+    // which side is material: probe just off the edge at the middle of the stretch
+    const mid = a.add(b).divide(2);
+    const leftIn = part.contains(mid.add(n.multiply(0.05)));
+    const rightIn = part.contains(mid.subtract(n.multiply(0.05)));
+    if (leftIn === rightIn) return "notOnEdge";
+    const inward: [number, number] = leftIn ? [n.x, n.y] : [-n.x, -n.y];
+    const contours = notchContours(pattern, inward);
+    if (!contours.length) return "none";
+    let cutter: paper.PathItem = this.contourToPath(contours[0], true);
+    for (const c of contours.slice(1)) {
+      const next = cutter.unite(this.contourToPath(c, true), { insert: false });
+      cutter.remove();
+      cutter = next;
+    }
+    const result = part.subtract(cutter, { insert: false });
+    cutter.remove();
+    const layerId = part.layer.data.layerId as string;
+    const name = part.data?.name ?? null;
+    part.remove();
+    const added = this.addItem(result as paper.Item, { layerId, name });
+    this.selectItems([added]);
+    this.commit();
+    return contours.length;
   }
 
   /** Replace the (single) selected closed shape with polygon contours, e.g. from the offset endpoint. */

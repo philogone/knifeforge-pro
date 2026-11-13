@@ -5,7 +5,7 @@ import { computed } from "vue";
 
 export type EditorIconName =
   | "select" | "node" | "pen" | "rect" | "ellipse" | "line" | "polygon" | "arc" | "dimension" | "measure" | "pan"
-  | "library" | "holes" | "text" | "undo" | "redo" | "fit" | "magnet" | "eye" | "eye-off" | "lock" | "unlock"
+  | "library" | "holes" | "notch" | "text" | "undo" | "redo" | "fit" | "magnet" | "eye" | "eye-off" | "lock" | "unlock"
   | "close" | "chevron-down" | "chevron-up" | "warning" | "swap"
   | "flip-h" | "flip-v" | "mirror-h" | "mirror-v" | "rotate" | "duplicate";
 
@@ -25,6 +25,8 @@ const PATHS: Record<EditorIconName, string> = {
   pan: "M7 10V4.5a1.25 1.25 0 0 1 2.5 0V9.5M9.5 9V3.5a1.25 1.25 0 0 1 2.5 0V9.5M12 9.5V5a1.25 1.25 0 0 1 2.5 0v6.5c0 3-2 5.5-5 5.5h-.5c-2 0-3.2-1-4.3-2.6L2.8 11.4a1.2 1.2 0 0 1 1.9-1.5L7 12",
   library: "M3.5 3.5h5v5h-5zM11.5 3.5h5v5h-5zM3.5 11.5h5v5h-5zM11.5 11.5h5v5h-5z",
   holes: "M5.5 7a2 2 0 1 0 0 .01M14.5 7a2 2 0 1 0 0 .01M5.5 14a2 2 0 1 0 0 .01M14.5 14a2 2 0 1 0 0 .01M3.5 5a2 2 0 1 0 4 0 2 2 0 1 0-4 0",
+  // a spine with three V notches
+  notch: "M2.5 7h3l1.5 2.5 1.5-2.5h1l1.5 2.5 1.5-2.5h1l1.5 2.5 1.5-2.5h1.5M2.5 7v6.5h15V7",
   text: "M4.5 5V3.5h11V5M10 3.5v13M7.5 16.5h5",
   undo: "M7.5 4.5L4 8l3.5 3.5M4 8h7.5a4.5 4.5 0 0 1 0 9H8",
   redo: "M12.5 4.5L16 8l-3.5 3.5M16 8H8.5a4.5 4.5 0 0 0 0 9H12",

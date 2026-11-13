@@ -5,7 +5,9 @@ from app.core.security import require_admin
 from app.database import get_db
 from app.models.customer import Customer
 from app.models.order import Order, OrderLine, OrderStatus
-from app.schemas.order import FeasibilityResult, OrderCreate, OrderOut, OrderUpdate
+from app.schemas.order import FeasibilityResult, OrderCreate, OrderOut, OrderUpdate, TimeEntryIn, TimeSummaryOut
+from app.services import stages_service
+from app.services.shop_settings_service import get_shop_settings
 from app.services.order_service import (
     OrderConfirmError,
     cancel_order,
@@ -85,6 +87,8 @@ def update_order(order_id: int, payload: OrderUpdate, db: Session = Depends(get_
     if order.status != OrderStatus.DRAFT and payload.lines is not None:
         raise HTTPException(status_code=409, detail="Only draft orders can have their lines edited")
     data = payload.model_dump(exclude_unset=True, exclude={"lines"})
+    if data.get("stage") and data["stage"] not in stages_service.stage_keys(get_shop_settings(db)):
+        raise HTTPException(status_code=422, detail="Unknown workshop stage")
     if data.get("customer_id"):
         customer = db.get(Customer, data["customer_id"])
         if customer is None:
@@ -146,3 +150,48 @@ def delete_order(order_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=409, detail="Only draft or cancelled orders can be deleted")
     db.delete(order)
     db.commit()
+
+
+# ---- time spent on an order, against what its models plan
+def _time_summary(db: Session, order: Order) -> dict:
+    from collections import Counter
+
+    from app.models.order import TimeEntry
+
+    entries = db.query(TimeEntry).filter(TimeEntry.order_id == order.id).order_by(TimeEntry.worked_on, TimeEntry.id).all()
+    spent = sum(e.minutes for e in entries)
+    planned = round(sum((line.knife_model.base_labor_hours or 0) * line.quantity for line in order.lines if line.knife_model) * 60)
+    rate = get_shop_settings(db).hourly_rate or 0
+    by_stage = Counter()
+    for e in entries:
+        by_stage[e.stage or ""] += e.minutes
+    return {"entries": entries, "spent_minutes": spent, "planned_minutes": planned, "hourly_rate": rate,
+            "spent_cost": round(spent / 60 * rate, 2), "by_stage": dict(by_stage)}
+
+
+@router.get("/{order_id}/time", response_model=TimeSummaryOut)
+def order_time(order_id: int, db: Session = Depends(get_db)):
+    return _time_summary(db, _get_or_404(db, order_id))
+
+
+@router.post("/{order_id}/time", response_model=TimeSummaryOut, status_code=201)
+def add_time(order_id: int, payload: TimeEntryIn, db: Session = Depends(get_db)):
+    from app.models.order import TimeEntry
+
+    order = _get_or_404(db, order_id)
+    db.add(TimeEntry(order_id=order.id, **payload.model_dump()))
+    db.commit()
+    return _time_summary(db, order)
+
+
+@router.delete("/{order_id}/time/{entry_id}", response_model=TimeSummaryOut)
+def delete_time(order_id: int, entry_id: int, db: Session = Depends(get_db)):
+    from app.models.order import TimeEntry
+
+    order = _get_or_404(db, order_id)
+    entry = db.query(TimeEntry).filter(TimeEntry.id == entry_id, TimeEntry.order_id == order.id).first()
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Time entry not found")
+    db.delete(entry)
+    db.commit()
+    return _time_summary(db, order)

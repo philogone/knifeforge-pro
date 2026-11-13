@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from "vue";
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from "vue";
 import { onBeforeRouteLeave, useRoute } from "vue-router";
 
 import EditorIcon, { type EditorIconName } from "@/components/EditorIcon.vue";
@@ -15,7 +15,7 @@ import { EditorEngine, formatMm } from "@/editor/engine";
 import type { AlignKind, BooleanOp, CornerReport, Measurement, SnapKind, SnapOptions } from "@/editor/engine";
 import type { DocLayer, Guide, LayerRole, SelectionInfo, ToolName } from "@/editor/types";
 import { RULER_SIZE, drawGrid, drawRulers, screenToWorld } from "@/editor/view";
-import { useI18n } from "@/i18n";
+import { currentTrade, useI18n } from "@/i18n";
 import { errorMessage } from "@/i18n/apiErrors";
 import { useTheme } from "@/composables/useTheme";
 import { screenPxPerMm } from "@/editor/screenScale";
@@ -44,6 +44,11 @@ const alignKinds: AlignKind[] = ["left", "centerH", "right", "top", "middleV", "
 const booleanOps: BooleanOp[] = ["unite", "subtract", "intersect", "exclude"];
 
 const designId = computed(() => Number(route.params.id));
+// a blacksmith's workshop does not see the knife-only tools (jimping, folder swing)
+const trade = currentTrade();
+// the 3D view (three.js) loads only when the mock-up is opened
+const MockupDialog = defineAsyncComponent(() => import("@/components/MockupDialog.vue"));
+const DevelopedLengthDialog = defineAsyncComponent(() => import("@/components/DevelopedLengthDialog.vue"));
 const design = ref<Design | null>(null);
 const loadError = ref("");
 const meta = reactive({ name: "", kind: "other" as DesignKind, notes: "", knife_model_id: 0, material_id: 0 });
@@ -456,6 +461,21 @@ async function exportStl() {
   } catch (err) {
     setStatus(t("designs.exportFailed", { error: errorMessage(err, t) }), true);
   }
+}
+
+// developed length of the selected line, bar for a forged part
+const developed = ref<{ open: boolean; line: { points: [number, number][]; closed: boolean; area: number } | null }>({ open: false, line: null });
+function openDeveloped() {
+  developed.value = { open: true, line: engine.value?.selectedLine() ?? null };
+}
+const designThickness = computed(() => store.materials.find((m) => m.id === meta.material_id)?.standard_thickness_mm ?? 4);
+
+// 3D mock-up of the assembled knife (3D printer, CNC router): the server reads the saved design
+const mockupOpen = ref(false);
+async function openMockup() {
+  if (exportMenu.value) exportMenu.value.open = false;
+  if (unsaved.value && !(await save())) return;
+  mockupOpen.value = true;
 }
 
 async function exportPartsSheet(paper: "A4" | "A3") {
@@ -1330,6 +1350,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" @click="exportFrom('export.dxf')">{{ t("editor.exportDxf") }}</button>
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" :title="t('parts.hint')" @click="exportPartsSheet('A4')">{{ t("parts.a4") }}</button>
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" :title="t('parts.hint')" @click="exportPartsSheet('A3')">{{ t("parts.a3") }}</button>
+            <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" :title="t('mockup.lead')" @click="openMockup">{{ t("mockup.menu") }}</button>
             <div class="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50">
               <button class="flex-1 text-left" :title="t('stl.hint')" @click="exportStl">{{ t("stl.export") }}</button>
               <input v-model.number="stlThickness" type="number" min="0.1" max="100" step="any" class="input-sm w-16 text-right" :placeholder="t('stl.auto')" :aria-label="tu('stl.thickness')" :title="tu('stl.thickness')" @click.stop />
@@ -1437,8 +1458,9 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <div class="w-7 border-t border-slate-200 my-1"></div>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('library.title')" :aria-label="t('library.title')" @click="openLibrary"><EditorIcon name="library" /></button>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('holes.title')" :aria-label="t('holes.title')" @click="openHoles"><EditorIcon name="holes" /></button>
-          <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('notch.title')" :aria-label="t('notch.title')" @click="openNotches"><EditorIcon name="notch" /></button>
-          <button class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-slate-100" :class="swing.open ? 'bg-slate-100 text-slate-900' : 'text-slate-600'" :title="t('swing.title')" :aria-label="t('swing.title')" :aria-pressed="swing.open" @click="swing.open = !swing.open"><EditorIcon name="swing" /></button>
+          <button v-if="trade === 'knifemaker'" class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('notch.title')" :aria-label="t('notch.title')" @click="openNotches"><EditorIcon name="notch" /></button>
+          <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('dl.title')" :aria-label="t('dl.title')" @click="openDeveloped"><EditorIcon name="scroll" /></button>
+          <button v-if="trade === 'knifemaker'" class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-slate-100" :class="swing.open ? 'bg-slate-100 text-slate-900' : 'text-slate-600'" :title="t('swing.title')" :aria-label="t('swing.title')" :aria-pressed="swing.open" @click="swing.open = !swing.open"><EditorIcon name="swing" /></button>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('text.title')" :aria-label="t('text.title')" @click="openText"><EditorIcon name="text" /></button>
         </div>
 
@@ -2087,4 +2109,6 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
       </div>
     </div>
   </div>
+  <MockupDialog v-if="mockupOpen && design" :design-id="designId" :design-name="meta.name" :unit="unit" @close="mockupOpen = false" />
+  <DevelopedLengthDialog v-if="developed.open" :line="developed.line" :unit="unit" :default-thickness="designThickness" @close="developed.open = false" />
 </template>

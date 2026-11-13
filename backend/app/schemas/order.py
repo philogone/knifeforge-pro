@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.models.order import OrderStage, OrderStatus
+from app.models.order import OrderStatus
 
 
 class OrderLineIn(BaseModel):
@@ -35,7 +35,7 @@ class OrderUpdate(BaseModel):
     customer_email: EmailStr | None = None
     notes: str | None = None
     due_date: date | None = None
-    stage: OrderStage | None = None
+    stage: str | None = Field(default=None, min_length=1, max_length=40)
     lines: list[OrderLineIn] | None = None
 
 
@@ -47,7 +47,7 @@ class OrderOut(BaseModel):
     notes: str | None
     customer_id: int | None = None
     due_date: date | None = None
-    stage: OrderStage = OrderStage.TODO
+    stage: str = "todo"
     is_mock: bool
     created_at: datetime
     lines: list[OrderLineOut]
@@ -68,3 +68,25 @@ class MaterialFeasibility(BaseModel):
 class FeasibilityResult(BaseModel):
     feasible: bool
     materials: list[MaterialFeasibility]
+
+
+class TimeEntryIn(BaseModel):
+    worked_on: date
+    minutes: int = Field(gt=0, le=24 * 60)
+    stage: str | None = Field(default=None, max_length=40)
+    note: str | None = Field(default=None, max_length=300)
+
+
+class TimeEntryOut(TimeEntryIn):
+    id: int
+
+    model_config = {"from_attributes": True}
+
+
+class TimeSummaryOut(BaseModel):
+    entries: list[TimeEntryOut]
+    spent_minutes: int
+    planned_minutes: int  # from the models' estimated hours × quantities
+    hourly_rate: float
+    spent_cost: float
+    by_stage: dict[str, int]

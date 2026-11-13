@@ -17,8 +17,9 @@ from app.schemas.design import (
     OffsetResult,
 )
 from app.services.shop_settings_service import get_shop_settings
-from app.services import design_templates, export_service, parts_sheet, stl_export
-from app.services.geometry_service import compute_metrics, offset_contours
+from app.schemas.mockup import MockupCandidate, MockupIn, MockupPreview
+from app.services import design_templates, export_service, mockup_3d, parts_sheet, stl_export
+from app.services.geometry_service import compute_metrics, extract_parts, offset_contours
 
 router = APIRouter(prefix="/api/admin/designs", tags=["designs"], dependencies=[Depends(require_admin)])
 
@@ -266,3 +267,67 @@ def plan(
     if download:
         headers["Content-Disposition"] = f'attachment; filename="{_safe_filename("plan_" + design.name, "svg")}"'
     return Response(svg, media_type="image/svg+xml", headers=headers)
+
+
+# ---- 3D mock-up of the assembled knife (3D printing, CNC)
+ROLE_GUESS = (
+    ("lame", "blade"), ("blade", "blade"), ("plaquette", "scales"), ("scale", "scales"), ("garde", "guard"), ("guard", "guard"),
+    ("mitre", "bolster"), ("bolster", "bolster"), ("platine", "liners"), ("liner", "liners"), ("entretoise", "spacer"), ("spacer", "spacer"),
+)
+DEFAULT_THICKNESS = {"blade": 4.0, "scales": 8.0, "guard": 10.0, "bolster": 10.0, "liners": 1.5, "spacer": 2.0}
+
+
+@router.get("/{design_id}/mockup/parts", response_model=list[MockupCandidate])
+def mockup_parts(design_id: int, db: Session = Depends(get_db)):
+    """The cut parts, each with a guessed role (from its name) and thickness (the design's
+    material for the blade, usual values otherwise)."""
+    design = _get_or_404(db, design_id)
+    stock = design.material.standard_thickness_mm if design.material else None
+    out = []
+    for part in extract_parts(_document(design)):
+        minx, miny, maxx, maxy = part.geometry.bounds
+        lowered = part.name.lower()
+        role = next((r for key, r in ROLE_GUESS if key in lowered), None)
+        thickness = (stock if role == "blade" and stock else DEFAULT_THICKNESS.get(role or "", 4.0))
+        out.append({"object_id": part.object_id, "name": part.name, "width_mm": maxx - minx, "height_mm": maxy - miny, "role": role, "thickness_mm": thickness})
+    return out
+
+
+def _assembly(design: Design, payload: MockupIn):
+    specs = [mockup_3d.PartSpec(p.object_id, p.role, p.thickness_mm) for p in payload.parts]
+    try:
+        return specs, mockup_3d.assemble(_document(design), specs, payload.pin_clearance_mm if payload.output != "cnc" else 0.0)
+    except mockup_3d.MockupError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/{design_id}/mockup/preview", response_model=MockupPreview)
+def mockup_preview(design_id: int, payload: MockupIn, db: Session = Depends(get_db)):
+    """The assembled pieces as meshes for the 3D view, and the CNC cutter check."""
+    design = _get_or_404(db, design_id)
+    _, asm = _assembly(design, payload)
+    meshes = []
+    for s in asm.everything:
+        verts, faces = mockup_3d._vertices_and_faces(mockup_3d.solid_triangles(s))
+        meshes.append({
+            "name": s.name, "role": s.role, "colour": mockup_3d.ROLE_COLOUR.get(s.role, "#999999"), "z0": s.z0, "z1": s.z1,
+            "positions": [c for v in verts for c in v], "indices": [i for f in faces for i in f],
+        })
+    issues = [vars(i) for i in mockup_3d.tool_check(asm, payload.tool_diameter_mm)] if payload.output == "cnc" else []
+    stack = max((s.z1 for s in asm.everything), default=0) - min((s.z0 for s in asm.everything), default=0)
+    return {"meshes": meshes, "issues": issues, "stack_mm": stack}
+
+
+@router.post("/{design_id}/mockup")
+def mockup_file(design_id: int, payload: MockupIn, db: Session = Depends(get_db)):
+    """3MF (printing), zip of STL (printing) or zip of DXF + report (CNC)."""
+    design = _get_or_404(db, design_id)
+    specs, asm = _assembly(design, payload)
+    if payload.output == "3mf":
+        data, media, ext = mockup_3d.to_3mf(asm, payload.layout, design.name), "model/3mf", "3mf"
+    elif payload.output == "stl":
+        data, media, ext = mockup_3d.to_stl_zip(asm), "application/zip", "zip"
+    else:
+        data, media, ext = mockup_3d.to_cnc_zip(_document(design), asm, specs, payload.tool_diameter_mm, design.name), "application/zip", "zip"
+    suffix = {"3mf": "-maquette", "stl": "-maquette-stl", "cnc": "-usinage-cnc"}[payload.output]
+    return Response(data, media_type=media, headers={"Content-Disposition": f'attachment; filename="{_safe_filename(design.name + suffix, ext)}"'})

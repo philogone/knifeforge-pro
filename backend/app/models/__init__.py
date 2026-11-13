@@ -2,7 +2,7 @@ from app.models.customer import Customer
 from app.models.design import Design, DesignKind
 from app.models.knife_model import KnifeModel, KnifeModelMaterial, KnifeModelTreatment, KnifeType, MaterialRole
 from app.models.material import DimensionType, Material, MaterialCategory, MetalType
-from app.models.order import Order, OrderLine, OrderStage, OrderStatus
+from app.models.order import Order, OrderLine, OrderStage, OrderStatus, TimeEntry
 from app.models.sales_document import (
     DocumentCounter,
     DocumentEvent,
@@ -32,6 +32,7 @@ __all__ = [
     "MovementReason",
     "OperationNature",
     "OrderStage",
+    "TimeEntry",
     "SalesDocument",
     "SalesDocumentLine",
     "StockMovement",

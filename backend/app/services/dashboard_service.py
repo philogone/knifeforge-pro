@@ -14,7 +14,8 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.models.material import Material
-from app.models.order import Order, OrderStage, OrderStatus
+from app.models.order import Order, OrderStatus
+from app.services import stages_service
 from app.models.sales_document import DocumentKind, DocumentStatus, SalesDocument
 from app.schemas.dashboard import (
     DashboardOut,
@@ -46,21 +47,24 @@ def _orders(db: Session, today: date, active: list[Order]) -> OrdersSummaryOut:
             else:
                 short += 1
 
-    dated = [o for o in active if o.due_date and o.stage != OrderStage.DELIVERED]
+    shop = get_shop_settings(db)
+    keys = stages_service.stage_keys(shop)
+    dated = [o for o in active if o.due_date and o.stage != stages_service.final_stage(shop)]
     late = [o for o in dated if o.due_date < today]
     week = [o for o in dated if today <= o.due_date <= today + timedelta(days=7)]
     upcoming = sorted(dated, key=lambda o: o.due_date)[:UPCOMING_LIMIT]
 
     return OrdersSummaryOut(
         by_status={s.value: by_status.get(s, 0) for s in OrderStatus},
-        by_stage={s.value: by_stage.get(s, 0) for s in OrderStage},
+        # the workshop's stages in order, then any stage no longer in its list
+        by_stage={**{k: by_stage.get(k, 0) for k in keys}, **{k: n for k, n in by_stage.items() if k not in keys}},
         active=len(active),
         drafts_feasible=feasible,
         drafts_short=short,
         late=len(late),
         due_this_week=len(week),
         upcoming=[
-            DueOrderOut(order_id=o.id, customer_name=o.customer_name, due_date=o.due_date, stage=o.stage.value, late=o.due_date < today)
+            DueOrderOut(order_id=o.id, customer_name=o.customer_name, due_date=o.due_date, stage=o.stage, late=o.due_date < today)
             for o in upcoming
         ],
     )

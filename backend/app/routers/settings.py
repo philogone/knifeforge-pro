@@ -28,6 +28,8 @@ from app.schemas.shop_settings import (
     MailTestIn,
     ShopSettingsOut,
     ShopSettingsUpdate,
+    StageOut,
+    StagesIn,
 )
 from app.schemas.treatment import TreatmentRecipeOut
 from app.services.backup_service import BackupError, export_backup, inspect_backup, restore_backup
@@ -237,3 +239,57 @@ def mail_test(payload: MailTestIn):
     except mail_service.MailError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return _mail_out()
+
+
+# ---- trade profile and workshop stages
+def _stages_out(db: Session) -> list[dict]:
+    from collections import Counter
+
+    from app.models.order import Order, OrderStatus
+    from app.services import stages_service
+
+    used = Counter(s for (s,) in db.query(Order.stage).filter(Order.status.in_((OrderStatus.DRAFT, OrderStatus.CONFIRMED))).all())
+    return [{**s, "used": used.get(s["key"], 0)} for s in stages_service.stages(get_shop_settings(db))]
+
+
+@router.get("/stages", response_model=list[StageOut])
+def get_stages(db: Session = Depends(get_db)):
+    """The workshop's stages, in order, with how many active orders sit at each."""
+    return _stages_out(db)
+
+
+@router.put("/stages", response_model=list[StageOut])
+def put_stages(payload: StagesIn, db: Session = Depends(get_db)):
+    """Rename, add, remove or reorder stages. A stage still holding active orders stays."""
+    from app.services import stages_service
+
+    shop = get_shop_settings(db)
+    builtin = {k for keys in stages_service.DEFAULT_STAGES.values() for k in keys}
+    out: list[dict] = []
+    for s in payload.stages:
+        label = (s.label or "").strip() or None
+        key = s.key or (stages_service.slug(label) if label else None)
+        if not key:
+            raise HTTPException(status_code=422, detail="A new stage needs a name")
+        if key not in builtin and not label:
+            raise HTTPException(status_code=422, detail="A new stage needs a name")
+        base, n = key, 2
+        while any(o["key"] == key for o in out):
+            key, n = f"{base}_{n}", n + 1
+        out.append({"key": key, "label": label})
+    kept = {o["key"] for o in out}
+    missing = [s for s in _stages_out(db) if s["used"] and s["key"] not in kept]
+    if missing:
+        raise HTTPException(status_code=409, detail="A removed stage still holds active orders")
+    shop.workshop_stages = out
+    db.commit()
+    return _stages_out(db)
+
+
+@router.delete("/stages", response_model=list[StageOut])
+def reset_stages(db: Session = Depends(get_db)):
+    """Back to the trade's stages (orders at a stage the trade does not have keep it)."""
+    shop = get_shop_settings(db)
+    shop.workshop_stages = None
+    db.commit()
+    return _stages_out(db)

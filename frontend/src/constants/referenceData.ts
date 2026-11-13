@@ -45,4 +45,3 @@ export const DOCUMENT_STATUS_TAG: Record<"draft" | "issued" | "accepted" | "refu
   paid: "tag-success",
 };
 
-export const ORDER_STAGES = ["todo", "forging", "heat_treatment", "grinding", "handle", "finishing", "ready", "delivered"] as const;

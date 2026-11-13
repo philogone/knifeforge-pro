@@ -1408,6 +1408,23 @@ export class EditorEngine {
     this.addUi(axis, "swing");
   }
 
+  /**
+   * The single selected path as a fine polyline (0.002 mm), for length measurements: an open
+   * line, or the outer contour of a closed shape with its area.
+   */
+  selectedLine(): { points: [number, number][]; closed: boolean; area: number } | null {
+    if (this.selected.length !== 1) return null;
+    const item = this.selected[0];
+    const path = item instanceof paper.CompoundPath ? (item.children as paper.Path[]).reduce((a, b) => (Math.abs(b.area) > Math.abs(a.area) ? b : a)) : (item as paper.Path);
+    if (!(path instanceof paper.Path) || path.segments.length < 2) return null;
+    const flat = path.clone({ insert: false }) as paper.Path;
+    flat.flatten(0.002);
+    const points = flat.segments.map((sg) => [sg.point.x, sg.point.y] as [number, number]);
+    flat.remove();
+    const closed = path.closed;
+    return { points, closed, area: closed ? this.evenOddArea(item) : 0 };
+  }
+
   private polylines(item: paper.PathItem): Polyline[] {
     const paths = item instanceof paper.CompoundPath ? (item.children as paper.Path[]) : [item as paper.Path];
     return paths.map((path) => {

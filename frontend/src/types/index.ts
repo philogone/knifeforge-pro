@@ -99,7 +99,8 @@ export interface OrderLine {
   quantity: number;
 }
 
-export type OrderStage = "todo" | "forging" | "heat_treatment" | "grinding" | "handle" | "finishing" | "ready" | "delivered";
+// a key of the workshop's stage list (built-in or its own)
+export type OrderStage = string;
 
 export interface Order {
   id: number;
@@ -211,6 +212,7 @@ export interface ShopSettings {
   account_bank: string;
   email_send_template: string | null;
   reminder_templates: Record<string, string> | null;
+  trade: "knifemaker" | "blacksmith";
 }
 
 export interface Customer {
@@ -437,7 +439,7 @@ export interface Dashboard {
   today: string;
   orders: {
     by_status: Record<OrderStatus, number>;
-    by_stage: Record<OrderStage, number>;
+    by_stage: Record<string, number>;
     active: number;
     drafts_feasible: number;
     drafts_short: number;
@@ -610,4 +612,21 @@ export interface CalibrationResult {
   residual_mm: number | null;
   within_tolerance: boolean;
   advice: ("ok" | "use_suggested" | "inconsistent" | "scale" | "negative_kerf" | "recheck")[];
+}
+
+export interface TimeEntry {
+  id: number;
+  worked_on: string;
+  minutes: number;
+  stage: string | null;
+  note: string | null;
+}
+
+export interface TimeSummary {
+  entries: TimeEntry[];
+  spent_minutes: number;
+  planned_minutes: number;
+  hourly_rate: number;
+  spent_cost: number;
+  by_stage: Record<string, number>;
 }

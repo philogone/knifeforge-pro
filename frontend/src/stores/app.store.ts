@@ -231,6 +231,10 @@ export const useAppStore = defineStore("app", {
       if (opts.kerf) qs.set("kerf", String(opts.kerf));
       return apiFetchBlob(`/admin/designs/${id}/${kind}${qs.toString() ? `?${qs}` : ""}`);
     },
+    /** the cut parts extruded to a thickness (mm), for 3D printing */
+    downloadStl(id: number, thickness: number) {
+      return apiFetchBlob(`/admin/designs/${id}/export.stl?thickness=${thickness}`);
+    },
     /** the parts at true size on A4 / A3, tiled if needed, with punch marks */
     downloadPartsSheet(id: number, paper: "A4" | "A3") {
       return apiFetchBlob(`/admin/designs/${id}/parts.pdf?paper=${paper}`);

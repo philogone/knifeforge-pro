@@ -51,7 +51,7 @@ navigateur.
 Terminé quand : installation testée sur un Windows neuf par une personne qui n'est pas
 développeur, en moins de 10 minutes.
 
-## Lot 8 — À niveau des outils de dessin gratuits (priorité 2)
+## Lot 8 — À niveau des outils de dessin gratuits (fait le 12 novembre 2026)
 
 Ce que les outils dédiés proposent et qu'un coutelier s'attend à trouver :
 - **Pouces** en plus des millimètres (saisie, règles, cotes, exports), conversion exacte.
@@ -97,7 +97,7 @@ Terminé quand : chaque point a ses tests de précision et sa page de guide.
 
 ## Ordre de marche
 
-1. ~~Lot 6~~ → 2. ~~Lot 7~~ → 3. Lots 8 et 9 en parallèle → 4. Lot 10.
+1. ~~Lot 6~~ → 2. ~~Lot 7~~ → 3. ~~Lot 8~~ et lot 9 → 4. Lot 10.
 
 À chaque lot : tests verts (`pytest`, `npm test`, `vue-tsc`, build), captures vérifiées,
 documentation à jour, puis fusion.

@@ -17,8 +17,8 @@ et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à 
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 <br>
-![Tests backend](https://img.shields.io/badge/tests%20backend-118%20passing-brightgreen)
-![Tests frontend](https://img.shields.io/badge/tests%20frontend-139%20passing-brightgreen)
+![Tests backend](https://img.shields.io/badge/tests%20backend-127%20passing-brightgreen)
+![Tests frontend](https://img.shields.io/badge/tests%20frontend-157%20passing-brightgreen)
 ![Précision](https://img.shields.io/badge/courbes-%E2%89%A4%200%2C01%20mm-6366f1)
 ![Licence](https://img.shields.io/badge/licence-commerciale-lightgrey)
 
@@ -51,7 +51,11 @@ Un mini-Inkscape dans le navigateur, **à l'échelle 1:1 en millimètres**.
 - Booléens (union, différence, intersection, exclusion), combiner / séparer
 - Décalage (agrandir / réduire), alignement, miroir, rotation
 - **Saisie numérique exacte** : tapez 123,4 × 17,6, vous obtenez 123,4 × 17,6
-- **Bibliothèque de formes** paramétriques (plaquette, gardes, rondelle, fente de soie, lames drop-point et wharncliffe) et réutilisation de vos propres gabarits
+- **Bibliothèque de formes** paramétriques : 14 profils de lames (drop-point, clip, lance, tanto, wharncliffe, pied de mouton, pointe relevée, skinner, bowie, office, gyuto, santoku, nakiri, kiritsuke), plaquette, gardes, rondelle, fente de soie, et réutilisation de vos propres gabarits
+- **Millimètres ou pouces** à l'affichage et à la saisie (règles en fractions de pouce), le dessin restant en millimètres
+- **Crantage et dentelure** : rangée d'entailles en V, arrondies ou à fond plat, découpée dans la pièce le long d'un tronçon
+- **Pliants** : rotation de la lame autour du pivot et vérification de la course (premier contact, jeu en fin de course)
+- **Masse et point d'équilibre** estimés d'après les matières du stock, point marqué sur le dessin
 - Calques typés : *découpe*, *perçage*, *gravure*, *émouture* (trait mixte sur le plan client, jamais découpée), *construction*, *cotation*
 - **Décalque d'une photo** : image de fond JPEG / PNG / WebP calibrée en deux clics sur une distance connue, ou **redressée en perspective** sur les 4 coins d'une feuille A4 (ou de tout rectangle connu), jamais exportée
 - **Outil mesure** (distance, ΔX, ΔY, angle), transformable en cote
@@ -78,6 +82,8 @@ Placement des **vraies formes** (perçages compris) sur vos plaques et barres.
 - **SVG** avec de vraies courbes de Bézier, 1 unité = 1 mm
 - **DXF R2010** (calques `CUT` / `ENGRAVE` / `SHEET`) en polylignes ou **en arcs de cercle** (≤ 0,01 mm), pour la découpe laser, jet d'eau ou CNC
 - **Compensation du trait de coupe** à l'export : la pièce sort à la cote
+- **Feuille de pièces PDF à l'échelle 1:1** (A4 / A3) à coller sur la matière : croix de pointage des perçages, grandes pièces réparties sur plusieurs pages à assembler
+- **STL** : pièces extrudées pour imprimer en 3D un gabarit de traçage ou une maquette
 - Plaques de nesting en SVG / DXF
 - **Plans clients cotés** A4 / A3, échelle normalisée, cartouche au nom et au logo de l'atelier, **barre de contrôle de 100 mm** pour vérifier l'impression
 - **Zoom 1:1 calibré** sur votre écran avec une carte bancaire
@@ -374,8 +380,8 @@ knifeforge-pro/
 ## 🧪 Tests
 
 ```bash
-cd backend && pytest              # 118 tests : géométrie, nesting, exports, API, métrologie
-cd frontend && npm test           # 139 tests : moteur d'édition, calibration, perspective, magnétisme, congés, texte, formes, client API, traductions
+cd backend && pytest              # 127 tests : géométrie, nesting, exports, API, métrologie
+cd frontend && npm test           # 157 tests : moteur d'édition, calibration, perspective, magnétisme, congés, texte, formes, client API, traductions
 cd frontend && npx vue-tsc --noEmit && npm run build
 ```
 

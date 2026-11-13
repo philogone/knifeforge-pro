@@ -17,7 +17,7 @@ from app.schemas.design import (
     OffsetResult,
 )
 from app.services.shop_settings_service import get_shop_settings
-from app.services import design_templates, export_service, parts_sheet
+from app.services import design_templates, export_service, parts_sheet, stl_export
 from app.services.geometry_service import compute_metrics, offset_contours
 
 router = APIRouter(prefix="/api/admin/designs", tags=["designs"], dependencies=[Depends(require_admin)])
@@ -190,6 +190,25 @@ def export_dxf(
         data,
         media_type="application/dxf",
         headers={"Content-Disposition": f'attachment; filename="{_safe_filename(design.name, "dxf")}"'},
+    )
+
+
+@router.get("/{design_id}/export.stl")
+def export_stl(
+    design_id: int,
+    thickness: float = Query(gt=0, le=stl_export.MAX_THICKNESS_MM, description="Extrusion thickness (mm)"),
+    db: Session = Depends(get_db),
+):
+    """The cut parts extruded to `thickness`, for 3D printing a jig or a mock-up."""
+    design = _get_or_404(db, design_id)
+    try:
+        data = stl_export.design_to_stl(_document(design), thickness_mm=thickness, name=design.name)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return Response(
+        data,
+        media_type="model/stl",
+        headers={"Content-Disposition": f'attachment; filename="{_safe_filename(design.name, "stl")}"'},
     )
 
 

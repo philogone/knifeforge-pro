@@ -32,7 +32,22 @@ Reste à faire :
   `config.json`).
 - Premier démarrage plus lent la toute première fois (analyse antivirus des fichiers).
 
-## Prochain : lots 8 et 9
+## Lot 8 — fait le 12 novembre 2026
+
+Pouces (affichage et saisie, règles en fractions), feuille de pièces PDF 1:1 avec croix de
+pointage et pages à assembler, crantage et dentelure, masse et point d'équilibre, pliants
+(rotation et course de la lame), 12 profils de lames de plus, export STL.
+
+Points laissés en l'état :
+- Les plans clients et les exports restent en millimètres (le DXF déclare des mm, ce que les
+  machines lisent sans ambiguïté) ; seul l'éditeur passe en pouces.
+- Le point d'équilibre traite chaque pièce comme une plaque d'épaisseur constante : émouture,
+  biseaux et plaquettes galbées ne sont pas pris en compte.
+- La course d'un pliant se vérifie contre les obstacles choisis ; le dépassement du tranchant
+  hors du manche une fois fermé n'est pas encore mesuré.
+- Le crantage suit un tronçon droit ; pas encore le long d'une courbe.
+
+## Prochain : lot 9 (preuves du sérieux), puis lot 10
 
 Voir [`roadmap.md`](roadmap.md).
 

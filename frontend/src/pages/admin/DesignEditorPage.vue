@@ -443,6 +443,21 @@ function importFrom() {
   fileInput.value?.click();
 }
 
+// thickness of the 3D-printed part, in the display unit; defaults to the design's stock thickness
+const stlThickness = ref<number | "">("");
+async function exportStl() {
+  if (exportMenu.value) exportMenu.value.open = false;
+  if (unsaved.value && !(await save())) return;
+  const stock = store.materials.find((m) => m.id === meta.material_id)?.standard_thickness_mm;
+  const mm = stlThickness.value === "" ? (stock ?? 3) : L(stlThickness.value);
+  try {
+    const blob = await store.downloadStl(designId.value, Math.max(0.1, Math.min(100, mm)));
+    saveBlob(blob, `${meta.name.replace(/[^\w.-]+/g, "_")}.stl`);
+  } catch (err) {
+    setStatus(t("designs.exportFailed", { error: errorMessage(err, t) }), true);
+  }
+}
+
 async function exportPartsSheet(paper: "A4" | "A3") {
   if (exportMenu.value) exportMenu.value.open = false;
   if (unsaved.value && !(await save())) return;
@@ -1248,6 +1263,7 @@ watch(unit, (next: LengthUnit, prev: LengthUnit) => {
     form[key] = toDisplay(fromDisplay(Number(v), prev), next);
   }
   cornerSize.value = toDisplay(fromDisplay(cornerSize.value, prev), next);
+  if (stlThickness.value !== "") stlThickness.value = toDisplay(fromDisplay(stlThickness.value, prev), next);
   for (const row of balance.rows) row.thickness = toDisplay(fromDisplay(row.thickness, prev), next);
   engine.value?.setUnit(next);
   paintRulers();
@@ -1296,6 +1312,10 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" @click="exportFrom('export.dxf')">{{ t("editor.exportDxf") }}</button>
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" :title="t('parts.hint')" @click="exportPartsSheet('A4')">{{ t("parts.a4") }}</button>
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" :title="t('parts.hint')" @click="exportPartsSheet('A3')">{{ t("parts.a3") }}</button>
+            <div class="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50">
+              <button class="flex-1 text-left" :title="t('stl.hint')" @click="exportStl">{{ t("stl.export") }}</button>
+              <input v-model.number="stlThickness" type="number" min="0.1" max="100" step="any" class="input-sm w-16 text-right" :placeholder="t('stl.auto')" :aria-label="tu('stl.thickness')" :title="tu('stl.thickness')" @click.stop />
+            </div>
             <div class="my-1 border-t border-slate-100"></div>
             <div class="px-3 py-1.5 space-y-2 text-xs text-slate-600" @click.stop>
               <label class="flex items-center gap-2"><input v-model="exportOpts.arcs" type="checkbox" /> {{ t("export.arcs") }}</label>

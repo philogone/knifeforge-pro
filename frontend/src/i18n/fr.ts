@@ -1172,4 +1172,8 @@ export const fr: Record<string, string> = {
   "shape.santoku": "Santoku",
   "shape.nakiri": "Nakiri",
   "shape.kiritsuke": "Kiritsuke",
+  "stl.export": "Pièce 3D (STL)",
+  "stl.hint": "Les pièces de découpe extrudées à l'épaisseur indiquée (par défaut celle de la matière du gabarit), pour imprimer en 3D un gabarit de traçage ou de perçage, ou une maquette.",
+  "stl.thickness": "Épaisseur ({u})",
+  "stl.auto": "auto",
 };

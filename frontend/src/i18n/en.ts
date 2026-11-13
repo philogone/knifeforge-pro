@@ -1172,4 +1172,8 @@ export const en: Record<string, string> = {
   "shape.santoku": "Santoku",
   "shape.nakiri": "Nakiri",
   "shape.kiritsuke": "Kiritsuke",
+  "stl.export": "3D part (STL)",
+  "stl.hint": "The cut parts extruded to the given thickness (by default the template material's), to 3D-print a marking or drilling jig, or a mock-up.",
+  "stl.thickness": "Thickness ({u})",
+  "stl.auto": "auto",
 };

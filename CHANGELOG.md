@@ -11,6 +11,10 @@ modification (dossier « Sauvegardes avant mise à jour »), puis mise à niveau
 
 ## [Non publié]
 
+## [0.10.1] — 2026-11-13
+
+Finitions de l'outil initial.
+
 ### Ajouté
 - **Changer le mot de passe** (et l'adresse) depuis Réglages › Accès, dans la version installée.
 - **Crantage le long d'une courbe** : option « Suivre le contour », chaque entaille
@@ -82,6 +86,7 @@ Première préversion installable.
 - Intégration continue (SQLite, PostgreSQL et migrations, interface, images Docker,
   installeur) et revue de sécurité.
 
-[Non publié]: https://github.com/philogone/knifeforge-pro/compare/v0.10.0...HEAD
+[Non publié]: https://github.com/philogone/knifeforge-pro/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/philogone/knifeforge-pro/releases/tag/v0.10.1
 [0.10.0]: https://github.com/philogone/knifeforge-pro/releases/tag/v0.10.0
 [0.9.0]: https://github.com/philogone/knifeforge-pro/releases/tag/v0.9.0

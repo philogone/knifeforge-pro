@@ -66,7 +66,7 @@ Ce que les outils dédiés proposent et qu'un coutelier s'attend à trouver :
 
 Terminé quand : chaque point a ses tests de précision et sa page de guide.
 
-## Lot 9 — Les preuves du sérieux (priorité 2, en parallèle)
+## Lot 9 — Les preuves du sérieux (fait le 13 novembre 2026, sauf la découpe réelle et la vidéo)
 
 - **Planche de contrôle** : un DXF et un plan PDF de pièces étalons (carré, cercle, arc, perçages)
   à découper et mesurer au pied à coulisse, avec la fiche de relevé. Publier les mesures d'une
@@ -97,7 +97,7 @@ Terminé quand : chaque point a ses tests de précision et sa page de guide.
 
 ## Ordre de marche
 
-1. ~~Lot 6~~ → 2. ~~Lot 7~~ → 3. ~~Lot 8~~ et lot 9 → 4. Lot 10.
+1. ~~Lot 6~~ → 2. ~~Lot 7~~ → 3. ~~Lot 8~~ et ~~lot 9~~ → 4. Lot 10.
 
 À chaque lot : tests verts (`pytest`, `npm test`, `vue-tsc`, build), captures vérifiées,
 documentation à jour, puis fusion.

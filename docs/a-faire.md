@@ -47,7 +47,29 @@ Points laissés en l'état :
   hors du manche une fois fermé n'est pas encore mesuré.
 - Le crantage suit un tronçon droit ; pas encore le long d'une courbe.
 
-## Prochain : lot 9 (preuves du sérieux), puis lot 10
+## Lot 9 — fait le 13 novembre 2026
+
+- Planche de contrôle (Dessin et découpe › Contrôle de découpe) : pièces étalons, fiche de
+  relevé 1:1, trait réel, échelle machine, compensation conseillée reportée dans l'export.
+- Guide utilisateur (`docs/guide/README.md`), captures comprises, limites écrites.
+- Démo publique en lecture seule (`DEMO=true`, `docker-compose.demo.yml`).
+- Versions : `CHANGELOG.md`, étiquette `vX.Y.Z` = publication automatique des installeurs
+  Windows, Linux (AppImage) et macOS (Apple Silicon), empreintes SHA-256, badges CI et version.
+- Validation Factur-X indépendante : Mustang (schematron EN 16931 et PDF/A-3) dans la CI,
+  rapports joints à chaque version.
+
+Reste à faire (hors code) :
+- **Découper une vraie planche** (laser et jet d'eau) et publier les mesures relevées.
+- **Héberger la démo** (sun-lenovo ou autre) derrière HTTPS, et mettre son lien dans le README.
+- **Vidéo** de 3 minutes, de l'esquisse à la facture.
+- Les nouvelles tâches CI (Linux, macOS, Mustang) n'ont pas encore tourné : à vérifier au
+  premier push. Mustang peut relever des écarts PDF/A que le schéma XSD ne voit pas.
+- macOS : seulement Apple Silicon (pas d'Intel), application non notariée (compte Apple
+  développeur payant pour l'éviter).
+- Les liens « dernière version » du README ne marchent qu'avec une version **publiée** (pas une
+  préversion) ; le dépôt étant privé, ils demandent un compte GitHub autorisé.
+
+## Prochain : lot 10 (facturation)
 
 Voir [`roadmap.md`](roadmap.md).
 

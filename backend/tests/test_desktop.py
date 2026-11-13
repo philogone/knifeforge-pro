@@ -41,13 +41,13 @@ def test_prepare_environment_generates_and_keeps_the_secret(tmp_path, monkeypatc
 
 def test_docker_mode_never_offers_account_creation():
     client = TestClient(app)
-    assert client.get("/api/auth/status").json() == {"needs_setup": False}
+    assert client.get("/api/auth/status").json() == {"needs_setup": False, "demo": False}
     assert client.post("/api/auth/setup", json={"email": "a@b.fr", "password": "x" * 12}).status_code == 409
 
 
 def test_first_run_creates_the_account_once(desktop_mode):
     client = TestClient(app)
-    assert client.get("/api/auth/status").json() == {"needs_setup": True}
+    assert client.get("/api/auth/status").json() == {"needs_setup": True, "demo": False}
     assert client.post("/api/auth/login", json={"email": "a@b.fr", "password": "whatever-123"}).status_code == 409
 
     assert client.post("/api/auth/setup", json={"email": "atelier@local", "password": "court"}).status_code == 422
@@ -60,7 +60,7 @@ def test_first_run_creates_the_account_once(desktop_mode):
     assert stored["admin_email"] == "atelier@local"
     assert stored["admin_password_hash"].startswith("$2b$") and "un-mot-de-passe" not in json.dumps(stored)
 
-    assert client.get("/api/auth/status").json() == {"needs_setup": False}
+    assert client.get("/api/auth/status").json() == {"needs_setup": False, "demo": False}
     assert client.post("/api/auth/setup", json={"email": "autre@local", "password": "x" * 12}).status_code == 409
     assert client.post("/api/auth/login", json={"email": "atelier@local", "password": "un-mot-de-passe"}).status_code == 200
     assert client.post("/api/auth/login", json={"email": "atelier@local", "password": "mauvais-mot"}).status_code == 401

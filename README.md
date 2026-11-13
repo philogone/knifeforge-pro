@@ -17,7 +17,7 @@ et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à 
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 <br>
-![Tests backend](https://img.shields.io/badge/tests%20backend-127%20passing-brightgreen)
+![Tests backend](https://img.shields.io/badge/tests%20backend-142%20passing-brightgreen)
 ![Tests frontend](https://img.shields.io/badge/tests%20frontend-157%20passing-brightgreen)
 ![Précision](https://img.shields.io/badge/courbes-%E2%89%A4%200%2C01%20mm-6366f1)
 ![Licence](https://img.shields.io/badge/licence-commerciale-lightgrey)
@@ -42,6 +42,7 @@ et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à 
 [Démarrage](#demarrage) ·
 [Architecture](#architecture) ·
 [Tests](#tests) ·
+[Guide](docs/guide/README.md) ·
 [English](#english)
 
 </div>
@@ -96,6 +97,7 @@ Placement des **vraies formes** (perçages compris) sur vos plaques et barres.
 - **SVG** avec de vraies courbes de Bézier, 1 unité = 1 mm
 - **DXF R2010** (calques `CUT` / `ENGRAVE` / `SHEET`) en polylignes ou **en arcs de cercle** (≤ 0,01 mm), pour la découpe laser, jet d'eau ou CNC
 - **Compensation du trait de coupe** à l'export : la pièce sort à la cote
+- **Contrôle de découpe** : pièces étalons à découper, fiche de relevé 1:1, calcul du trait réel, de l'échelle de la machine et de la compensation à saisir
 - **Feuille de pièces PDF à l'échelle 1:1** (A4 / A3) à coller sur la matière : croix de pointage des perçages, grandes pièces réparties sur plusieurs pages à assembler
 - **STL** : pièces extrudées pour imprimer en 3D un gabarit de traçage ou une maquette
 - Plaques de nesting en SVG / DXF
@@ -242,6 +244,16 @@ Construire les installeurs soi-même : la CI les construit et les teste à chaqu
 fichier `VERSION` les publie avec les notes du [journal des versions](CHANGELOG.md). À la main : `cd frontend && npm run build`, puis
 `cd backend && pip install -r requirements.txt -r requirements-desktop.txt && pyinstaller desktop/knifeforge.spec`,
 puis `iscc /DAppVersion=$(cat VERSION) installer/knifeforge.iss` (Inno Setup 6).
+
+Le [guide d'utilisation](docs/guide/README.md) suit une première journée pas à pas : dessiner
+une lame, contrôler sa machine, nester, commander, facturer, sauvegarder.
+
+### Démo publique (lecture seule)
+
+`docker-compose.demo.yml` lance un atelier fictif ouvert à tous, sans mot de passe : toutes les
+pages, les calculs et les exports fonctionnent, aucune modification n'est enregistrée, et la base
+est reconstruite à chaque démarrage. `DEMO_SECRET_KEY=$(openssl rand -hex 32) docker compose -f
+docker-compose.demo.yml up -d --build`, puis http://localhost:8090.
 
 ### Avec Docker (serveur, NAS)
 
@@ -407,7 +419,7 @@ knifeforge-pro/
 ## 🧪 Tests
 
 ```bash
-cd backend && pytest              # 127 tests : géométrie, nesting, exports, API, métrologie
+cd backend && pytest              # 142 tests : géométrie, nesting, exports, API, métrologie
 cd frontend && npm test           # 157 tests : moteur d'édition, calibration, perspective, magnétisme, congés, texte, formes, client API, traductions
 cd frontend && npx vue-tsc --noEmit && npm run build
 ```

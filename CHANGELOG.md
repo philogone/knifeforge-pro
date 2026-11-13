@@ -11,6 +11,10 @@ modification (dossier « Sauvegardes avant mise à jour »), puis mise à niveau
 
 ## [Non publié]
 
+## [0.11.0] — 2026-11-13
+
+Maquette 3D, outils du forgeron, licence libre.
+
 ### Ajouté
 - **Maquette 3D du couteau monté** (éditeur › Fichier) : rôle et épaisseur par pièce, plaques
   empilées, goupilles générées dans les perçages communs, garde fendue pour la soie, vue 3D
@@ -103,7 +107,8 @@ Première préversion installable.
 - Intégration continue (SQLite, PostgreSQL et migrations, interface, images Docker,
   installeur) et revue de sécurité.
 
-[Non publié]: https://github.com/philogone/knifeforge-pro/compare/v0.10.1...HEAD
+[Non publié]: https://github.com/philogone/knifeforge-pro/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/philogone/knifeforge-pro/releases/tag/v0.11.0
 [0.10.1]: https://github.com/philogone/knifeforge-pro/releases/tag/v0.10.1
 [0.10.0]: https://github.com/philogone/knifeforge-pro/releases/tag/v0.10.0
 [0.9.0]: https://github.com/philogone/knifeforge-pro/releases/tag/v0.9.0

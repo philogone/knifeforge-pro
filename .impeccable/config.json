@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "docs/video/motion.html"
+        ],
+        "createdAt": "2026-11-13T17:17:57.168Z",
+        "reason": "DESIGN.md: bench #f8f6f1 is the product's documented surface colour; the video reuses the app's palette"
+      }
+    ]
+  }
+}

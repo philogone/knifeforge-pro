@@ -11,6 +11,13 @@ modification (dossier « Sauvegardes avant mise à jour »), puis mise à niveau
 
 ## [Non publié]
 
+### Ajouté
+- **Changer le mot de passe** (et l'adresse) depuis Réglages › Accès, dans la version installée.
+- **Crantage le long d'une courbe** : option « Suivre le contour », chaque entaille
+  perpendiculaire au bord.
+- **Pliants, lame fermée** : marge minimale jusqu'au bord du manche, ou dépassement, avec la
+  partie qui dépasse en rouge.
+
 ## [0.10.0] — 2026-11-13
 
 Feuille de route initiale terminée : preuves du sérieux (lot 9) et facturation (lot 10).

@@ -160,3 +160,25 @@ def test_mail_account_is_kept_in_config_json_not_in_the_database(desktop_mode, c
             setattr(settings, k, v)
         for key in desktop.SMTP_KEYS:
             os.environ.pop(key.upper(), None)
+
+
+def test_change_password_from_settings(desktop_mode):
+    client = TestClient(app)
+    token = client.post("/api/auth/setup", json={"email": "atelier@local", "password": "premier-mot-de-passe"}).json()["access_token"]
+    h = {"Authorization": f"Bearer {token}"}
+    bad = client.post("/api/auth/password", headers=h, json={"current_password": "faux", "new_password": "nouveau-mot-de-passe"})
+    assert bad.status_code == 401
+    assert client.post("/api/auth/password", headers=h, json={"current_password": "premier-mot-de-passe", "new_password": "court"}).status_code == 422
+    r = client.post("/api/auth/password", headers=h, json={"current_password": "premier-mot-de-passe", "new_password": "nouveau-mot-de-passe",
+                                                           "new_email": "moi@atelier.fr"})
+    assert r.status_code == 200
+    assert client.post("/api/auth/login", json={"email": "atelier@local", "password": "premier-mot-de-passe"}).status_code == 401
+    assert client.post("/api/auth/login", json={"email": "moi@atelier.fr", "password": "nouveau-mot-de-passe"}).status_code == 200
+    assert client.get("/api/admin/dashboard", headers=h).status_code == 401  # old session ended (e-mail changed)
+    stored = json.loads((desktop_mode / "config.json").read_text(encoding="utf-8"))
+    assert stored["admin_email"] == "moi@atelier.fr" and stored["admin_password_hash"].startswith("$2")
+
+
+def test_change_password_under_docker_is_refused(client):
+    r = client.post("/api/auth/password", json={"current_password": "x", "new_password": "nouveau-mot-de-passe"})
+    assert r.status_code == 409

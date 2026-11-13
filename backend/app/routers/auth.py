@@ -7,7 +7,8 @@ from app.config import get_settings
 from app.core import desktop
 from app.core.rate_limit import rate_limit_login
 from app.core.security import create_access_token, verify_password
-from app.schemas.auth import AuthStatus, LoginRequest, SetupRequest, TokenResponse
+from app.core.security import require_admin
+from app.schemas.auth import AuthStatus, LoginRequest, PasswordChange, SetupRequest, TokenResponse
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 settings = get_settings()
@@ -55,4 +56,22 @@ def setup(payload: SetupRequest, _rl=Depends(rate_limit_login)) -> TokenResponse
     # the settings object is shared (cached): login and token checks see the account at once
     settings.admin_email = email
     settings.admin_password_hash = password_hash
+    return TokenResponse(access_token=create_access_token(email))
+
+
+@router.post("/password", response_model=TokenResponse, dependencies=[Depends(require_admin)])
+def change_password(payload: PasswordChange, _rl=Depends(rate_limit_login)) -> TokenResponse:
+    """Desktop build: a new password (and optionally a new e-mail) for the workshop's access,
+    written to config.json. The current password is asked again: an open session alone is not
+    enough. Under Docker the account lives in the environment (ADMIN_EMAIL, ADMIN_PASSWORD_HASH)."""
+    if not settings.desktop:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="The account is configured by the server environment")
+    if not verify_password(payload.current_password, settings.admin_password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    email = (payload.new_email or settings.admin_email).strip()
+    password_hash = bcrypt.hashpw(payload.new_password.encode("utf-8"), bcrypt.gensalt()).decode("ascii")
+    desktop.update_config(Path(settings.data_dir), admin_email=email, admin_password_hash=password_hash)
+    settings.admin_email = email
+    settings.admin_password_hash = password_hash
+    # a new e-mail ends the other sessions (tokens carry the e-mail); this one gets a fresh token
     return TokenResponse(access_token=create_access_token(email))

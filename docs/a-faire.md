@@ -28,8 +28,8 @@ Reste à faire :
   lancement, une commande, une facture, en moins de 10 minutes.
 - L'installeur n'est pas signé numériquement : Windows SmartScreen affichera « éditeur
   inconnu » au premier lancement. Un certificat de signature de code (payant) l'évite.
-- Pas de changement de mot de passe depuis l'interface (seulement la remise à zéro par
-  `config.json`).
+- ~~Pas de changement de mot de passe depuis l'interface~~ : fait (Réglages › Accès, version
+  installée ; sous Docker, toujours par `.env`).
 - Premier démarrage plus lent la toute première fois (analyse antivirus des fichiers).
 
 ## Lot 8 — fait le 12 novembre 2026
@@ -43,9 +43,9 @@ Points laissés en l'état :
   machines lisent sans ambiguïté) ; seul l'éditeur passe en pouces.
 - Le point d'équilibre traite chaque pièce comme une plaque d'épaisseur constante : émouture,
   biseaux et plaquettes galbées ne sont pas pris en compte.
-- La course d'un pliant se vérifie contre les obstacles choisis ; le dépassement du tranchant
-  hors du manche une fois fermé n'est pas encore mesuré.
-- Le crantage suit un tronçon droit ; pas encore le long d'une courbe.
+- ~~Dépassement du tranchant hors du manche, lame fermée~~ : fait (marge ou dépassement, partie
+  qui dépasse en rouge).
+- ~~Crantage le long d'une courbe~~ : fait (option « Suivre le contour »).
 
 ## Lot 9 — fait le 13 novembre 2026
 

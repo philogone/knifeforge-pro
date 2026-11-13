@@ -23,3 +23,11 @@ class SetupRequest(BaseModel):
 class AuthStatus(BaseModel):
     needs_setup: bool
     demo: bool = False
+
+
+class PasswordChange(BaseModel):
+    """Desktop build: change the access from Settings (Docker: ADMIN_* in .env)."""
+
+    current_password: str = Field(min_length=1, max_length=72)
+    new_password: str = Field(min_length=10, max_length=72)
+    new_email: str | None = Field(default=None, min_length=3, max_length=255)

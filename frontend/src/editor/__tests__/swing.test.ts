@@ -43,6 +43,9 @@ describe("checking a blade's swing", () => {
         { id: "stop", type: "path", layer: "holes", name: "Butée", closed: true, contours: [circleNodes(30, -20, 1.5)] },
         // a spring 2 mm below the closed blade
         { id: "spring", type: "path", layer: "cut", name: "Ressort", closed: true, contours: [rect(10, 12, 60, 4)] },
+        // handle outlines: one that holds the closed blade with 1 mm to spare, one 3 mm too short
+        { id: "handle", type: "path", layer: "cut", name: "Plaquette", closed: true, contours: [rect(-1, -1, 82, 12)] },
+        { id: "short", type: "path", layer: "cut", name: "Courte", closed: true, contours: [rect(-1, -1, 78, 12)] },
       ],
     });
   });
@@ -67,5 +70,14 @@ describe("checking a blade's swing", () => {
     expect(r.contact).toBeNull();
     expect(r.clearance?.name).toBe("Ressort");
     expect(r.clearance!.mm).toBeCloseTo(2, 3);
+  });
+
+  it("checks the closed blade stays inside the handle, with its margin", () => {
+    const inside = engine.checkClosed("blade", [5, 5], 0, "handle")!;
+    expect(inside.protrusion).toBe(0);
+    expect(inside.margin).toBeCloseTo(1, 3);
+    const out = engine.checkClosed("blade", [5, 5], 0, "short")!;
+    expect(out.margin).toBe(0);
+    expect(out.protrusion).toBeCloseTo(3, 3); // the tip sticks out 80 - 77 = 3 mm
   });
 });

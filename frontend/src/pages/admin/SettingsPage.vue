@@ -6,6 +6,7 @@ import { type ThemeChoice, useTheme } from "@/composables/useTheme";
 import { CARD_HEIGHT_MM, CARD_WIDTH_MM, isScreenCalibrated, saveScreenCalibration, screenPxPerMm } from "@/editor/screenScale";
 import { errorMessage } from "@/i18n/apiErrors";
 import BackupRestore from "@/components/BackupRestore.vue";
+import SettingsAccess from "@/components/SettingsAccess.vue";
 import SettingsAccounting from "@/components/SettingsAccounting.vue";
 import SettingsMail from "@/components/SettingsMail.vue";
 import { useAppStore } from "@/stores/app.store";
@@ -381,6 +382,7 @@ async function exportData() {
           </div>
           <p class="mt-4 text-xs text-slate-500 max-w-prose">{{ t("documents.einvoicingNote") }}</p>
         </section>
+        <SettingsAccess />
         <SettingsMail />
         <SettingsAccounting />
       </div>

@@ -73,6 +73,14 @@ export const useAppStore = defineStore("app", {
     async authStatus() {
       return apiFetch<{ needs_setup: boolean; demo?: boolean }>("/auth/status");
     },
+    /** desktop build: new password (and e-mail); the session continues with a fresh token */
+    async changePassword(current_password: string, new_password: string, new_email?: string) {
+      const res = await apiFetch<{ access_token: string }>("/auth/password", {
+        method: "POST",
+        body: JSON.stringify({ current_password, new_password, new_email: new_email ?? null }),
+      });
+      setToken(res.access_token);
+    },
     /** public demo only: enter the fictitious workshop without a password */
     async enterDemo() {
       const res = await apiFetch<{ access_token: string }>("/auth/demo", { method: "POST" });

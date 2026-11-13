@@ -14,6 +14,7 @@ const EXACT: Record<string, string> = {
   "Too many attempts, try again shortly": "apiError.rateLimited",
   "Invalid credentials": "apiError.invalidCredentials",
   "Read-only demo": "apiError.readOnlyDemo",
+  "The account is configured by the server environment": "apiError.accountByEnv",
   "The amount is more than what is due": "apiError.paymentTooMuch",
   "The amount must be positive": "apiError.paymentPositive",
   "Payments are recorded on an issued invoice": "apiError.paymentOnIssued",

@@ -67,3 +67,60 @@ describe("cutting notches into a part", () => {
     expect(engine.cutNotches({ a: [20, 0], b: [40, 0], ...NOTCH_PRESETS.jimping })).toBe("noPart");
   });
 });
+
+describe("notches along a curve", () => {
+  let engine: EditorEngine;
+  const LAYERS: DesignDocument["layers"] = [{ id: "cut", name: "Découpe", role: "cut", visible: true, locked: false }];
+  const K = 0.5522847498;
+  const R = 40;
+  const disc = (r: number): DocNode[] => {
+    const k = K * r;
+    return [
+      { x: r, y: 0, ix: 0, iy: -k, ox: 0, oy: k },
+      { x: 0, y: r, ix: k, iy: 0, ox: -k, oy: 0 },
+      { x: -r, y: 0, ix: 0, iy: k, ox: 0, oy: -k },
+      { x: 0, y: -r, ix: -k, iy: 0, ox: k, oy: 0 },
+    ];
+  };
+
+  beforeEach(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 800;
+    canvas.height = 600;
+    engine = new EditorEngine(canvas, { headless: true });
+    engine.loadDocument({ version: 1, unit: "mm", layers: LAYERS, objects: [{ id: "d", type: "path", layer: "cut", name: "Disque", closed: true, contours: [disc(R)] }] });
+    engine.selectById(["d"]);
+  });
+  afterEach(() => engine.destroy());
+
+  it("spaces the notches by arc length and keeps each square to the edge", () => {
+    const item = engine.itemById("d")!;
+    const before = engine.evenOddArea(item);
+    // a quarter of the rim, from (R, 0) to (0, R): arc length πR/2 ≈ 62.83 mm
+    const pattern = { a: [R, 0] as [number, number], b: [0, R] as [number, number], pitch: 2, width: 1, depth: 0.5, shape: "square" as const };
+    const n = engine.cutNotches(pattern, true);
+    // usable 61.83 mm → 31 notches 2 mm apart
+    expect(n).toBe(31);
+    const after = engine.evenOddArea(engine.itemById(engine.exportDocument().objects[0].id)!);
+    // each square slot removes ≈ width × depth, a little less on a convex rim (≤ 1 %)
+    const removed = before - after;
+    expect(removed / (31 * 0.5)).toBeGreaterThan(0.98);
+    expect(removed / (31 * 0.5)).toBeLessThan(1.01);
+  });
+
+  it("follows the outline the shorter way, and refuses points off it", () => {
+    expect(engine.cutNotches({ a: [R, 0], b: [0, R], ...NOTCH_PRESETS.jimping }, true)).toBeGreaterThan(20);
+    engine.selectById([engine.exportDocument().objects[0].id]);
+    expect(engine.cutNotches({ a: [R - 3, 0], b: [0, R], ...NOTCH_PRESETS.jimping }, true)).toBe("notOnEdge");
+  });
+
+  it("builds every notch in the frame it is given", async () => {
+    const { notchContoursAt, notchOffsets } = await import("../notches");
+    expect(notchOffsets(10, 2, 1)).toEqual([1, 3, 5, 7, 9]);
+    // a square slot on a frame turned 90°: the edge runs along y, material towards -x
+    const [slot] = notchContoursAt({ width: 2, depth: 1, shape: "square" }, [{ c: [5, 5], u: [0, 1], n: [-1, 0] }]);
+    const xs = slot.map((p) => p.x);
+    expect(Math.min(...xs)).toBeCloseTo(4, 12); // 1 mm into the material
+    expect(Math.max(...xs)).toBeCloseTo(6, 12); // 1 mm overshoot outside
+  });
+});

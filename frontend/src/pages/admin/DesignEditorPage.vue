@@ -98,7 +98,7 @@ const numeric = reactive({ length: "" as number | "", angle: 0 as number | "" })
 const lengthInput = ref<HTMLInputElement | null>(null);
 const symmetry = reactive({ axis: "" as "" | Axis["axis"], pos: 0 });
 const cornerSize = ref(3);
-const notches = reactive({ open: false, kind: "jimping" as "jimping" | "serration" | "custom", ax: 0, ay: 0, bx: 0, by: 0, ...NOTCH_PRESETS.jimping });
+const notches = reactive({ follow: false, open: false, kind: "jimping" as "jimping" | "serration" | "custom", ax: 0, ay: 0, bx: 0, by: 0, ...NOTCH_PRESETS.jimping });
 const holes = reactive({ open: false, diameter: 4.76, x: 0, y: 0, count: 2, pitch: 20, angle: 0 });
 const textForm = reactive({ open: false, busy: false, text: "", capHeight: 5, letterSpacing: 0, x: 0, y: 0, weight: "regular" as "regular" | "bold" | "custom", customName: "", error: "" });
 let customFont: ArrayBuffer | null = null;
@@ -663,7 +663,7 @@ function defaultPoint(): [number, number] {
   return [Math.round(v.centerX), Math.round(v.centerY)];
 }
 
-// ---- jimping / serrations: a row of notches cut along a straight stretch of the selected part
+// ---- jimping / serrations: a row of notches cut along a stretch of the selected part (straight, or following the outline)
 function setNotchPreset(kind: "jimping" | "serration") {
   const p = NOTCH_PRESETS[kind];
   Object.assign(notches, { kind, pitch: D(p.pitch), width: D(p.width), depth: D(p.depth), shape: p.shape });
@@ -691,7 +691,7 @@ function cutNotches() {
     width: L(notches.width),
     depth: L(notches.depth),
     shape: notches.shape as NotchShape,
-  });
+  }, notches.follow);
   if (typeof result === "number") {
     notches.open = false;
     setStatus(t("notch.done", { n: result }));
@@ -744,13 +744,14 @@ const swing = reactive({
   pivotId: "",
   pivot: null as [number, number] | null,
   obstacles: [] as string[],
+  handleId: "",
   angle: 0,
   message: "",
   warn: false,
 });
 const nameOfItem = (id: string) => (engine.value?.itemById(id)?.data?.name as string | null) || t("swing.unnamed");
 
-function swingPick(what: "blade" | "pivot" | "obstacles") {
+function swingPick(what: "blade" | "pivot" | "obstacles" | "handle") {
   const e = engine.value;
   if (!e) return;
   const ids = e.selectedClosedIds();
@@ -765,6 +766,7 @@ function swingPick(what: "blade" | "pivot" | "obstacles") {
     return;
   }
   if (what === "blade") swing.bladeId = ids[0];
+  else if (what === "handle") swing.handleId = ids[0];
   else {
     swing.pivotId = ids[0];
     swing.pivot = e.centreOf(ids[0]);
@@ -775,6 +777,7 @@ function swingPick(what: "blade" | "pivot" | "obstacles") {
 watch(() => [swing.open, swing.angle], () => {
   const e = engine.value;
   if (!e) return;
+  e.clearUi("closed");
   if (!swing.open) return void e.showSwing(null, null, 0);
   e.showSwing(swing.bladeId || null, swing.pivot, Number(swing.angle) || 0);
 });
@@ -793,6 +796,21 @@ function checkSwing() {
   } else {
     swing.message = t("swing.noObstacle");
     swing.warn = false;
+  }
+}
+
+// folder closed: is the edge inside the handle?
+function checkClosed() {
+  const e = engine.value;
+  if (!e || !swing.bladeId || !swing.pivot || !swing.handleId) return;
+  const r = e.checkClosed(swing.bladeId, swing.pivot, Number(swing.angle) || 0, swing.handleId);
+  if (!r) return;
+  if (r.protrusion > 0) {
+    swing.message = t("swing.protrudes", { mm: fmt(r.protrusion) });
+    swing.warn = true;
+  } else {
+    swing.message = t("swing.inside", { mm: fmt(r.margin) });
+    swing.warn = r.margin < 0.5;
   }
 }
 
@@ -1443,6 +1461,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
               <button type="button" class="btn btn-outline btn-sm" @click="swingPick('pivot')">{{ t("swing.useSelection") }}</button>
               <span class="truncate">{{ t("swing.obstacles") }} : <b>{{ swing.obstacles.length ? swing.obstacles.map(nameOfItem).join(", ") : "—" }}</b></span>
               <button type="button" class="btn btn-outline btn-sm" @click="swingPick('obstacles')">{{ t("swing.useSelection") }}</button>
+              <span class="truncate">{{ t("swing.handle") }} : <b>{{ swing.handleId ? nameOfItem(swing.handleId) : "—" }}</b></span>
+              <button type="button" class="btn btn-outline btn-sm" @click="swingPick('handle')">{{ t("swing.useSelection") }}</button>
             </div>
             <label class="flex items-center gap-2">{{ t("swing.angle") }}
               <input v-model.number="swing.angle" type="range" min="-200" max="200" step="0.5" class="flex-1" :disabled="!swing.bladeId || !swing.pivot" />
@@ -1450,6 +1470,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
               <span>°</span>
             </label>
             <button type="button" class="btn btn-primary btn-sm w-full" :disabled="!swing.bladeId || !swing.pivot" @click="checkSwing">{{ t("swing.check") }}</button>
+            <button type="button" class="btn btn-outline btn-sm w-full" :disabled="!swing.bladeId || !swing.pivot || !swing.handleId" :title="t('swing.closedHint')" @click="checkClosed">{{ t("swing.checkClosed") }}</button>
             <p v-if="swing.message" :class="swing.warn ? 'text-red-700' : 'text-green-700'" role="status">{{ swing.message }}</p>
           </section>
           <!-- drag a guide out of a ruler -->
@@ -1915,6 +1936,10 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
             </select>
           </label>
         </div>
+        <label class="flex items-start gap-2 text-xs text-slate-700">
+          <input v-model="notches.follow" type="checkbox" class="mt-0.5" />
+          <span>{{ t("notch.follow") }}<span class="block text-slate-500">{{ t("notch.followHint") }}</span></span>
+        </label>
         <div class="flex gap-2 justify-end">
           <button type="button" class="btn btn-outline btn-sm" @click="notches.open = false">{{ t("common.cancel") }}</button>
           <button type="submit" class="btn btn-primary btn-sm">{{ t("notch.cut") }}</button>

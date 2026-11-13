@@ -119,13 +119,18 @@ avec la conversion exacte (1 in = 25,4 mm) : rien ne s'arrondit en passant de l'
 ### Crantage et dentelure
 
 Sélectionnez la pièce, puis **Crantage et dentelure**. Indiquez le tronçon (point de début et de
-fin, sur un bord droit), la forme des entailles (V, arrondies, fond plat), le pas, la largeur et
+fin, sur le bord ; deux nœuds choisis avec l'outil Nœuds le remplissent), la forme des entailles (V, arrondies, fond plat), le pas, la largeur et
 la profondeur ; les préréglages *dos* (crantage pour le pouce) et *tranchant* (dentelure) donnent
 des valeurs de départ. Les entailles sont découpées dans la pièce, côté matière.
 
 ![Crantage et dentelure](img/crantage.png)
 
-> **Limite** : le long d'un tronçon droit seulement, pas encore d'une courbe.
+Cochez **Suivre le contour** pour un bord courbe (dos arrondi, ventre de la lame) : les entailles
+suivent le bord de A à B, par le plus court, chacune perpendiculaire à la courbe.
+
+> **Limite** : sur une courbe, la profondeur se mesure depuis la tangente au centre de l'entaille ;
+> l'écart avec la courbe elle-même vaut largeur² / (8 × rayon), soit 0,02 mm pour une entaille de
+> 1,2 mm sur un rayon de 10 mm.
 
 ### Pliants : la course de la lame
 
@@ -136,7 +141,13 @@ ou le jeu minimal en fin de course.
 
 ![Course d'un pliant](img/pliant.png)
 
-> **Limite** : le dépassement du tranchant hors du manche, lame fermée, n'est pas encore mesuré.
+**Lame fermée** : désignez aussi le **manche** (le contour de la plaquette ou de la platine),
+tournez la lame en position fermée, puis *Lame fermée : dans le manche ?* : KnifeForge donne la
+marge minimale entre la lame et le bord du manche, ou de combien elle dépasse, avec la partie qui
+dépasse en rouge sur le dessin.
+
+> **Limite** : toute la lame est comparée au manche ; un dos de lame volontairement à fleur ou
+> apparent ressort comme un dépassement de 0 mm ou plus, à juger sur le dessin.
 
 ### Masse et point d'équilibre
 
@@ -342,6 +353,9 @@ second disque, dossier synchronisé. *Sauvegarder maintenant* en fait une tout d
 - **Désinstaller** ne supprime jamais vos données.
 
 ## 11. Questions fréquentes
+
+**Changer mon mot de passe.** *Réglages › Accès* (version installée) : le mot de passe actuel, puis
+le nouveau ; l'adresse e-mail peut changer en même temps.
 
 **J'ai oublié mon mot de passe.** KnifeForge fermé, ouvrez `config.json` dans le dossier des
 données, supprimez les lignes `admin_email` et `admin_password_hash`, relancez : l'écran de

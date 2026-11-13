@@ -7,7 +7,7 @@ import { chamferCorner, circleNodes, filletCorner, holeCentres, type Axis, type 
 import { MAX_GRID_MM, MAX_ZOOM, MIN_GRID_MM, MIN_ZOOM, PX_PER_MM_CSS, ROLE_STYLE, UI_COLOR, defaultLayers } from "./constants";
 import { screenPxPerMm } from "./screenScale";
 import { formatLengthWithUnit, type LengthUnit } from "./units";
-import { notchContours, type NotchPattern } from "./notches";
+import { notchContours, notchContoursAt, notchOffsets, type NotchFrame, type NotchPattern } from "./notches";
 import { pointInRing, type Ring } from "./balance";
 import { outlineDistance, sweepAngles, type Polyline } from "./swing";
 import { History } from "./history";
@@ -1465,6 +1465,45 @@ export class EditorEngine {
     return { contact: null, clearance: best };
   }
 
+  /**
+   * The blade turned to `angle` (closed) against the handle outline: how far it sticks out of
+   * the handle (0 when it is all inside) and, inside, the smallest margin to the handle's edge.
+   * The protruding parts are drawn in red on the drawing.
+   */
+  checkClosed(bladeId: string, pivot: [number, number], angle: number, handleId: string): { protrusion: number; margin: number } | null {
+    this.clearUi("closed");
+    const handle = this.itemById(handleId);
+    const blade = this.rotatedClone(bladeId, pivot, angle);
+    if (!blade || !(handle instanceof paper.Path || handle instanceof paper.CompoundPath)) {
+      blade?.remove();
+      return null;
+    }
+    const outside = blade.subtract(handle, { insert: false }) as paper.PathItem;
+    const handleLines = this.polylines(handle);
+    const bladeLines = this.polylines(blade);
+    let protrusion = 0;
+    let margin = Infinity;
+    const toHandle = (p: [number, number]) => Math.min(...handleLines.map((h) => outlineDistance([p], h)));
+    for (const line of bladeLines) {
+      for (const p of line) {
+        const d = toHandle(p);
+        if (handle.contains(new paper.Point(p))) margin = Math.min(margin, d);
+        else protrusion = Math.max(protrusion, d);
+      }
+    }
+    if (Math.abs((outside as paper.Path).area) > 1e-6) {
+      outside.fillColor = new paper.Color(0.8, 0.1, 0.1, 0.35);
+      outside.strokeColor = new paper.Color(0.8, 0.1, 0.1, 1);
+      outside.strokeWidth = 1;
+      outside.strokeScaling = false;
+      this.addUi(outside, "closed");
+    } else {
+      outside.remove();
+    }
+    blade.remove();
+    return { protrusion, margin: protrusion > 0 ? 0 : margin };
+  }
+
   /** Mark the balance point on the drawing (null removes the mark). */
   showBalancePoint(point: [number, number] | null): void {
     this.clearUi("balance");
@@ -1486,7 +1525,7 @@ export class EditorEngine {
    * Cut a row of notches (jimping, serrations) into the selected part along the straight stretch
    * A→B, which must follow its outline. Returns the number of notches, or why nothing was cut.
    */
-  cutNotches(pattern: NotchPattern): number | "noPart" | "notOnEdge" | "none" {
+  cutNotches(pattern: NotchPattern, followOutline = false): number | "noPart" | "notOnEdge" | "none" {
     const items = this.docItems().filter(
       (i): i is EditableItem => this.selected.includes(i) && ((i instanceof paper.Path && i.closed) || i instanceof paper.CompoundPath),
     );
@@ -1496,15 +1535,22 @@ export class EditorEngine {
     const b = new paper.Point(pattern.b);
     const len = b.getDistance(a);
     if (!(len > 0)) return "notOnEdge";
-    const u = b.subtract(a).divide(len);
-    const n = new paper.Point(-u.y, u.x);
-    // which side is material: probe just off the edge at the middle of the stretch
-    const mid = a.add(b).divide(2);
-    const leftIn = part.contains(mid.add(n.multiply(0.05)));
-    const rightIn = part.contains(mid.subtract(n.multiply(0.05)));
-    if (leftIn === rightIn) return "notOnEdge";
-    const inward: [number, number] = leftIn ? [n.x, n.y] : [-n.x, -n.y];
-    const contours = notchContours(pattern, inward);
+    let contours: DocNode[][];
+    if (followOutline) {
+      const frames = this.notchFramesAlong(part, a, b, pattern);
+      if (frames === null) return "notOnEdge";
+      contours = notchContoursAt(pattern, frames);
+    } else {
+      const u = b.subtract(a).divide(len);
+      const n = new paper.Point(-u.y, u.x);
+      // which side is material: probe just off the edge at the middle of the stretch
+      const mid = a.add(b).divide(2);
+      const leftIn = part.contains(mid.add(n.multiply(0.05)));
+      const rightIn = part.contains(mid.subtract(n.multiply(0.05)));
+      if (leftIn === rightIn) return "notOnEdge";
+      const inward: [number, number] = leftIn ? [n.x, n.y] : [-n.x, -n.y];
+      contours = notchContours(pattern, inward);
+    }
     if (!contours.length) return "none";
     let cutter: paper.PathItem = this.contourToPath(contours[0], true);
     for (const c of contours.slice(1)) {
@@ -1521,6 +1567,39 @@ export class EditorEngine {
     this.selectItems([added]);
     this.commit();
     return contours.length;
+  }
+
+  /**
+   * Frames of the notches along the outline itself, from A to B (both within 0.5 mm of the same
+   * contour), the shorter way round; null when A or B is off the outline.
+   */
+  private notchFramesAlong(part: EditableItem, a: paper.Point, b: paper.Point, pattern: NotchPattern): NotchFrame[] | null {
+    const contours = part instanceof paper.CompoundPath ? (part.children as paper.Path[]) : [part as paper.Path];
+    let best: { path: paper.Path; oa: number; ob: number } | null = null;
+    for (const path of contours) {
+      const la = path.getNearestLocation(a);
+      const lb = path.getNearestLocation(b);
+      if (la && lb && la.point.getDistance(a) <= 0.5 && lb.point.getDistance(b) <= 0.5) {
+        best = { path, oa: la.offset, ob: lb.offset };
+        break;
+      }
+    }
+    if (!best) return null;
+    const total = best.path.length;
+    const forward = (best.ob - best.oa + total) % total;
+    const dir = forward <= total - forward ? 1 : -1; // the shorter way from A to B
+    const stretch = dir > 0 ? forward : total - forward;
+    const frames: NotchFrame[] = [];
+    for (const d of notchOffsets(stretch, pattern.pitch, pattern.width)) {
+      const at = (((best.oa + dir * d) % total) + total) % total;
+      const c = best.path.getPointAt(at);
+      const t = best.path.getTangentAt(at).multiply(dir);
+      const n = new paper.Point(-t.y, t.x);
+      const inside = part.contains(c.add(n.multiply(0.05)));
+      const inward = inside ? n : n.multiply(-1);
+      frames.push({ c: [c.x, c.y], u: [t.x, t.y], n: [inward.x, inward.y] });
+    }
+    return frames;
   }
 
   /** Replace the (single) selected closed shape with polygon contours, e.g. from the offset endpoint. */

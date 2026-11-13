@@ -77,8 +77,9 @@ exigibilité, journal au format du FEC, ventes CSV), reprise des sauvegardes d'u
 précédente, reprise dès l'assistant de bienvenue, rappel de sauvegarde.
 
 Reste à faire ou à décider :
-- **Plateforme agréée** : choisir une ou deux plateformes avec toi (compte, conditions, API),
-  avant de coder le dépôt automatique. Obligation d'émission au 1er septembre 2027.
+- **Plateforme agréée** : choix Indy et Finom (13 novembre 2026), **en attente** : Indy ne
+  transmet pas les factures émises ailleurs, Finom n'est pas encore plateforme agréée. Le PDF
+  Factur-X se dépose à la main en attendant. Obligation d'émission au 1er septembre 2027.
 - Facture en franchise **sans** n° de TVA : refusée par la règle EN 16931 BR-E-02 ; aucune
   source fiable ne dit quoi mettre à la place. L'application conseille de demander le numéro.
 - Factures **mixtes** (biens et services) : comptées comme biens pour l'exigibilité de la TVA.

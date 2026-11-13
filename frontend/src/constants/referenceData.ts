@@ -1,5 +1,5 @@
 // Reference suggestions for free-text fields — starting points a maker can
-// extend or ignore entirely, not a closed list (see LICENSE: buyers can
+// extend or ignore entirely, not a closed list (the software is free under the AGPL: users can
 // freely modify this file for their own catalog).
 
 export const STEEL_GRADE_SUGGESTIONS: string[] = [

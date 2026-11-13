@@ -30,6 +30,7 @@ const groups: { label: string; items: NavItem[] }[] = [
     items: [
       { to: "/designs", key: "nav.designs", desc: "nav.desc.designs" },
       { to: "/nesting", key: "nav.nesting", desc: "nav.desc.nesting" },
+      { to: "/calibration", key: "nav.calibration", desc: "nav.desc.calibration" },
     ],
   },
   {

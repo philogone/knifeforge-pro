@@ -485,3 +485,35 @@ export interface NestingCandidates {
   /** order lines whose model uses this material but has no template for it */
   unlinked: { order_id: number; customer_name: string; knife_model_id: number; knife_model_name: string; quantity: number }[];
 }
+
+export type CalibrationKind = "outside" | "inside" | "pitch";
+
+export interface CalibrationFeature {
+  key: string;
+  label: string;
+  nominal_mm: number;
+  kind: CalibrationKind;
+  how: string;
+}
+
+export interface CalibrationResult {
+  kerf_used_mm: number;
+  features: {
+    key: string;
+    label: string;
+    kind: CalibrationKind;
+    nominal_mm: number;
+    measured_mm: number;
+    error_mm: number;
+    kerf_estimate_mm: number | null;
+    within_tolerance: boolean;
+  }[];
+  kerf_estimate_mm: number | null;
+  kerf_spread_mm: number | null;
+  suggested_kerf_mm: number | null;
+  scale_error_ppm: number | null;
+  max_error_mm: number;
+  residual_mm: number | null;
+  within_tolerance: boolean;
+  advice: ("ok" | "use_suggested" | "inconsistent" | "scale" | "negative_kerf" | "recheck")[];
+}

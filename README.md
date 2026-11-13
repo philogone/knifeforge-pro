@@ -21,7 +21,21 @@ et un éditeur vectoriel intégré qui dessine, place et exporte vos pièces à 
 ![Tests frontend](https://img.shields.io/badge/tests%20frontend-157%20passing-brightgreen)
 ![Précision](https://img.shields.io/badge/courbes-%E2%89%A4%200%2C01%20mm-6366f1)
 ![Licence](https://img.shields.io/badge/licence-commerciale-lightgrey)
+<br>
+[![CI](https://github.com/philogone/knifeforge-pro/actions/workflows/ci.yml/badge.svg)](https://github.com/philogone/knifeforge-pro/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/github/v/release/philogone/knifeforge-pro?label=version)](CHANGELOG.md)
+![Factur-X](https://img.shields.io/badge/Factur--X-valid%C3%A9%20par%20Mustang-2a78d6)
 
+### ⬇️ Installer KnifeForge Pro
+
+[**Windows 10 / 11**](https://github.com/philogone/knifeforge-pro/releases/latest/download/KnifeForge-Pro-Windows.exe) ·
+[**Linux** (AppImage, x86_64)](https://github.com/philogone/knifeforge-pro/releases/latest/download/KnifeForge-Pro-Linux-x86_64.AppImage) ·
+[**macOS** (Apple Silicon)](https://github.com/philogone/knifeforge-pro/releases/latest/download/KnifeForge-Pro-macOS.dmg)
+
+<sub>Dernière version · [toutes les versions](https://github.com/philogone/knifeforge-pro/releases) ·
+[nouveautés](CHANGELOG.md) · [premier lancement](#demarrage)</sub>
+
+[Installer](#demarrage) ·
 [Fonctionnalités](#fonctionnalites) ·
 [Captures](#captures) ·
 [Précision](#precision) ·
@@ -190,17 +204,29 @@ Le détail des choix techniques est dans [`HANDOVER.md`](HANDOVER.md#knifeforge-
 
 ## 🚀 Démarrage rapide
 
-### Sur un ordinateur Windows (installeur, recommandé pour un atelier)
+### Sur un ordinateur (installeur, recommandé pour un atelier)
 
-1. Lancez `KnifeForge-Pro-<version>-installation.exe` (aucun droit d'administrateur requis).
+| Système | Télécharger | Premier lancement |
+|---|---|---|
+| **Windows 10 / 11** | [KnifeForge-Pro-Windows.exe](https://github.com/philogone/knifeforge-pro/releases/latest/download/KnifeForge-Pro-Windows.exe) | SmartScreen affiche « Windows a protégé votre ordinateur » (programme non signé) : *Informations complémentaires › Exécuter quand même*. |
+| **Linux** x86_64 | [KnifeForge-Pro-Linux-x86_64.AppImage](https://github.com/philogone/knifeforge-pro/releases/latest/download/KnifeForge-Pro-Linux-x86_64.AppImage) | Rendre le fichier exécutable (*Propriétés › Autoriser l'exécution*, ou `chmod +x`), puis double-cliquer. Ubuntu 22.04, Debian 12, Fedora 38 ou plus récents. |
+| **macOS** 12 et plus, puce Apple | [KnifeForge-Pro-macOS.dmg](https://github.com/philogone/knifeforge-pro/releases/latest/download/KnifeForge-Pro-macOS.dmg) | Glisser KnifeForge Pro dans Applications. Au premier lancement (application non notariée) : *Réglages Système › Confidentialité et sécurité › Ouvrir quand même*. |
+
+Chaque version publie aussi `SHA256SUMS.txt` (empreintes des fichiers) et les rapports de
+validation Factur-X. Le dépôt étant privé, les liens demandent d'être connecté à un compte
+GitHub qui y a accès ; les clients reçoivent l'installeur par la fiche de vente.
+
+**Windows**, pas à pas :
+
+1. Lancez `KnifeForge-Pro-Windows.exe` (aucun droit d'administrateur requis).
 2. Ouvrez **KnifeForge Pro** depuis le bureau : votre navigateur s'ouvre sur l'application, et une
    petite fenêtre indique qu'elle tourne (la fermer arrête KnifeForge).
 3. Au premier lancement, créez l'accès (email et mot de passe), puis laissez-vous guider.
 
 | | |
 |---|---|
-| Programme | `%LOCALAPPDATA%\Programs\KnifeForge Pro` |
-| Vos données | `%LOCALAPPDATA%\KnifeForge Pro` (base `knifeforge.db`, réglages `config.json`, journaux) |
+| Programme | `%LOCALAPPDATA%\Programs\KnifeForge Pro` (Windows), le fichier AppImage (Linux), `Applications` (macOS) |
+| Vos données | `%LOCALAPPDATA%\KnifeForge Pro` (Windows), `~/.local/share/knifeforge-pro` (Linux), `~/Library/Application Support/KnifeForge Pro` (macOS) : base `knifeforge.db`, réglages `config.json`, journaux |
 | Sauvegardes | chaque jour dans `Sauvegardes\` ou le dossier choisi dans *Réglages › Sauvegarde automatique* (clé USB, second disque, dossier synchronisé) |
 | Mise à jour | lancez l'installeur de la nouvelle version : la base est copiée dans `Sauvegardes avant mise à jour\` puis migrée au démarrage |
 | Désinstallation | ne supprime jamais vos données |
@@ -211,8 +237,9 @@ L'application n'écoute que sur cet ordinateur (`127.0.0.1`) et n'envoie rien à
 supprimez les lignes `admin_email` et `admin_password_hash`, puis relancez : l'écran de création
 de l'accès revient, vos données restent intactes.
 
-Construire l'installeur soi-même : la CI le fait à chaque modification (tâche *Windows
-installer*, fichier téléchargeable). À la main : `cd frontend && npm run build`, puis
+Construire les installeurs soi-même : la CI les construit et les teste à chaque modification
+(tâches *Windows installer*, *Linux AppImage*, *macOS app*) ; une étiquette `vX.Y.Z` égale au
+fichier `VERSION` les publie avec les notes du [journal des versions](CHANGELOG.md). À la main : `cd frontend && npm run build`, puis
 `cd backend && pip install -r requirements.txt -r requirements-desktop.txt && pyinstaller desktop/knifeforge.spec`,
 puis `iscc /DAppVersion=$(cat VERSION) installer/knifeforge.iss` (Inno Setup 6).
 

@@ -106,6 +106,8 @@ def test_templates_are_valid_documents_with_expected_parts():
         parsed = DesignDocument.model_validate(template["document"])
         if template["key"] == "blank":
             assert compute_metrics(parsed).part_count == 0
+        elif template["key"] == "calibration-plate":
+            assert compute_metrics(parsed).part_count == 3  # plate, square, disc
         else:
             metrics = compute_metrics(parsed)
             assert metrics.part_count == 1 and metrics.area_mm2 > 100

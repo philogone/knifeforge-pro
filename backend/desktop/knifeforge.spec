@@ -1,8 +1,11 @@
 # PyInstaller recipe for the desktop build. From the backend folder, after `npm run build`
 # in frontend:
 #   pyinstaller --noconfirm desktop/knifeforge.spec
-# Output: dist/KnifeForge Pro/ (KnifeForge Pro.exe and its files), packed by installer/knifeforge.iss.
+# Output: dist/KnifeForge Pro/ (the program and its files). Windows: packed by
+# installer/knifeforge.iss; Linux: packed as an AppImage by installer/linux/build-appimage.sh;
+# macOS: dist/KnifeForge Pro.app, packed as a disk image by the CI.
 import os
+import sys
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
@@ -45,3 +48,11 @@ exe = EXE(
     console=os.environ.get("KF_CONSOLE") == "1",
 )
 coll = COLLECT(exe, a.binaries, a.datas, name="KnifeForge Pro")
+if sys.platform == "darwin":
+    app = BUNDLE(
+        coll,
+        name="KnifeForge Pro.app",
+        icon=str(backend / "desktop" / "icon.ico"),  # converted to .icns by PyInstaller (Pillow)
+        bundle_identifier="fr.knifeforge.pro",
+        info_plist={"CFBundleShortVersionString": os.environ.get("KF_VERSION", "0.0.0"), "NSHighResolutionCapable": True},
+    )

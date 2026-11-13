@@ -134,7 +134,14 @@ TEMPLATES: list[dict[str, Any]] = [
     },
     {"key": "handle-scale", "name": "Plaquette de manche", "kind": "handle_scale", "build": handle_scale},
     {"key": "oval-guard", "name": "Garde ovale à fente", "kind": "guard", "build": oval_guard},
+    {"key": "calibration-plate", "name": "Planche de contrôle (pièces étalons)", "kind": "template", "build": lambda: _calibration_plate()},
 ]
+
+
+def _calibration_plate() -> dict[str, Any]:
+    from app.services.calibration import plate_document  # calibration imports this module
+
+    return plate_document()
 
 
 def list_templates() -> list[dict[str, Any]]:

@@ -3,6 +3,7 @@
 import json
 import os
 import time
+from pathlib import Path
 from datetime import datetime, timedelta
 
 import pytest
@@ -115,3 +116,16 @@ def test_auto_backup_settings_check_the_folder(desktop_mode, client):
     blocked.write_text("pas un dossier", encoding="utf-8")
     refused = client.put("/api/admin/settings/auto-backup", json={"enabled": True, "directory": str(blocked), "keep_days": 30})
     assert refused.status_code == 400
+
+
+def test_data_folder_follows_each_system(monkeypatch, tmp_path):
+    from app.core.desktop import default_data_dir
+
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
+    monkeypatch.delenv("XDG_DATA_HOME", raising=False)
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    assert default_data_dir("win32") == tmp_path / "Local" / "KnifeForge Pro"
+    assert default_data_dir("darwin") == tmp_path / "Library" / "Application Support" / "KnifeForge Pro"
+    assert default_data_dir("linux") == tmp_path / ".local" / "share" / "knifeforge-pro"
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
+    assert default_data_dir("linux") == tmp_path / "xdg" / "knifeforge-pro"

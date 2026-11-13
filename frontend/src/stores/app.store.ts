@@ -3,6 +3,8 @@ import { defineStore } from "pinia";
 import { apiFetch, apiFetchBlob, setToken } from "@/composables/useApi";
 import type { DocNode } from "@/editor/types";
 import type {
+  CalibrationFeature,
+  CalibrationResult,
   CandidateOrder,
   Customer,
   SalesDocument,
@@ -199,6 +201,21 @@ export const useAppStore = defineStore("app", {
     },
     async fetchDesign(id: number) {
       return apiFetch<Design>(`/admin/designs/${id}`);
+    },
+    async fetchCalibrationFeatures() {
+      return apiFetch<CalibrationFeature[]>("/admin/calibration/features");
+    },
+    async analyseCalibration(kerf_used_mm: number, measurements: Record<string, number>) {
+      return apiFetch<CalibrationResult>("/admin/calibration/analyse", {
+        method: "POST",
+        body: JSON.stringify({ kerf_used_mm, measurements }),
+      });
+    },
+    downloadCalibrationSheet(kerf: number, machine: string, material: string) {
+      const params = new URLSearchParams({ kerf: String(kerf) });
+      if (machine) params.set("machine", machine);
+      if (material) params.set("material", material);
+      return apiFetchBlob(`/admin/calibration/sheet.pdf?${params}`);
     },
     async fetchDesignTemplates() {
       return apiFetch<DesignTemplate[]>("/admin/designs/templates");

@@ -1,4 +1,5 @@
-"""Desktop build (Windows installer): one workshop, one machine, no Docker.
+"""Desktop build (Windows installer, Linux AppImage, macOS app): one workshop, one machine,
+no Docker.
 
 What Docker passes through environment variables lives here in `<data dir>/config.json`:
 - `secret_key`: signs session tokens, generated on the first launch and never shown;
@@ -14,6 +15,7 @@ read once and cached.
 import json
 import os
 import secrets
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -22,9 +24,14 @@ DB_NAME = "knifeforge.db"
 DEFAULT_PORT = 8765
 
 
-def default_data_dir() -> Path:
-    base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
-    return Path(base) / "KnifeForge Pro"
+def default_data_dir(platform: str = sys.platform) -> Path:
+    """Where each system keeps an application's own data (never synchronised by default)."""
+    home = Path.home()
+    if platform == "win32":
+        return Path(os.environ.get("LOCALAPPDATA") or home / "AppData" / "Local") / "KnifeForge Pro"
+    if platform == "darwin":
+        return home / "Library" / "Application Support" / "KnifeForge Pro"
+    return Path(os.environ.get("XDG_DATA_HOME") or home / ".local" / "share") / "knifeforge-pro"
 
 
 def load_config(data_dir: Path) -> dict[str, Any]:

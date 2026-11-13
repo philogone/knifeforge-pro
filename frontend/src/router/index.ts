@@ -72,6 +72,12 @@ const routes = [
     meta: { requiresAdmin: true },
   },
   {
+    path: "/calibration",
+    name: "calibration",
+    component: () => import("@/pages/admin/CalibrationPage.vue"),
+    meta: { requiresAdmin: true },
+  },
+  {
     path: "/customers",
     name: "customers",
     component: () => import("@/pages/admin/CustomersPage.vue"),

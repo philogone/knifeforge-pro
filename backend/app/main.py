@@ -11,6 +11,7 @@ from app.config import get_settings
 from app.database import SessionLocal
 from app.routers import (
     auth,
+    calibration,
     customers,
     dashboard,
     designs,
@@ -76,6 +77,7 @@ app.include_router(settings.router)
 app.include_router(customers.router)
 app.include_router(sales_documents.router)
 app.include_router(dashboard.router)
+app.include_router(calibration.router)
 
 
 @app.get("/api/health")

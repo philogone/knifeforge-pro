@@ -1,6 +1,7 @@
 """KnifeForge Pro, desktop build: the program behind the desktop icon.
 
-1. Find the data folder (%LOCALAPPDATA%\\KnifeForge Pro) and prepare its config (app/core/desktop.py).
+1. Find the data folder (Windows: %LOCALAPPDATA%\\KnifeForge Pro, macOS: ~/Library/Application
+   Support/KnifeForge Pro, Linux: ~/.local/share/knifeforge-pro) and prepare its config.
 2. If KnifeForge is already running, open it in the browser and stop there.
 3. Copy the database aside when an update brings new migrations, then apply them.
 4. Serve the interface and the API on 127.0.0.1 only, and open the browser.
@@ -19,6 +20,7 @@ import logging.handlers
 import os
 import shutil
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -110,7 +112,11 @@ def migrate(data_dir: Path) -> None:
 def open_folder(path: Path) -> None:
     if sys.platform == "win32":
         os.startfile(path)  # noqa: S606 - the user's own data folder
-    else:
+        return
+    opener = "open" if sys.platform == "darwin" else "xdg-open"
+    try:
+        subprocess.Popen([opener, str(path)])  # noqa: S603 - fixed program, the user's own data folder
+    except OSError:
         webbrowser.open(path.as_uri())
 
 

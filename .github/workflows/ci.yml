@@ -3,7 +3,11 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]  # a version tag also publishes the installers (job "release")
   pull_request:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -142,9 +146,176 @@ jobs:
           & $iscc "/DAppVersion=$version" installer\knifeforge.iss
       - uses: actions/upload-artifact@v4
         with:
-          name: KnifeForge-Pro-installation
+          name: installeur-windows
           path: installer/output/*.exe
           retention-days: 14
+
+  linux:
+    name: Linux AppImage (desktop build)
+    # the oldest supported runner: an AppImage runs on distributions at least as recent as its build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-desktop.txt
+      - name: System libraries for the control window
+        run: sudo apt-get update -q && sudo apt-get install -yq tk8.6 libtk8.6
+      - name: Build the interface
+        working-directory: frontend
+        run: npm ci && npm run build
+      - name: Package the program
+        working-directory: backend
+        run: |
+          python -m pip install -r requirements.txt -r requirements-desktop.txt
+          python -m PyInstaller --noconfirm desktop/knifeforge.spec
+      - name: Smoke test (starts, migrates a new database, serves the interface)
+        working-directory: backend
+        run: |
+          data="$RUNNER_TEMP/kf-data"
+          "dist/KnifeForge Pro/KnifeForge Pro" --data-dir "$data" --no-browser --no-window &
+          for i in $(seq 90); do curl -sf http://127.0.0.1:8765/api/health | grep -q '"desktop":true' && break; sleep 2; done
+          curl -sf http://127.0.0.1:8765/api/health | grep -q '"desktop":true' || { cat "$data/Journaux/knifeforge.log"; exit 1; }
+          curl -sf http://127.0.0.1:8765/api/auth/status | grep -q '"needs_setup":true'
+          curl -sfI http://127.0.0.1:8765/ | grep -qi '^content-security-policy'
+          kill %1
+      - name: Build the AppImage
+        run: |
+          curl -sSLo appimagetool https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
+          echo "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0  appimagetool" | sha256sum -c
+          chmod +x appimagetool
+          python -m pip install -q pillow
+          installer/linux/build-appimage.sh "$(cat VERSION)" "$PWD/appimagetool"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installeur-linux
+          path: installer/output/*.AppImage
+          retention-days: 14
+
+  macos:
+    name: macOS app (desktop build, Apple Silicon)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-desktop.txt
+      - name: Build the interface
+        working-directory: frontend
+        run: npm ci && npm run build
+      - name: Package the program
+        working-directory: backend
+        run: |
+          python -m pip install -r requirements.txt -r requirements-desktop.txt
+          KF_VERSION="$(cat ../VERSION)" python -m PyInstaller --noconfirm desktop/knifeforge.spec
+      - name: Smoke test (starts, migrates a new database, serves the interface)
+        working-directory: backend
+        run: |
+          data="$RUNNER_TEMP/kf-data"
+          "dist/KnifeForge Pro.app/Contents/MacOS/KnifeForge Pro" --data-dir "$data" --no-browser --no-window &
+          for i in $(seq 90); do curl -sf http://127.0.0.1:8765/api/health | grep -q '"desktop":true' && break; sleep 2; done
+          curl -sf http://127.0.0.1:8765/api/health | grep -q '"desktop":true' || { cat "$data/Journaux/knifeforge.log"; exit 1; }
+          curl -sf http://127.0.0.1:8765/api/auth/status | grep -q '"needs_setup":true'
+          curl -sfI http://127.0.0.1:8765/ | grep -qi '^content-security-policy'
+          kill %1
+      - name: Build the disk image
+        run: |
+          mkdir -p installer/output dmg
+          cp -R "backend/dist/KnifeForge Pro.app" dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname "KnifeForge Pro" -srcfolder dmg -ov -format UDZO "installer/output/KnifeForge-Pro-$(cat VERSION)-macOS.dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installeur-macos
+          path: installer/output/*.dmg
+          retention-days: 14
+
+  facturx:
+    name: Factur-X (independent validator Mustang)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - run: pip install -r requirements.txt
+      - name: Sample invoices (VAT B2B, credit note, VAT franchise)
+        run: FACTURX_SAMPLES_DIR="$RUNNER_TEMP/factur-x" pytest -q tests/test_facturx_samples.py
+      - name: Validate with Mustang (EN 16931 schematron and PDF/A-3)
+        run: |
+          curl -sSLo "$RUNNER_TEMP/mustang.jar" https://repo1.maven.org/maven2/org/mustangproject/Mustang-CLI/2.25.0/Mustang-CLI-2.25.0.jar
+          echo "018105ef04ece7f77a7fc2a9fb8fb570c6931494a5702333407ec6c9bd1ac4ec  $RUNNER_TEMP/mustang.jar" | sha256sum -c
+          cd "$RUNNER_TEMP/factur-x"
+          failed=0
+          for pdf in *.pdf; do
+            report="${pdf%.pdf}.validation.xml"
+            java -jar "$RUNNER_TEMP/mustang.jar" --action validate --source "$pdf" > "$report" || true
+            if grep -q '<summary status="valid"' "$report"; then echo "✓ $pdf"; else echo "✗ $pdf"; cat "$report"; failed=1; fi
+          done
+          exit $failed
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: validation-factur-x
+          path: ${{ runner.temp }}/factur-x/
+          retention-days: 30
+
+  release:
+    name: Publish the version (installers + Factur-X reports)
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [backend-sqlite, backend-postgres, frontend, windows, linux, macos, facturx]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: The tag must match VERSION
+        run: test "v$(cat VERSION)" = "$GITHUB_REF_NAME" || { echo "Tag $GITHUB_REF_NAME but VERSION says $(cat VERSION)"; exit 1; }
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Stable file names (the README links to releases/latest/download/<name>)
+        run: |
+          mkdir out
+          cp artifacts/installeur-windows/*.exe out/KnifeForge-Pro-Windows.exe
+          cp artifacts/installeur-linux/*.AppImage out/KnifeForge-Pro-Linux-x86_64.AppImage
+          cp artifacts/installeur-macos/*.dmg out/KnifeForge-Pro-macOS.dmg
+          (cd artifacts/validation-factur-x && zip -q ../../out/validation-factur-x.zip *)
+          (cd out && sha256sum * > SHA256SUMS.txt)
+      - name: Release notes from CHANGELOG.md
+        run: |
+          awk -v h="## [$(cat VERSION)]" 'index($0, h) == 1 {on=1; next} /^## \[/ {on=0} /^\[.*\]: http/ {on=0} on' CHANGELOG.md > notes.md && test -s notes.md
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" out/* --title "KnifeForge Pro $(cat VERSION)" --notes-file notes.md --verify-tag
 
   docker:
     name: Docker images build

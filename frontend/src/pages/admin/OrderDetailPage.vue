@@ -3,7 +3,9 @@ import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { ApiError } from "@/composables/useApi";
-import { DOCUMENT_STATUS_TAG, ORDER_STAGES, ORDER_STATUS_TAG } from "@/constants/referenceData";
+import OrderTime from "@/components/OrderTime.vue";
+import { loadStages, useStages } from "@/composables/useStages";
+import { DOCUMENT_STATUS_TAG, ORDER_STATUS_TAG } from "@/constants/referenceData";
 import { useI18n } from "@/i18n";
 import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
@@ -43,6 +45,8 @@ const docError = ref("");
 const route = useRoute();
 const router = useRouter();
 const store = useAppStore();
+const { stages, stageLabel } = useStages();
+loadStages(true);
 
 const orderId = Number(route.params.id);
 const order = ref<Order | null>(null);
@@ -122,13 +126,13 @@ async function remove() {
         <div>
           <label class="field-label" for="od-stage">{{ t("orderDetail.stage") }}</label>
           <select id="od-stage" :value="order.stage" class="input w-full" @change="patch({ stage: ($event.target as HTMLSelectElement).value })">
-            <option v-for="s in ORDER_STAGES" :key="s" :value="s">{{ t(`orders.stage.${s}`) }}</option>
+            <option v-for="s in stages" :key="s.key" :value="s.key">{{ stageLabel(s.key) }}</option>
           </select>
         </div>
       </div>
       <ol class="mt-4 flex items-center gap-1" :aria-label="t('orderDetail.stage')">
-        <li v-for="(s, i) in ORDER_STAGES" :key="s" class="flex-1">
-          <div class="h-1.5 rounded-full" :class="i <= ORDER_STAGES.indexOf(order.stage) ? 'bg-accent-600' : 'bg-slate-200'"></div>
+        <li v-for="(s, i) in stages" :key="s.key" class="flex-1" :title="stageLabel(s.key)">
+          <div class="h-1.5 rounded-full" :class="i <= stages.findIndex((x) => x.key === order!.stage) ? 'bg-accent-600' : 'bg-slate-200'"></div>
         </li>
       </ol>
     </section>
@@ -203,6 +207,7 @@ async function remove() {
           </ul>
           <p v-else class="mt-2 text-sm text-slate-600">{{ t("orderDetail.noDocuments") }}</p>
         </section>
+        <OrderTime :order-id="order.id" :stage="order.stage" />
       </div>
     </div>
 

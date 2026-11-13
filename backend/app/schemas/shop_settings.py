@@ -38,6 +38,7 @@ class ShopSettingsUpdate(BaseModel):
     # "" goes back to the built-in wording
     email_send_template: str | None = Field(default=None, max_length=4000)
     reminder_templates: dict[str, str] | None = None
+    trade: str | None = Field(default=None, pattern="^(knifemaker|blacksmith)$")
 
     @field_validator("reminder_templates")
     @classmethod
@@ -87,6 +88,7 @@ class ShopSettingsOut(BaseModel):
     account_bank: str = "512000"
     email_send_template: str | None = None
     reminder_templates: dict[str, str] | None = None
+    trade: str = "knifemaker"
 
     model_config = {"from_attributes": True}
 
@@ -132,3 +134,18 @@ class MailSettingsUpdate(BaseModel):
 
 class MailTestIn(BaseModel):
     to: EmailStr
+
+
+class StageIn(BaseModel):
+    key: str | None = Field(default=None, max_length=40)  # None: a new stage, key made from the label
+    label: str | None = Field(default=None, max_length=60)  # None: a built-in stage, translated
+
+
+class StagesIn(BaseModel):
+    stages: list[StageIn] = Field(min_length=2, max_length=16)
+
+
+class StageOut(BaseModel):
+    key: str
+    label: str | None
+    used: int = 0  # active orders at this stage

@@ -98,7 +98,19 @@ Laissé en l'état :
 - Plaques à bords droits ; pas d'émouture ni de galbe.
 - 3MF vérifié par sa structure (tests) ; pas encore ouvert dans un trancheur réel.
 
-## Prochain : lot 12 (forgeron)
+## Lot 12 — en grande partie fait le 13 novembre 2026
+
+Longueur développée et débit de forge, métier (coutelier / forgeron), étapes d'atelier
+personnalisables, temps passé par commande, vocabulaire du forgeron.
+
+Reste du lot 12 :
+- **Stock au poids et profilés normalisés** (rond, carré, plat, tube, cornière, fer en T ; poids
+  et prix au kilo) : non fait.
+- **Bibliothèque de formes du forgeron** (volutes, rinceaux, pointes de lance, feuilles,
+  colliers) : non faite.
+- **Étude** auprès de deux ou trois forgerons : à faire par toi.
+
+## Prochain : fin du lot 12, puis ta passe de test
 
 Voir [`roadmap.md`](roadmap.md).
 

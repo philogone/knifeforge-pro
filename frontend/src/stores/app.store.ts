@@ -1,8 +1,11 @@
 import { defineStore } from "pinia";
 
+import { setTrade } from "@/i18n";
+
 import { apiFetch, apiFetchBlob, setToken } from "@/composables/useApi";
 import type { DocNode } from "@/editor/types";
 import type {
+  TimeSummary,
   AccountingPeriod,
   BackupInfo,
   MailDraft,
@@ -80,6 +83,21 @@ export const useAppStore = defineStore("app", {
         body: JSON.stringify({ current_password, new_password, new_email: new_email ?? null }),
       });
       setToken(res.access_token);
+    },
+    async orderTime(id: number) {
+      return apiFetch<TimeSummary>(`/admin/orders/${id}/time`);
+    },
+    async addTime(id: number, entry: { worked_on: string; minutes: number; stage: string | null; note: string | null }) {
+      return apiFetch<TimeSummary>(`/admin/orders/${id}/time`, { method: "POST", body: JSON.stringify(entry) });
+    },
+    async deleteTime(id: number, entryId: number) {
+      return apiFetch<TimeSummary>(`/admin/orders/${id}/time/${entryId}`, { method: "DELETE" });
+    },
+    async saveStages(stages: { key: string | null; label: string | null }[]) {
+      return apiFetch<{ key: string; label: string | null; used: number }[]>("/admin/settings/stages", { method: "PUT", body: JSON.stringify({ stages }) });
+    },
+    async resetStages() {
+      return apiFetch<{ key: string; label: string | null; used: number }[]>("/admin/settings/stages", { method: "DELETE" });
     },
     /** public demo only: enter the fictitious workshop without a password */
     async enterDemo() {
@@ -435,10 +453,14 @@ export const useAppStore = defineStore("app", {
       return apiFetch<Record<string, unknown>>("/admin/settings/export");
     },
     async fetchShopSettings() {
-      return apiFetch<ShopSettings>("/admin/settings/shop");
+      const s = await apiFetch<ShopSettings>("/admin/settings/shop");
+      setTrade(s.trade ?? "knifemaker"); // the vocabulary follows the workshop's trade
+      return s;
     },
     async updateShopSettings(payload: Partial<ShopSettings>) {
-      return apiFetch<ShopSettings>("/admin/settings/shop", { method: "PATCH", body: JSON.stringify(payload) });
+      const s = await apiFetch<ShopSettings>("/admin/settings/shop", { method: "PATCH", body: JSON.stringify(payload) });
+      setTrade(s.trade ?? "knifemaker");
+      return s;
     },
   },
 });

@@ -3,8 +3,9 @@ import { computed, onMounted, ref } from "vue";
 
 import { errorMessage } from "@/i18n/apiErrors";
 import { useI18n } from "@/i18n";
+import { loadStages, useStages } from "@/composables/useStages";
 import { useAppStore } from "@/stores/app.store";
-import type { Dashboard, OrderStage, OrderStatus } from "@/types";
+import type { Dashboard, OrderStatus } from "@/types";
 
 const { t, locale, money, qty } = useI18n();
 const store = useAppStore();
@@ -61,8 +62,11 @@ const donut = computed(() => {
 });
 
 // ---- active orders per workshop stage
-const STAGES: OrderStage[] = ["todo", "forging", "heat_treatment", "grinding", "handle", "finishing", "ready", "delivered"];
-const stageMax = computed(() => Math.max(1, ...STAGES.map((s) => data.value?.orders.by_stage[s] ?? 0)));
+// the workshop's stages, in its order (the server sends them that way)
+const STAGES = computed(() => Object.keys(data.value?.orders.by_stage ?? {}));
+const stageMax = computed(() => Math.max(1, ...STAGES.value.map((s) => data.value?.orders.by_stage[s] ?? 0)));
+const { stageLabel } = useStages();
+loadStages(true);
 
 // ---- draft feasibility: a half-circle gauge
 const draftsTotal = computed(() => (data.value ? data.value.orders.drafts_feasible + data.value.orders.drafts_short : 0));
@@ -190,7 +194,7 @@ const gaugeFill = (q: number, threshold: number) => (threshold > 0 ? Math.min(10
           <p class="sheet-hint mt-1">{{ t("dash.onTheBenchHint") }}</p>
           <ul class="mt-3 space-y-1.5">
             <li v-for="s in STAGES" :key="s" class="grid grid-cols-[9rem_1fr_2rem] items-center gap-3 text-sm">
-              <span class="text-slate-700 truncate">{{ t(`orders.stage.${s}`) }}</span>
+              <span class="text-slate-700 truncate">{{ stageLabel(s) }}</span>
               <span class="h-2 rounded-full bg-[color:var(--viz-track)] overflow-hidden" aria-hidden="true">
                 <span class="block h-full rounded-full bg-[color:var(--viz-mark)]" :style="{ width: `${(data.orders.by_stage[s] / stageMax) * 100}%` }"></span>
               </span>
@@ -208,7 +212,7 @@ const gaugeFill = (q: number, threshold: number) => (threshold > 0 ? Math.min(10
               <router-link :to="`/orders/${o.order_id}`" class="flex items-center gap-3 py-2 text-sm hover:bg-slate-50 -mx-2 px-2 rounded">
                 <span class="w-16 shrink-0 tabular-nums" :class="o.late ? 'text-[color:var(--viz-low)] font-medium' : 'text-slate-600'">{{ shortDate(o.due_date) }}</span>
                 <span class="text-slate-900 truncate min-w-0">{{ o.customer_name }}</span>
-                <span class="ml-auto text-xs text-slate-500 whitespace-nowrap">{{ t(`orders.stage.${o.stage}`) }}</span>
+                <span class="ml-auto text-xs text-slate-500 whitespace-nowrap">{{ stageLabel(o.stage) }}</span>
                 <span v-if="o.late" class="tag tag-danger">{{ t("dash.lateTag") }}</span>
               </router-link>
             </li>

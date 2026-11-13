@@ -18,7 +18,14 @@ modification (dossier « Sauvegardes avant mise à jour »), puis mise à niveau
   contrôle du diamètre de fraise pour l'usinage CNC.
 - **Vidéo de présentation** (docs/video).
 
+- **Longueur développée** (fibre neutre, coefficient réglable, surlongueur, perte au feu, poids de
+  barre) et **débit de forge** d'une pièce.
+- **Métier** : coutelier ou forgeron / ferronnier (vocabulaire, étapes, outils affichés).
+- **Étapes d'atelier personnalisables** (renommer, ajouter, retirer, réordonner).
+- **Temps passé** par commande, comparé au temps prévu et chiffré au taux horaire.
+
 ### Modifié
+- Base de données : migration 009 (étape d'une commande en texte libre, métier, temps passé).
 - Licence : **GNU AGPL v3**, logiciel gratuit (NOTICE.md pour les avertissements).
 
 ## [0.10.1] — 2026-11-13

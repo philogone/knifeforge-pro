@@ -55,5 +55,9 @@ class ShopSettings(Base):
     # ---- e-mails: the workshop's own wording (null: the built-in text). Placeholders in braces.
     email_send_template: Mapped[str | None] = mapped_column(Text, nullable=True)
     reminder_templates: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # {"1": "...", "2": ..., "3": ...}
+    # trade profile: "knifemaker" or "blacksmith" (vocabulary, default stages, tools shown)
+    trade: Mapped[str] = mapped_column(String(20), default="knifemaker", server_default="knifemaker")
+    # the workshop's own stages, [{"key": "...", "label": "..."}]; null: the trade's defaults
+    workshop_stages: Mapped[list | None] = mapped_column(JSON, nullable=True)
     # last complete backup downloaded from Settings (a reminder after 7 days without one)
     last_backup_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

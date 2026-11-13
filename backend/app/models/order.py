@@ -19,7 +19,7 @@ class OrderStatus(str, enum.Enum):
 
 
 class OrderStage(str, enum.Enum):
-    """Where the knife is on the bench, independent of the commercial status."""
+    """The knifemaker's default stages (the workshop can rename, add or remove its own)."""
 
     TODO = "todo"
     FORGING = "forging"
@@ -45,9 +45,8 @@ class Order(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), nullable=True, index=True)
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    stage: Mapped[OrderStage] = mapped_column(
-        Enum(OrderStage, name="order_stage", values_callable=lambda e: [x.value for x in e]), default=OrderStage.TODO
-    )
+    # a key of the workshop's stage list (Settings › Trade and stages; see stages_service)
+    stage: Mapped[str] = mapped_column(String(40), default=OrderStage.TODO.value, server_default="todo")
 
     is_mock: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
@@ -64,3 +63,17 @@ class OrderLine(Base):
     knife_model_id: Mapped[int] = mapped_column(ForeignKey("knife_models.id", ondelete="RESTRICT"), nullable=False)
     knife_model: Mapped["KnifeModel"] = relationship()
     quantity: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class TimeEntry(Base):
+    """Time spent on an order, compared with what its models plan."""
+
+    __tablename__ = "time_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    worked_on: Mapped[date] = mapped_column(Date, nullable=False)
+    minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    stage: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    note: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

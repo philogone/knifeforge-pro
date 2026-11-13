@@ -54,6 +54,18 @@ petite fenêtre l'ouvre.
 > **Limite** : KnifeForge n'écoute que sur l'ordinateur où il est installé. Pour l'ouvrir depuis
 > plusieurs postes ou un téléphone, installez plutôt la version serveur (Docker, voir le README).
 
+### Votre métier
+
+Au premier lancement, puis dans *Réglages › Métier et étapes d'atelier* : **Coutelier** ou
+**Forgeron / ferronnier**. Le métier règle le vocabulaire (« modèle de couteau » ou « modèle
+d'ouvrage »), les étapes proposées et les outils affichés (crantage et pliants pour le
+coutelier). Rien n'est perdu en changeant.
+
+Les **étapes d'atelier** se renomment, s'ajoutent (damas, étui en cuir, galvanisation…), se
+retirent et se réordonnent ; la dernière est celle où la commande a quitté l'atelier.
+
+![Métier et étapes](img/metier-etapes.png)
+
 ## 2. Le tableau de bord
 
 C'est la page d'accueil : la date, les commandes en cours et celles à livrer cette semaine, la
@@ -161,6 +173,30 @@ d'équilibre sur le dessin.
 > **Limite** : chaque pièce est une plaque d'épaisseur constante ; l'émouture, les biseaux et les
 > plaquettes galbées ne sont pas pris en compte. C'est une estimation pour comparer deux
 > dessins, pas une pesée.
+
+### Longueur développée et débit de forge
+
+Sélectionnez un tracé, puis l'outil **Longueur développée et débit** (barre d'outils) :
+
+- **Cintrer, enrouler** : pour une volute, un crochet, un anneau, une feuille cintrée, la longueur
+  de barre à couper, mesurée sur la **fibre neutre**. Indiquez la barre (rond, carré ou plat, et
+  si le plat est cintré sur chant), ce que représente votre tracé (l'axe de la barre, son bord
+  intérieur ou son bord extérieur) et le coefficient de fibre neutre (0,5 à chaud ; jusqu'à 0,33
+  pour un pli serré à froid). Ajoutez la surlongueur (prise en pince, mise à longueur) et la perte
+  au feu : KnifeForge donne la longueur à débiter et le poids de barre.
+- **Forger une pièce** : pour une pièce fermée (une lame à forger, par exemple), la longueur de
+  barre d'une section donnée qui contient son volume (surface × épaisseur finie), pertes au feu
+  comprises.
+
+![Longueur développée](img/longueur-developpee.png)
+
+Le calcul est exact pour toute forme qui tourne d'un seul côté : la longueur d'une courbe décalée
+vaut sa longueur plus le décalage multiplié par l'angle total dont elle tourne (vérifié contre une
+spirale d'Archimède à moins de 0,01 mm).
+
+> **Limites** : le refoulement et l'étirage à la forge ne se calculent pas (comptez-les dans la
+> surlongueur) ; pour une forme en S, tracez l'axe de la barre ; le débit de forge suppose une
+> épaisseur constante.
 
 ## 5. Exporter pour la machine, imprimer pour l'établi
 
@@ -273,6 +309,10 @@ Le plan s'exporte en DXF / SVG pour la machine.
 - **Annuler** une commande confirmée remet la matière en stock.
 
 ![Une commande](img/commande.png)
+
+**Temps passé** : sur la commande, notez le temps de chaque séance (date, durée, étape, note).
+KnifeForge le compare au temps prévu par les modèles de la commande et le chiffre au taux horaire
+de l'atelier : de quoi savoir si le prix était juste.
 
 Chaque mouvement de stock est écrit dans le journal de la matière (*Atelier › Matériaux*) : qui,
 quand, pourquoi.

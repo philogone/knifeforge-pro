@@ -134,7 +134,7 @@ client. Les uns impriment en 3D, les autres usinent à la CNC : un seul assembla
 Terminé quand : volumes fermés et exacts, empilement juste au centième, rivets en face des trous,
 un fichier de chaque sorte ouvert sans erreur dans un trancheur et une FAO courants.
 
-## Lot 12 — Un cœur neutre, deux métiers : coutelier et forgeron (décidé le 13 novembre 2026)
+## Lot 12 — Un cœur neutre, deux métiers : coutelier et forgeron (en grande partie fait le 13 novembre 2026)
 
 **0. Avant le code** : interroger deux ou trois forgerons / ferronniers et regarder ce qu'ils
 utilisent aujourd'hui (tableur, logiciel de devis du bâtiment), pour confirmer les besoins

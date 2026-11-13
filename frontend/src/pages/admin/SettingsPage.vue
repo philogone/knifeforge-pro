@@ -7,6 +7,7 @@ import { CARD_HEIGHT_MM, CARD_WIDTH_MM, isScreenCalibrated, saveScreenCalibratio
 import { errorMessage } from "@/i18n/apiErrors";
 import BackupRestore from "@/components/BackupRestore.vue";
 import SettingsAccess from "@/components/SettingsAccess.vue";
+import SettingsTrade from "@/components/SettingsTrade.vue";
 import SettingsAccounting from "@/components/SettingsAccounting.vue";
 import SettingsMail from "@/components/SettingsMail.vue";
 import { useAppStore } from "@/stores/app.store";
@@ -242,6 +243,7 @@ async function exportData() {
 
     <div class="grid gap-6 lg:grid-cols-2 2xl:grid-cols-3 items-start">
       <div class="settings-col">
+        <SettingsTrade />
         <section class="sheet p-5" aria-labelledby="workshop-title">
           <h2 id="workshop-title" class="sheet-title">{{ t("settings.workshop") }}</h2>
           <p class="sheet-hint text-sm mt-1 max-w-prose">{{ t("settings.workshop.hint") }}</p>

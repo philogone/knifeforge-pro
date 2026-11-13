@@ -4,11 +4,12 @@ import { useRouter } from "vue-router";
 
 import BackupRestore from "@/components/BackupRestore.vue";
 import { errorMessage } from "@/i18n/apiErrors";
-import { useI18n } from "@/i18n";
+import { currentTrade, useI18n } from "@/i18n";
 import { useAppStore } from "@/stores/app.store";
 
 const { t } = useI18n();
 const store = useAppStore();
+const trade = currentTrade();
 const router = useRouter();
 
 const step = ref(1);
@@ -83,6 +84,14 @@ async function finish(to: string) {
       <h1 class="page-title">{{ t("welcome.title") }}</h1>
       <p class="page-lead">{{ t("welcome.lead") }}</p>
       <div class="mt-6 space-y-4">
+        <div role="radiogroup" :aria-label="t('trade.title')">
+          <span class="field-label">{{ t("welcome.trade") }}</span>
+          <div class="flex gap-2">
+            <button v-for="tr in (['knifemaker', 'blacksmith'] as const)" :key="tr" type="button" role="radio" :aria-checked="trade === tr"
+                    class="btn btn-sm border" :class="trade === tr ? 'bg-accent-600 text-white border-accent-600' : 'bg-paper border-slate-300 text-slate-700 hover:bg-slate-50'"
+                    @click="store.updateShopSettings({ trade: tr })">{{ t(`trade.${tr}`) }}</button>
+          </div>
+        </div>
         <label class="block">
           <span class="field-label">{{ t("settings.workshop.name") }}</span>
           <input v-model="workshop.workshop_name" v-focus maxlength="120" autocomplete="organization" class="input w-full" />

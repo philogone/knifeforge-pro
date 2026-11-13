@@ -15,7 +15,7 @@ import { EditorEngine, formatMm } from "@/editor/engine";
 import type { AlignKind, BooleanOp, CornerReport, Measurement, SnapKind, SnapOptions } from "@/editor/engine";
 import type { DocLayer, Guide, LayerRole, SelectionInfo, ToolName } from "@/editor/types";
 import { RULER_SIZE, drawGrid, drawRulers, screenToWorld } from "@/editor/view";
-import { useI18n } from "@/i18n";
+import { currentTrade, useI18n } from "@/i18n";
 import { errorMessage } from "@/i18n/apiErrors";
 import { useTheme } from "@/composables/useTheme";
 import { screenPxPerMm } from "@/editor/screenScale";
@@ -44,6 +44,8 @@ const alignKinds: AlignKind[] = ["left", "centerH", "right", "top", "middleV", "
 const booleanOps: BooleanOp[] = ["unite", "subtract", "intersect", "exclude"];
 
 const designId = computed(() => Number(route.params.id));
+// a blacksmith's workshop does not see the knife-only tools (jimping, folder swing)
+const trade = currentTrade();
 // the 3D view (three.js) loads only when the mock-up is opened
 const MockupDialog = defineAsyncComponent(() => import("@/components/MockupDialog.vue"));
 const DevelopedLengthDialog = defineAsyncComponent(() => import("@/components/DevelopedLengthDialog.vue"));
@@ -1456,9 +1458,9 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <div class="w-7 border-t border-slate-200 my-1"></div>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('library.title')" :aria-label="t('library.title')" @click="openLibrary"><EditorIcon name="library" /></button>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('holes.title')" :aria-label="t('holes.title')" @click="openHoles"><EditorIcon name="holes" /></button>
-          <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('notch.title')" :aria-label="t('notch.title')" @click="openNotches"><EditorIcon name="notch" /></button>
+          <button v-if="trade === 'knifemaker'" class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('notch.title')" :aria-label="t('notch.title')" @click="openNotches"><EditorIcon name="notch" /></button>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('dl.title')" :aria-label="t('dl.title')" @click="openDeveloped"><EditorIcon name="scroll" /></button>
-          <button class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-slate-100" :class="swing.open ? 'bg-slate-100 text-slate-900' : 'text-slate-600'" :title="t('swing.title')" :aria-label="t('swing.title')" :aria-pressed="swing.open" @click="swing.open = !swing.open"><EditorIcon name="swing" /></button>
+          <button v-if="trade === 'knifemaker'" class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-slate-100" :class="swing.open ? 'bg-slate-100 text-slate-900' : 'text-slate-600'" :title="t('swing.title')" :aria-label="t('swing.title')" :aria-pressed="swing.open" @click="swing.open = !swing.open"><EditorIcon name="swing" /></button>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('text.title')" :aria-label="t('text.title')" @click="openText"><EditorIcon name="text" /></button>
         </div>
 

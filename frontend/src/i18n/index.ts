@@ -16,6 +16,29 @@ function detectDefault(): Locale {
 
 const locale = ref<Locale>(detectDefault());
 
+// trade profile: a blacksmith's workshop reads its own words where the knifemaker's differ
+export type Trade = "knifemaker" | "blacksmith";
+const TRADE_KEY = "knifeforge_trade";
+function savedTrade(): Trade {
+  try {
+    return localStorage.getItem(TRADE_KEY) === "blacksmith" ? "blacksmith" : "knifemaker";
+  } catch {
+    return "knifemaker";
+  }
+}
+const trade = ref<Trade>(savedTrade());
+export function setTrade(next: Trade): void {
+  trade.value = next;
+  try {
+    localStorage.setItem(TRADE_KEY, next);
+  } catch {
+    // private window: the trade still applies for this session
+  }
+}
+export function currentTrade() {
+  return computed(() => trade.value);
+}
+
 export function setLocale(next: Locale): void {
   locale.value = next;
   localStorage.setItem(STORAGE_KEY, next);
@@ -30,7 +53,9 @@ export function useI18n() {
       const form = `${key}.${one ? "one" : "many"}`;
       if (dictionaries[locale.value][form] ?? dictionaries.en[form]) key = form;
     }
-    let text = dictionaries[locale.value][key] ?? dictionaries.en[key] ?? key;
+    const overlay = trade.value === "blacksmith" ? `@blacksmith:${key}` : null;
+    let text =
+      (overlay && (dictionaries[locale.value][overlay] ?? dictionaries.en[overlay])) ?? dictionaries[locale.value][key] ?? dictionaries.en[key] ?? key;
     if (vars) {
       for (const [k, v] of Object.entries(vars)) {
         text = text.replace(`{${k}}`, String(v));

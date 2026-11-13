@@ -440,6 +440,18 @@ function importFrom() {
   fileInput.value?.click();
 }
 
+async function exportPartsSheet(paper: "A4" | "A3") {
+  if (exportMenu.value) exportMenu.value.open = false;
+  if (unsaved.value && !(await save())) return;
+  try {
+    const blob = await store.downloadPartsSheet(designId.value, paper);
+    saveBlob(blob, `${meta.name.replace(/[^\w.-]+/g, "_")}_pieces_${paper}.pdf`);
+    setStatus(t("parts.done"));
+  } catch (err) {
+    setStatus(t("designs.exportFailed", { error: errorMessage(err, t) }), true);
+  }
+}
+
 function exportFrom(kind: "export.svg" | "export.dxf") {
   if (exportMenu.value) exportMenu.value.open = false;
   void exportFile(kind);
@@ -1133,6 +1145,8 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
             <div class="my-1 border-t border-slate-100"></div>
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" @click="exportFrom('export.svg')">{{ t("editor.exportSvg") }}</button>
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" @click="exportFrom('export.dxf')">{{ t("editor.exportDxf") }}</button>
+            <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" :title="t('parts.hint')" @click="exportPartsSheet('A4')">{{ t("parts.a4") }}</button>
+            <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" :title="t('parts.hint')" @click="exportPartsSheet('A3')">{{ t("parts.a3") }}</button>
             <div class="my-1 border-t border-slate-100"></div>
             <div class="px-3 py-1.5 space-y-2 text-xs text-slate-600" @click.stop>
               <label class="flex items-center gap-2"><input v-model="exportOpts.arcs" type="checkbox" /> {{ t("export.arcs") }}</label>

@@ -1111,4 +1111,8 @@ export const fr: Record<string, string> = {
   "units.label": "Unité d'affichage",
   "units.mm": "Millimètres",
   "units.in": "Pouces (1 in = 25,4 mm) : seul l'affichage change, le dessin et les exports restent en millimètres",
+  "parts.a4": "Feuille de pièces 1:1 (PDF, A4)",
+  "parts.a3": "Feuille de pièces 1:1 (PDF, A3)",
+  "parts.hint": "Les pièces à taille réelle, à coller sur la matière : croix de pointage au centre des perçages, pages à assembler si la pièce dépasse la feuille, barre de contrôle de 100 mm.",
+  "parts.done": "Feuille de pièces téléchargée : imprimez-la à 100 %, puis vérifiez la barre de 100 mm.",
 };

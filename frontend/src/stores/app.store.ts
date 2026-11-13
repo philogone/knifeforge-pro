@@ -231,6 +231,10 @@ export const useAppStore = defineStore("app", {
       if (opts.kerf) qs.set("kerf", String(opts.kerf));
       return apiFetchBlob(`/admin/designs/${id}/${kind}${qs.toString() ? `?${qs}` : ""}`);
     },
+    /** the parts at true size on A4 / A3, tiled if needed, with punch marks */
+    downloadPartsSheet(id: number, paper: "A4" | "A3") {
+      return apiFetchBlob(`/admin/designs/${id}/parts.pdf?paper=${paper}`);
+    },
     designPlan(id: number, params: Record<string, string | number | undefined>, download = false) {
       const qs = new URLSearchParams();
       for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") qs.set(k, String(v));

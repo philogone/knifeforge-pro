@@ -17,7 +17,7 @@ from app.schemas.design import (
     OffsetResult,
 )
 from app.services.shop_settings_service import get_shop_settings
-from app.services import design_templates, export_service
+from app.services import design_templates, export_service, parts_sheet
 from app.services.geometry_service import compute_metrics, offset_contours
 
 router = APIRouter(prefix="/api/admin/designs", tags=["designs"], dependencies=[Depends(require_admin)])
@@ -190,6 +190,25 @@ def export_dxf(
         data,
         media_type="application/dxf",
         headers={"Content-Disposition": f'attachment; filename="{_safe_filename(design.name, "dxf")}"'},
+    )
+
+
+@router.get("/{design_id}/parts.pdf")
+def export_parts_sheet(
+    design_id: int,
+    paper: str = Query(default="A4", pattern="^(A4|A3)$"),
+    db: Session = Depends(get_db),
+):
+    """The parts at true size, tiled over several pages if needed, with punch marks."""
+    design = _get_or_404(db, design_id)
+    try:
+        pdf = parts_sheet.parts_sheet_pdf(_document(design), title=design.name, paper=paper, workshop=get_shop_settings(db).workshop_name)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return Response(
+        pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{_safe_filename(design.name + "-pieces", "pdf")}"'},
     )
 
 

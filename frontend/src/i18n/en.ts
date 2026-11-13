@@ -1111,4 +1111,8 @@ export const en: Record<string, string> = {
   "units.label": "Display unit",
   "units.mm": "Millimetres",
   "units.in": "Inches (1 in = 25.4 mm): only the display changes, drawings and exports stay in millimetres",
+  "parts.a4": "Parts sheet 1:1 (PDF, A4)",
+  "parts.a3": "Parts sheet 1:1 (PDF, A3)",
+  "parts.hint": "The parts at true size, to glue on the stock: punch marks at hole centres, pages to assemble when a part is larger than the paper, 100 mm check bar.",
+  "parts.done": "Parts sheet downloaded: print it at 100 %, then check the 100 mm bar.",
 };

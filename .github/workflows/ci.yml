@@ -115,8 +115,9 @@ jobs:
       - name: Package the program
         working-directory: backend
         run: |
-          pip install -r requirements.txt -r requirements-desktop.txt
-          pyinstaller --noconfirm desktop/knifeforge.spec
+          python -m pip install -r requirements.txt -r requirements-desktop.txt
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -m PyInstaller --noconfirm desktop/knifeforge.spec
       - name: Smoke test (starts, migrates a new database, serves the interface)
         working-directory: backend
         shell: pwsh

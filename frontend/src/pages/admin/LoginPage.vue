@@ -17,14 +17,31 @@ const error = ref("");
 const loading = ref(false);
 // first launch of the desktop build: the account is created here instead of signing in
 const setup = ref(false);
+// public demo: no account, one button
+const demo = ref(false);
 
 onMounted(async () => {
   try {
-    setup.value = (await store.authStatus()).needs_setup;
+    const status = await store.authStatus();
+    setup.value = status.needs_setup;
+    demo.value = !!status.demo;
   } catch {
     // older server or no network: the sign-in form reports the problem on submit
   }
 });
+
+async function enterDemo() {
+  error.value = "";
+  loading.value = true;
+  try {
+    await store.enterDemo();
+    router.push("/");
+  } catch (err) {
+    error.value = errorMessage(err, t, "login.failed");
+  } finally {
+    loading.value = false;
+  }
+}
 
 async function submit() {
   error.value = "";
@@ -100,6 +117,13 @@ async function submit() {
           </svg>
           <span class="font-semibold tracking-tight">KnifeForge <span class="text-accent-700">Pro</span></span>
         </div>
+        <template v-if="demo">
+          <h1 class="page-title">{{ t("demo.title") }}</h1>
+          <p class="page-lead mb-8">{{ t("demo.lead") }}</p>
+          <p v-if="error" role="alert" class="mb-4 text-sm text-red-700">{{ error }}</p>
+          <button type="button" :disabled="loading" class="btn btn-primary w-full py-2.5" @click="enterDemo">{{ t("demo.enter") }}</button>
+        </template>
+        <template v-else>
         <h1 class="page-title">{{ setup ? t("setup.title") : t("login.title") }}</h1>
         <p class="page-lead mb-8">{{ setup ? t("setup.lead") : t("login.lead") }}</p>
         <form class="space-y-4" @submit.prevent="submit">
@@ -130,6 +154,7 @@ async function submit() {
             {{ loading ? t("login.signingIn") : setup ? t("setup.create") : t("login.signIn") }}
           </button>
         </form>
+        </template>
       </div>
     </section>
   </main>

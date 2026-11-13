@@ -1,0 +1,31 @@
+# Public demo: a fictitious workshop, entered without a password, that nobody can change.
+#
+#   DEMO_SECRET_KEY=$(openssl rand -hex 32) docker compose -f docker-compose.demo.yml up -d --build
+#
+# - Only invented data, rebuilt from scratch at every start (app/services/demo_service.py).
+# - Every write is refused by the server ("Read-only demo"); calculations and exports work.
+# - The database lives inside the container: nothing is kept between two starts.
+# - A nightly restart brings the dates back to today (orders due "in 4 days" stay so):
+#     0 4 * * *  docker compose -f /path/to/docker-compose.demo.yml restart backend
+# Put it behind your HTTPS reverse proxy; it never needs a real account, mail or payment.
+name: knifeforge-demo
+
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DEMO: "true"
+      SECRET_KEY: ${DEMO_SECRET_KEY:?DEMO_SECRET_KEY is required (openssl rand -hex 32)}
+      DATABASE_URL: sqlite:////tmp/knifeforge-demo.db
+      REDIS_URL: ""
+      FRONTEND_URL: ${DEMO_URL:-http://localhost:8090}
+    # no published port: only the frontend's nginx reaches it
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${DEMO_HTTP_PORT:-8090}:80"

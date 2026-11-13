@@ -22,3 +22,4 @@ class SetupRequest(BaseModel):
 
 class AuthStatus(BaseModel):
     needs_setup: bool
+    demo: bool = False

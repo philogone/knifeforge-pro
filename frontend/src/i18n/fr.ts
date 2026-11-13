@@ -1222,4 +1222,9 @@ export const fr: Record<string, string> = {
   "calibration.apply": "Utiliser {k} mm comme compensation d'export",
   "calibration.applied": "Enregistré : l'éditeur proposera cette valeur au prochain export DXF / SVG.",
   "calibration.storageBlocked": "Le navigateur bloque l'enregistrement : saisissez la valeur dans le menu d'export de l'éditeur.",
+  "demo.title": "Démonstration",
+  "demo.lead": "Un atelier fictif, ouvert à tous : tableau de bord, éditeur, nesting, devis et factures. Rien de ce que vous faites n'est enregistré, et aucune donnée réelle n'y figure.",
+  "demo.enter": "Entrer dans la démo",
+  "demo.band": "Démonstration : données fictives, en lecture seule. Les calculs et les exports fonctionnent ; les modifications ne sont pas enregistrées.",
+  "apiError.readOnlyDemo": "Démonstration en lecture seule : cette modification n'est pas enregistrée.",
 };

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.config import get_settings
 from app.database import SessionLocal
@@ -34,7 +34,16 @@ app_settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if app_settings.seed_mock_data_on_startup:
+    if app_settings.demo:
+        from app.services.demo_service import rebuild
+
+        db = SessionLocal()
+        try:
+            rebuild(db)
+            logger.info("Demo workshop rebuilt (read-only)")
+        finally:
+            db.close()
+    elif app_settings.seed_mock_data_on_startup:
         db = SessionLocal()
         try:
             created = seed_mock_data(db)
@@ -63,6 +72,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+if app_settings.demo:
+    from app.services.demo_service import write_allowed
+
+    @app.middleware("http")
+    async def read_only_demo(request: Request, call_next):
+        if request.url.path.startswith("/api/") and not write_allowed(request.method, request.url.path):
+            return JSONResponse({"detail": "Read-only demo"}, status_code=403)
+        return await call_next(request)
+
 
 app.include_router(auth.router)
 app.include_router(materials.router)

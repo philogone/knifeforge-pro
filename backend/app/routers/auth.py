@@ -20,16 +20,26 @@ def _needs_setup() -> bool:
 
 @router.get("/status", response_model=AuthStatus)
 def auth_status() -> AuthStatus:
-    return AuthStatus(needs_setup=_needs_setup())
+    return AuthStatus(needs_setup=_needs_setup(), demo=settings.demo)
 
 
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, _rl=Depends(rate_limit_login)) -> TokenResponse:
     if _needs_setup():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Create the account first")
+    if settings.demo:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Read-only demo")
     if payload.email != settings.admin_email or not verify_password(payload.password, settings.admin_password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     return TokenResponse(access_token=create_access_token(payload.email))
+
+
+@router.post("/demo", response_model=TokenResponse)
+def demo(_rl=Depends(rate_limit_login)) -> TokenResponse:
+    """Public demo only: enter the fictitious workshop without a password (read-only)."""
+    if not settings.demo:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    return TokenResponse(access_token=create_access_token(settings.admin_email))
 
 
 @router.post("/setup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)

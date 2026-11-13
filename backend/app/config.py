@@ -4,6 +4,10 @@ from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+# the public demo's only "account": nobody signs in with it, visitors enter without a password
+DEMO_EMAIL = "demo@knifeforge.invalid"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -33,6 +37,10 @@ class Settings(BaseSettings):
     # built interface served by the backend itself (desktop); nginx serves it under Docker
     frontend_dist: str = ""
 
+    # public demo: fictitious data rebuilt at each start, entered without a password, read-only
+    # (app/services/demo_service.py)
+    demo: bool = False
+
     @field_validator("secret_key")
     @classmethod
     def _secret_is_real(cls, value: str) -> str:
@@ -45,6 +53,9 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _admin_account_outside_desktop(self) -> "Settings":
+        if self.demo:
+            self.admin_email, self.admin_password_hash = DEMO_EMAIL, ""
+            return self
         if not self.desktop and not (self.admin_email and self.admin_password_hash):
             raise ValueError("ADMIN_EMAIL and ADMIN_PASSWORD_HASH are required (see .env.example)")
         return self

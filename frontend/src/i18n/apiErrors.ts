@@ -13,6 +13,7 @@ const EXACT: Record<string, string> = {
   "Design not found": "apiError.designNotFound",
   "Too many attempts, try again shortly": "apiError.rateLimited",
   "Invalid credentials": "apiError.invalidCredentials",
+  "Read-only demo": "apiError.readOnlyDemo",
   "Create the account first": "apiError.setupFirst",
   "The account already exists": "apiError.accountExists",
   "Backup folder not writable": "apiError.backupFolder",

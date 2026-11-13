@@ -1,15 +1,26 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 
 import NavMenu, { type NavItem } from "@/components/NavMenu.vue";
 import { clearToken } from "@/composables/useApi";
 import { useTheme } from "@/composables/useTheme";
 import { useI18n } from "@/i18n";
+import { useAppStore } from "@/stores/app.store";
 
 const { t } = useI18n();
 const theme = useTheme();
 const route = useRoute();
+const store = useAppStore();
+// public demo: a band says the data is invented and nothing is saved
+const demo = ref(false);
+onMounted(async () => {
+  try {
+    demo.value = !!(await store.authStatus()).demo;
+  } catch {
+    // no server yet: the pages say so themselves
+  }
+});
 const showChrome = computed(() => route.name !== "login");
 // the editor fills the window: no footer under it
 const showFooter = computed(() => showChrome.value && route.name !== "design-editor");
@@ -141,6 +152,9 @@ function logout() {
         </div>
       </div>
     </nav>
+    <p v-if="demo && showChrome" class="px-5 py-2 text-center text-sm bg-amber-50 text-amber-900 border-b border-amber-200" role="status">
+      {{ t("demo.band") }}
+    </p>
     <main id="main" tabindex="-1" class="outline-none"><router-view /></main>
     <p v-if="showFooter" class="text-center text-xs text-slate-500 py-10">{{ t("app.footer") }}</p>
   </div>

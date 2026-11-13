@@ -1222,4 +1222,9 @@ export const en: Record<string, string> = {
   "calibration.apply": "Use {k} mm as export compensation",
   "calibration.applied": "Saved: the editor will offer this value on the next DXF / SVG export.",
   "calibration.storageBlocked": "The browser blocks saving: enter the value in the editor's export menu.",
+  "demo.title": "Demo",
+  "demo.lead": "A fictitious workshop, open to everyone: dashboard, editor, nesting, quotes and invoices. Nothing you do is saved, and no real data is in it.",
+  "demo.enter": "Enter the demo",
+  "demo.band": "Demo: fictitious data, read-only. Calculations and exports work; changes are not saved.",
+  "apiError.readOnlyDemo": "Read-only demo: this change is not saved.",
 };

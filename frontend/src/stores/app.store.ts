@@ -64,7 +64,12 @@ export const useAppStore = defineStore("app", {
 
     /** desktop build: is the workshop's account still to be created? */
     async authStatus() {
-      return apiFetch<{ needs_setup: boolean }>("/auth/status");
+      return apiFetch<{ needs_setup: boolean; demo?: boolean }>("/auth/status");
+    },
+    /** public demo only: enter the fictitious workshop without a password */
+    async enterDemo() {
+      const res = await apiFetch<{ access_token: string }>("/auth/demo", { method: "POST" });
+      setToken(res.access_token);
     },
 
     async setupAccount(email: string, password: string) {

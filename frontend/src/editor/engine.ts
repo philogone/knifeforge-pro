@@ -9,6 +9,7 @@ import { screenPxPerMm } from "./screenScale";
 import { formatLengthWithUnit, type LengthUnit } from "./units";
 import { notchContours, type NotchPattern } from "./notches";
 import { pointInRing, type Ring } from "./balance";
+import { outlineDistance, sweepAngles, type Polyline } from "./swing";
 import { History } from "./history";
 import { createTool, type ToolHandler } from "./tools";
 import type {
@@ -1366,6 +1367,102 @@ export class EditorEngine {
         const inside = holes.filter((h) => h.length >= 3 && rings.some((r) => pointInRing(h[0], r)));
         return { id: item.data.id as string, name: (item.data?.name as string | null) || `#${index + 1}`, rings: [...rings, ...inside] };
       });
+  }
+
+  // ---------------------------------------------------------------- folders: blade swing
+  /** Ids of the selected closed shapes (blade, pivot hole, obstacles are picked from the selection). */
+  selectedClosedIds(): string[] {
+    return this.selected
+      .filter((i) => (i instanceof paper.Path && i.closed) || i instanceof paper.CompoundPath)
+      .map((i) => i.data.id as string);
+  }
+
+  /** Centre of a shape's bounding box: the axis of a round pivot hole. */
+  centreOf(id: string): [number, number] | null {
+    const item = this.itemById(id);
+    return item ? [item.bounds.center.x, item.bounds.center.y] : null;
+  }
+
+  /** The blade turned by `angle` degrees about the pivot (counter-clockwise for the user, y up). */
+  private rotatedClone(bladeId: string, pivot: [number, number], angle: number): paper.PathItem | null {
+    const blade = this.itemById(bladeId);
+    if (!(blade instanceof paper.Path || blade instanceof paper.CompoundPath)) return null;
+    const ghost = blade.clone({ insert: false }) as paper.PathItem;
+    ghost.rotate(-angle, new paper.Point(pivot));
+    return ghost;
+  }
+
+  /** Draw the blade's outline turned by `angle` (null removes it) without touching the drawing. */
+  showSwing(bladeId: string | null, pivot: [number, number] | null, angle: number): void {
+    this.clearUi("swing");
+    if (!bladeId || !pivot) return;
+    const ghost = this.rotatedClone(bladeId, pivot, angle);
+    if (!ghost) return;
+    ghost.fillColor = new paper.Color(0.3, 0.35, 0.1, 0.12);
+    ghost.strokeColor = new paper.Color(UI_COLOR);
+    ghost.strokeWidth = 1.2;
+    ghost.strokeScaling = false;
+    ghost.dashArray = [6, 3];
+    this.addUi(ghost, "swing");
+    const axis = new paper.Path.Circle({ center: new paper.Point(pivot), radius: 0.6, fillColor: UI_COLOR, insert: false });
+    this.addUi(axis, "swing");
+  }
+
+  private polylines(item: paper.PathItem): Polyline[] {
+    const paths = item instanceof paper.CompoundPath ? (item.children as paper.Path[]) : [item as paper.Path];
+    return paths.map((path) => {
+      const flat = path.clone({ insert: false }) as paper.Path;
+      flat.flatten(0.02);
+      const line: Polyline = flat.segments.map((sg) => [sg.point.x, sg.point.y]);
+      flat.remove();
+      return line;
+    });
+  }
+
+  /**
+   * Turn the blade from 0 to `toAngle` every `step` degrees and report the first contact with an
+   * obstacle, else the smallest clearance at the end of the travel.
+   */
+  checkSwing(
+    bladeId: string,
+    pivot: [number, number],
+    toAngle: number,
+    obstacleIds: string[],
+    step = 0.5,
+  ): { contact: { angle: number; name: string } | null; clearance: { mm: number; name: string } | null } {
+    const obstacles = obstacleIds
+      .map((id) => this.itemById(id))
+      .filter((i): i is paper.Path | paper.CompoundPath => i instanceof paper.Path || i instanceof paper.CompoundPath);
+    const nameOf = (i: paper.Item) => (i.data?.name as string | null) || `#${i.data.id}`;
+    for (const angle of sweepAngles(toAngle, step)) {
+      const ghost = this.rotatedClone(bladeId, pivot, angle);
+      if (!ghost) return { contact: null, clearance: null };
+      for (const ob of obstacles) {
+        const touching =
+          ghost.intersects(ob) ||
+          ghost.contains(ob.bounds.center) ||
+          ob.contains(ghost.bounds.center);
+        if (touching) {
+          ghost.remove();
+          return { contact: { angle: Math.round(angle * 10) / 10, name: nameOf(ob) }, clearance: null };
+        }
+      }
+      ghost.remove();
+    }
+    const end = this.rotatedClone(bladeId, pivot, toAngle);
+    if (!end || !obstacles.length) return { contact: null, clearance: null };
+    const blade = this.polylines(end);
+    end.remove();
+    let best: { mm: number; name: string } | null = null;
+    for (const ob of obstacles) {
+      for (const a of blade) {
+        for (const b of this.polylines(ob)) {
+          const d = outlineDistance(a, b);
+          if (!best || d < best.mm) best = { mm: d, name: nameOf(ob) };
+        }
+      }
+    }
+    return { contact: null, clearance: best };
   }
 
   /** Mark the balance point on the drawing (null removes the mark). */

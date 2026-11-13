@@ -722,6 +722,65 @@ function onBalanceMaterial(row: BalanceRow) {
   computeBalance();
 }
 
+// ---- folders: swing the blade about its pivot and check it clears the stop pin / spring
+const swing = reactive({
+  open: false,
+  bladeId: "",
+  pivotId: "",
+  pivot: null as [number, number] | null,
+  obstacles: [] as string[],
+  angle: 0,
+  message: "",
+  warn: false,
+});
+const nameOfItem = (id: string) => (engine.value?.itemById(id)?.data?.name as string | null) || t("swing.unnamed");
+
+function swingPick(what: "blade" | "pivot" | "obstacles") {
+  const e = engine.value;
+  if (!e) return;
+  const ids = e.selectedClosedIds();
+  swing.message = "";
+  if (what === "obstacles") {
+    swing.obstacles = ids.filter((id) => id !== swing.bladeId && id !== swing.pivotId);
+    return;
+  }
+  if (ids.length !== 1) {
+    swing.message = t("swing.pickOne");
+    swing.warn = true;
+    return;
+  }
+  if (what === "blade") swing.bladeId = ids[0];
+  else {
+    swing.pivotId = ids[0];
+    swing.pivot = e.centreOf(ids[0]);
+  }
+  e.showSwing(swing.bladeId || null, swing.pivot, Number(swing.angle) || 0);
+}
+
+watch(() => [swing.open, swing.angle], () => {
+  const e = engine.value;
+  if (!e) return;
+  if (!swing.open) return void e.showSwing(null, null, 0);
+  e.showSwing(swing.bladeId || null, swing.pivot, Number(swing.angle) || 0);
+});
+
+function checkSwing() {
+  const e = engine.value;
+  if (!e || !swing.bladeId || !swing.pivot) return;
+  const r = e.checkSwing(swing.bladeId, swing.pivot, Number(swing.angle) || 0, swing.obstacles);
+  if (r.contact) {
+    swing.angle = r.contact.angle;
+    swing.message = t("swing.contact", { angle: String(r.contact.angle).replace(".", ","), name: r.contact.name });
+    swing.warn = true;
+  } else if (r.clearance) {
+    swing.message = t("swing.clear", { mm: fmt(r.clearance.mm), name: r.clearance.name });
+    swing.warn = r.clearance.mm < 0.2;
+  } else {
+    swing.message = t("swing.noObstacle");
+    swing.warn = false;
+  }
+}
+
 function openHoles() {
   [holes.x, holes.y] = defaultPoint().map(D);
   holes.open = true;
@@ -1331,6 +1390,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('library.title')" :aria-label="t('library.title')" @click="openLibrary"><EditorIcon name="library" /></button>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('holes.title')" :aria-label="t('holes.title')" @click="openHoles"><EditorIcon name="holes" /></button>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('notch.title')" :aria-label="t('notch.title')" @click="openNotches"><EditorIcon name="notch" /></button>
+          <button class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-slate-100" :class="swing.open ? 'bg-slate-100 text-slate-900' : 'text-slate-600'" :title="t('swing.title')" :aria-label="t('swing.title')" :aria-pressed="swing.open" @click="swing.open = !swing.open"><EditorIcon name="swing" /></button>
           <button class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100" :title="t('text.title')" :aria-label="t('text.title')" @click="openText"><EditorIcon name="text" /></button>
         </div>
 
@@ -1339,6 +1399,29 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
           <canvas ref="gridCanvas" class="absolute inset-0 pointer-events-none"></canvas>
           <canvas ref="paperCanvas" class="absolute inset-0" style="touch-action: none" @pointerdown="releaseFieldFocus"></canvas>
           <canvas ref="rulerCanvas" class="absolute inset-0 pointer-events-none"></canvas>
+          <!-- folder: blade swing (non-modal, the drawing stays visible and editable) -->
+          <section v-if="swing.open" class="absolute left-8 bottom-4 z-20 w-80 bg-paper border border-slate-200 rounded-lg shadow-lg p-3 space-y-2 text-xs" aria-labelledby="swing-title">
+            <div class="flex items-center justify-between">
+              <h2 id="swing-title" class="text-sm font-semibold text-slate-900">{{ t("swing.title") }}</h2>
+              <button class="p-0.5 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100" :aria-label="t('common.close')" @click="swing.open = false"><EditorIcon name="close" :size="14" /></button>
+            </div>
+            <p class="text-slate-500 leading-snug">{{ t("swing.help") }}</p>
+            <div class="grid grid-cols-[1fr_auto] items-center gap-x-2 gap-y-1">
+              <span class="truncate">{{ t("swing.blade") }} : <b>{{ swing.bladeId ? nameOfItem(swing.bladeId) : "—" }}</b></span>
+              <button type="button" class="btn btn-outline btn-sm" @click="swingPick('blade')">{{ t("swing.useSelection") }}</button>
+              <span class="truncate">{{ t("swing.pivot") }} : <b class="font-mono">{{ swing.pivot ? `${formatLength(swing.pivot[0], unit)} ; ${formatLength(swing.pivot[1], unit)}` : "—" }}</b></span>
+              <button type="button" class="btn btn-outline btn-sm" @click="swingPick('pivot')">{{ t("swing.useSelection") }}</button>
+              <span class="truncate">{{ t("swing.obstacles") }} : <b>{{ swing.obstacles.length ? swing.obstacles.map(nameOfItem).join(", ") : "—" }}</b></span>
+              <button type="button" class="btn btn-outline btn-sm" @click="swingPick('obstacles')">{{ t("swing.useSelection") }}</button>
+            </div>
+            <label class="flex items-center gap-2">{{ t("swing.angle") }}
+              <input v-model.number="swing.angle" type="range" min="-200" max="200" step="0.5" class="flex-1" :disabled="!swing.bladeId || !swing.pivot" />
+              <input v-model.number="swing.angle" type="number" min="-360" max="360" step="0.5" class="input-sm w-16 text-right" :disabled="!swing.bladeId || !swing.pivot" />
+              <span>°</span>
+            </label>
+            <button type="button" class="btn btn-primary btn-sm w-full" :disabled="!swing.bladeId || !swing.pivot" @click="checkSwing">{{ t("swing.check") }}</button>
+            <p v-if="swing.message" :class="swing.warn ? 'text-red-700' : 'text-green-700'" role="status">{{ swing.message }}</p>
+          </section>
           <!-- drag a guide out of a ruler -->
           <div class="absolute top-0 right-0 cursor-row-resize" :style="{ left: `${RULER_SIZE}px`, height: `${RULER_SIZE}px` }" @pointerdown="startGuide('y', $event)"></div>
           <div class="absolute left-0 bottom-0 cursor-col-resize" :style="{ top: `${RULER_SIZE}px`, width: `${RULER_SIZE}px` }" @pointerdown="startGuide('x', $event)"></div>

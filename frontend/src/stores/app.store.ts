@@ -269,6 +269,21 @@ export const useAppStore = defineStore("app", {
       return apiFetchBlob(`/admin/designs/${id}/${kind}${qs.toString() ? `?${qs}` : ""}`);
     },
     /** the cut parts extruded to a thickness (mm), for 3D printing */
+    async mockupParts(id: number) {
+      return apiFetch<{ object_id: string; name: string; width_mm: number; height_mm: number; role: string | null; thickness_mm: number }[]>(
+        `/admin/designs/${id}/mockup/parts`,
+      );
+    },
+    async mockupPreview(id: number, body: Record<string, unknown>) {
+      return apiFetch<{
+        meshes: { name: string; role: string; colour: string; z0: number; z1: number; positions: number[]; indices: number[] }[];
+        issues: { part: string; kind: "corner" | "hole_too_small" | "hole_corner"; x: number; y: number; size_mm: number }[];
+        stack_mm: number;
+      }>(`/admin/designs/${id}/mockup/preview`, { method: "POST", body: JSON.stringify(body) });
+    },
+    mockupFile(id: number, body: Record<string, unknown>) {
+      return apiFetchBlob(`/admin/designs/${id}/mockup`, { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
+    },
     downloadStl(id: number, thickness: number) {
       return apiFetchBlob(`/admin/designs/${id}/export.stl?thickness=${thickness}`);
     },

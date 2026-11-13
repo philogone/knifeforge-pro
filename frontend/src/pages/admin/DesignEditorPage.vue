@@ -458,6 +458,14 @@ async function exportStl() {
   }
 }
 
+// 3D mock-up of the assembled knife (3D printer, CNC router): the server reads the saved design
+const mockupOpen = ref(false);
+async function openMockup() {
+  if (exportMenu.value) exportMenu.value.open = false;
+  if (unsaved.value && !(await save())) return;
+  mockupOpen.value = true;
+}
+
 async function exportPartsSheet(paper: "A4" | "A3") {
   if (exportMenu.value) exportMenu.value.open = false;
   if (unsaved.value && !(await save())) return;
@@ -1330,6 +1338,7 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" @click="exportFrom('export.dxf')">{{ t("editor.exportDxf") }}</button>
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" :title="t('parts.hint')" @click="exportPartsSheet('A4')">{{ t("parts.a4") }}</button>
             <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" :title="t('parts.hint')" @click="exportPartsSheet('A3')">{{ t("parts.a3") }}</button>
+            <button class="block w-full text-left px-3 py-1.5 hover:bg-slate-50" :title="t('mockup.lead')" @click="openMockup">{{ t("mockup.menu") }}</button>
             <div class="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50">
               <button class="flex-1 text-left" :title="t('stl.hint')" @click="exportStl">{{ t("stl.export") }}</button>
               <input v-model.number="stlThickness" type="number" min="0.1" max="100" step="any" class="input-sm w-16 text-right" :placeholder="t('stl.auto')" :aria-label="tu('stl.thickness')" :title="tu('stl.thickness')" @click.stop />
@@ -2087,4 +2096,5 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
       </div>
     </div>
   </div>
+  <MockupDialog v-if="mockupOpen && design" :design-id="designId" :design-name="meta.name" :unit="unit" @close="mockupOpen = false" />
 </template>

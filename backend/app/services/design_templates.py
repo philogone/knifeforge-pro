@@ -93,19 +93,6 @@ def _drop_point(t: float, l: float, h: float) -> tuple[list[dict[str, float]], t
     ], tip
 
 
-def _yatagan(t: float, l: float, h: float) -> tuple[list[dict[str, float]], tuple[float, float]]:
-    tip = (t + l, h * 0.24)
-    return [
-        node(t, 0),
-        node(t + l * 0.62, h * 0.02, -l * 0.2, 0, l * 0.12, h * 0.05),
-        _tip(tip[0], tip[1], 8, l * 0.14, 40, h * 0.6),
-        node(t + l * 0.6, h, l * 0.18, 0, -l * 0.14, 0),
-        node(t + l * 0.3, h * 0.94, l * 0.1, 0, -l * 0.1, 0),
-        node(t + l * 0.08, h, l * 0.08, 0, 0, 0),
-        node(t, h),
-    ], tip
-
-
 def _grind(x0: float, tip: tuple[float, float], h: float, percent: float) -> list[dict[str, float]]:
     """Plunge curving up from the edge near the heel, then running out at the tip."""
     tx, ty = tip[0] - 2, min(tip[1], h)
@@ -155,11 +142,10 @@ def full_tang_blade(
     return document(objects)
 
 
-def folder_blade(blade_len: float = 85, height: float = 20, talon_len: float = 24, pivot_d: float = 4, profile: str = "drop-point") -> dict[str, Any]:
-    """Folding knife blade: round tang about the pivot hole, flat kick, sharpening choil.
-    `profile` is "drop-point" or "yatagan"."""
+def folder_blade(blade_len: float = 85, height: float = 20, talon_len: float = 24, pivot_d: float = 4) -> dict[str, Any]:
+    """Folding knife blade (demo data): round tang about the pivot hole, flat kick, sharpening choil."""
     t, l, h = talon_len, blade_len, height
-    body, tip = (_yatagan if profile == "yatagan" else _drop_point)(t, l, h)
+    body, tip = _drop_point(t, l, h)
     last = body.pop()
     rc = max(1, min(3, h * 0.08))
     r = h / 2

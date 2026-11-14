@@ -66,7 +66,7 @@ Un mini-Inkscape dans le navigateur, **à l'échelle 1:1 en millimètres**.
 - Booléens (union, différence, intersection, exclusion), combiner / séparer
 - Décalage (agrandir / réduire), alignement, miroir, rotation
 - **Saisie numérique exacte** : tapez 123,4 × 17,6, vous obtenez 123,4 × 17,6
-- **Bibliothèque de formes** paramétriques : 21 profils de lames dessinés avec leur talon (choil, garde, manche ergonomique ou talon de pliant) : drop-point, clip, lance, tanto, wharncliffe, pied de mouton, pointe relevée, skinner, bowie, office, gyuto, santoku, nakiri, kiritsuke, et sept lames de pliant dont les modèles régionaux traditionnels (drop-point, yatagan, Nontron, London, Yssingeaux, Saint-Amand, vendetta corse), classés par familles, plaquette, gardes, rondelle, fente de soie, et réutilisation de vos propres gabarits
+- **Bibliothèque de formes** paramétriques : 14 profils de lames dessinés avec leur talon (choil, garde et manche ergonomique, ou talon droit pour la cuisine), classés par familles : drop-point, clip, lance, tanto, wharncliffe, pied de mouton, pointe relevée, skinner, bowie, office, gyuto, santoku, nakiri, kiritsuke, plaquette, gardes, rondelle, fente de soie, et réutilisation de vos propres gabarits
 - **Millimètres ou pouces** à l'affichage et à la saisie (règles en fractions de pouce), le dessin restant en millimètres
 - **Crantage et dentelure** : rangée d'entailles en V, arrondies ou à fond plat, découpée dans la pièce le long d'un tronçon
 - **Pliants** : rotation de la lame autour du pivot et vérification de la course (premier contact, jeu en fin de course)

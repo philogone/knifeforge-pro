@@ -11,29 +11,20 @@ modification (dossier « Sauvegardes avant mise à jour »), puis mise à niveau
 
 ## [Non publié]
 
-### Ajouté
-- **Modèles régionaux traditionnels** dans la bibliothèque, rangée par familles (pièces, lames
-  fixes, cuisine, pliants et régionaux) : **London** (Thiers), **Yssingeaux** (lame bourbonnaise),
-  **Saint-Amand** (feuille de saule), **vendetta** corse, à côté du Nontron (feuille de sauge) et
-  du yatagan. Seules des formes anciennes, libres de droits, sont dessinées ; les noms protégés
-  (indication géographique, marques) ne sont pas employés.
-- **Nouveau gabarit** propose toutes les lames de la bibliothèque comme point de départ, rangées
-  par familles (lames fixes, cuisine, pliants et régionaux), en plus des modèles de base.
-- Modèle de départ et dessin de démonstration **« Félicie »** : une lame dessinée à la main avec
-  l'outil (grand choil, talon en bec).
-
 ### Modifié
 - **Nouveau logo et nouvelle icône** (application, onglet du navigateur, installeurs) : une lame
   drop-point à soie pleine, lisible dès 16 px.
 - **Profils de lames redessinés** : vraies pointes, ventre et dos tendus, choil d'affûtage, garde
   et manche ergonomique pour les lames fixes, talon droit pour la cuisine.
+- Bibliothèque de formes rangée par familles (pièces, lames fixes, cuisine). **Nouveau gabarit**
+  propose toutes ces lames comme point de départ, en plus des modèles de base.
 - Modèles de départ et données de démonstration : lame à soie pleine, lame de pliant, plaquette
   de pliant galbée ; page de connexion, bannière du README et vidéo de présentation refaites avec
   ces dessins.
 
 ### Ajouté
-- Trois lames de pliant dans la bibliothèque : drop-point, yatagan, feuille de sauge (Nontron),
-  avec talon arrondi et perçage du pivot. Modèle de départ « Lame de pliant yatagan ».
+- Modèle de départ et dessin de démonstration **« Félicie »** : une lame dessinée à la main avec
+  l'outil (grand choil, talon en bec).
 
 ## [0.11.0] — 2026-11-13
 

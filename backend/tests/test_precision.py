@@ -22,7 +22,7 @@ from app.services.geometry_service import (
     offset_contours,
 )
 from app.services.nesting_service import NestItem, pack
-from tests.helpers import circle_obj, doc, rect_obj
+from tests.helpers import circle_obj, doc, rect_obj, simple_blade
 
 KAPPA_RADIAL_ERROR = 0.000273  # max relative radius error of the 4-arc Bézier circle
 
@@ -106,7 +106,7 @@ def test_plan_overall_dimensions_are_the_real_ones():
 
 @pytest.mark.parametrize("spacing,margin", [(0.5, 0), (2, 3), (4.7, 1.3)])
 def test_nesting_spacing_and_margin_are_hard_minimums_for_curved_parts(spacing, margin):
-    blade = DesignDocument.model_validate(tpl.drop_point_blade())
+    blade = DesignDocument.model_validate(simple_blade())
     part = extract_parts(blade)[0]
     scale = DesignDocument.model_validate(tpl.handle_scale())
     sp = extract_parts(scale)[0]

@@ -2,6 +2,7 @@
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 
+import AppLogo from "@/components/AppLogo.vue";
 import { useI18n } from "@/i18n";
 import { errorMessage } from "@/i18n/apiErrors";
 import { useAppStore } from "@/stores/app.store";
@@ -64,13 +65,10 @@ async function submit() {
 
 <template>
   <main class="min-h-screen grid lg:grid-cols-[1.15fr_1fr]">
-    <!-- the drawing board: a blade plate, drawn the way the editor draws it -->
+    <!-- the drawing board: the library drop point (default parameters), drawn the way the editor draws it -->
     <section class="relative hidden lg:flex flex-col justify-between p-10 border-r border-slate-200 bg-paper/60" aria-hidden="true">
       <div class="flex items-center gap-2 text-slate-900">
-        <svg width="28" height="28" viewBox="0 0 32 32">
-          <rect width="32" height="32" rx="7" class="fill-accent-600" />
-          <path d="M4 14h11l2-3h7c3 0 5 2 6 5-2 3-5 5-9 5h-4l-2-3H4z" class="fill-accent-100" />
-        </svg>
+        <AppLogo :size="28" />
         <span class="font-semibold tracking-tight">KnifeForge <span class="text-accent-700">Pro</span></span>
       </div>
 
@@ -78,28 +76,28 @@ async function submit() {
         <!-- blade -->
         <path
           class="draw"
-          d="M40 120 H250 L272 98 H470 C520 98 560 112 600 150 C560 196 500 206 430 206 H272 L250 180 H40 Z"
+          d="M307.8 100 C307.8 100 467.7 100 467.7 100 C524.8 100 562.5 117.6 593.3 132.6 C557 159 519.1 181.6 450.6 181.6 C450.6 181.6 326.7 181.6 326.7 181.6 C326.7 178 323.8 175.1 320.2 175.1 C316.5 175.1 313.6 178 313.6 181.6 C313.6 184.9 310.1 186.1 305.4 186.1 C296 186.1 286.6 158.1 265.4 158.1 C222.6 158.1 184.6 165.5 136.4 165.5 C82.8 165.5 88.2 162.9 56.1 162.9 C45.4 162.9 40 151.4 40 131.8 C40 113.5 45.4 102.4 56.1 102.4 C123 102.4 307.8 100 307.8 100Z"
           stroke="currentColor" stroke-width="1.6" fill="rgb(var(--slate-500) / 0.10)"
         />
         <!-- grind line, dash-dot -->
-        <path class="fade" d="M300 160 C400 150 500 150 596 150" stroke="#0f766e" stroke-width="1.2" stroke-dasharray="9 3 2 3" />
+        <path class="fade" d="M329.2 181.6 C329.2 181.6 344.5 165.3 354.7 140.8 C354.7 140.8 489.8 140.8 489.8 140.8 C489.8 140.8 549.4 135.1 588.3 132.6" stroke="#0f766e" stroke-width="1.2" stroke-dasharray="9 3 2 3" />
         <!-- holes -->
-        <circle class="fade" cx="95" cy="150" r="9" stroke="#dc2626" stroke-width="1.4" fill="rgb(var(--paper))" />
-        <circle class="fade" cx="175" cy="150" r="9" stroke="#dc2626" stroke-width="1.4" fill="rgb(var(--paper))" />
+        <circle class="fade" cx="93.6" cy="130.6" r="6.4" stroke="#dc2626" stroke-width="1.4" fill="rgb(var(--paper))" />
+        <circle class="fade" cx="252.7" cy="130.6" r="6.4" stroke="#dc2626" stroke-width="1.4" fill="rgb(var(--paper))" />
         <!-- overall length -->
         <g class="fade" stroke="rgb(var(--slate-600))" stroke-width="1">
-          <path d="M40 186 V262 M600 156 V262" stroke-dasharray="2 3" />
-          <path d="M40 250 H600" />
-          <path d="M40 250 l10 -4 v8 z M600 250 l-10 -4 v8 z" fill="rgb(var(--slate-600))" />
+          <path d="M40 170 V262 M593.3 138 V262" stroke-dasharray="2 3" />
+          <path d="M40 250 H593.3" />
+          <path d="M40 250 l10 -4 v8 z M593.3 250 l-10 -4 v8 z" fill="rgb(var(--slate-600))" />
         </g>
-        <text class="fade" x="320" y="240" text-anchor="middle" font-size="15" fill="currentColor" font-family="IBM Plex Sans, sans-serif">182,0 mm</text>
+        <text class="fade" x="320" y="240" text-anchor="middle" font-size="15" fill="currentColor" font-family="IBM Plex Sans, sans-serif">217,0 mm</text>
         <!-- blade height -->
         <g class="fade" stroke="rgb(var(--slate-600))" stroke-width="1">
-          <path d="M470 98 H628 M430 206 H628" stroke-dasharray="2 3" />
-          <path d="M618 98 V206" />
-          <path d="M618 98 l-4 10 h8 z M618 206 l-4 -10 h8 z" fill="rgb(var(--slate-600))" />
+          <path d="M470 100 H628 M452 181.6 H628" stroke-dasharray="2 3" />
+          <path d="M618 100 V181.6" />
+          <path d="M618 100 l-4 10 h8 z M618 181.6 l-4 -10 h8 z" fill="rgb(var(--slate-600))" />
         </g>
-        <text class="fade" x="632" y="157" font-size="14" fill="currentColor" font-family="IBM Plex Sans, sans-serif">32,0</text>
+        <text class="fade" x="632" y="146" font-size="14" fill="currentColor" font-family="IBM Plex Sans, sans-serif">32,0</text>
       </svg>
 
       <div>
@@ -111,10 +109,7 @@ async function submit() {
     <section class="flex items-center justify-center p-6">
       <div class="w-full max-w-sm">
         <div class="lg:hidden flex items-center gap-2 mb-8 text-slate-900">
-          <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
-            <rect width="32" height="32" rx="7" class="fill-accent-600" />
-            <path d="M4 14h11l2-3h7c3 0 5 2 6 5-2 3-5 5-9 5h-4l-2-3H4z" class="fill-accent-100" />
-          </svg>
+          <AppLogo :size="28" />
           <span class="font-semibold tracking-tight">KnifeForge <span class="text-accent-700">Pro</span></span>
         </div>
         <template v-if="demo">

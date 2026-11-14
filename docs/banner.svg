@@ -1,53 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="340" viewBox="0 0 1280 340" role="img" aria-label="KnifeForge Pro">
   <defs>
-    <pattern id="minor" width="12" height="12" patternUnits="userSpaceOnUse">
-      <path d="M12 0H0V12" fill="none" stroke="#1e3a8a" stroke-opacity="0.35" stroke-width="0.6"/>
+    <pattern id="minor" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M10 0H0V10" fill="none" stroke="#4d5a1c" stroke-opacity="0.07" stroke-width="1"/>
     </pattern>
-    <pattern id="major" width="60" height="60" patternUnits="userSpaceOnUse">
-      <rect width="60" height="60" fill="url(#minor)"/>
-      <path d="M60 0H0V60" fill="none" stroke="#3b82f6" stroke-opacity="0.35" stroke-width="1"/>
+    <pattern id="major" width="50" height="50" patternUnits="userSpaceOnUse">
+      <rect width="50" height="50" fill="url(#minor)"/>
+      <path d="M50 0H0V50" fill="none" stroke="#4d5a1c" stroke-opacity="0.12" stroke-width="1"/>
     </pattern>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0b1226"/>
-      <stop offset="1" stop-color="#111c3d"/>
-    </linearGradient>
-    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#e0e7ff" stop-opacity="0.95"/>
-      <stop offset="0.55" stop-color="#a5b4fc" stop-opacity="0.85"/>
-      <stop offset="1" stop-color="#6366f1" stop-opacity="0.75"/>
-    </linearGradient>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0 0L10 5L0 10Z" fill="#93c5fd"/>
-    </marker>
   </defs>
 
-  <rect width="1280" height="340" rx="18" fill="url(#bg)"/>
+  <rect width="1280" height="340" rx="18" fill="#f8f6f1"/>
   <rect width="1280" height="340" rx="18" fill="url(#major)"/>
+  <rect x="0.5" y="0.5" width="1279" height="339" rx="17.5" fill="none" stroke="#d9d4c7"/>
 
-  <!-- Title -->
-  <text x="64" y="138" fill="#f8fafc" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="64" font-weight="700" letter-spacing="-1">KnifeForge <tspan fill="#818cf8">Pro</tspan></text>
-  <text x="66" y="184" fill="#cbd5e1" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22">L'atelier du coutelier, au dixième de millimètre.</text>
-  <text x="66" y="236" fill="#93c5fd" font-family="Consolas, Menlo, monospace" font-size="15">éditeur vectoriel · nesting sur stock · SVG / DXF · plans cotés</text>
-  <text x="66" y="266" fill="#64748b" font-family="Consolas, Menlo, monospace" font-size="15">tolérance de courbes 0,01 mm · espacement garanti</text>
-
-  <!-- Real Bushcraft profile from the demo data, 1 mm = 3 px -->
-  <g transform="translate(652 92) scale(3)">
-    <path d="M0 6.4L64 6.4L70 0L150.64 0C169.68 0 173.04 5.44 182 17.6C176.4 27.2 154 32 131.6 32L70 32L64 22.4L0 22.4L0 6.4Z"
-          fill="url(#steel)" stroke="#e0e7ff" stroke-width="0.35" fill-rule="evenodd"/>
-    <circle cx="15.4" cy="14.4" r="2.5" fill="#0b1226" stroke="#f87171" stroke-width="0.35"/>
-    <circle cx="43.4" cy="14.4" r="2.5" fill="#0b1226" stroke="#f87171" stroke-width="0.35"/>
+  <!-- mark -->
+  <g transform="translate(64 66) scale(1.75)">
+    <rect width="32" height="32" rx="7" fill="#4d5a1c"/>
+    <g transform="translate(16.2 16.2) rotate(-35) scale(.84) translate(-18.5 -3.4)">
+      <path d="M.8.4 14.4 0V4.6C12.6 4.6 11.6 4.1 10 4.4 7.5 4.9 5 5.5 2.8 5.3 1 5.1 0 4.3 0 2.6 0 1.4.3.5.8.4Z" fill="#e7ecd2"/>
+      <circle cx="4.6" cy="2.5" r=".6" fill="#4d5a1c"/>
+      <circle cx="10.4" cy="2.2" r=".6" fill="#4d5a1c"/>
+      <path d="M15.4 0H27C30.6 0 34 1.4 37 3 34 5.4 30.4 6.2 26.4 6.2H18.2C17.4 6.2 17.3 7 16.4 7 15.8 7 15.4 6.6 15.4 6Z" fill="#fff"/>
+      <path d="M19.6 6.2C20.4 4.6 20.6 3.5 22 3.5H29C32 3.5 34.4 3.2 37 3 34 5.4 30.4 6.2 26.4 6.2Z" fill="#cfd8a6"/>
+    </g>
   </g>
 
-  <!-- Dimension lines -->
-  <g stroke="#93c5fd" stroke-width="1.2" fill="none">
-    <path d="M652 196V250M1198 158V250"/>
-    <path d="M658 242H1192" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-    <path d="M1198 92H1240M1198 188H1240"/>
-    <path d="M1232 98V182" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-  </g>
-  <rect x="884" y="230" width="72" height="24" rx="4" fill="#0f1a3a"/>
-  <text x="920" y="248" fill="#e0e7ff" font-family="Consolas, Menlo, monospace" font-size="16" text-anchor="middle">182 mm</text>
-  <text x="1256" y="140" fill="#e0e7ff" font-family="Consolas, Menlo, monospace" font-size="16" text-anchor="middle" transform="rotate(-90 1256 140)">32 mm</text>
+  <text x="62" y="176" fill="#1c1b18" font-family="IBM Plex Sans, Segoe UI, Helvetica, Arial, sans-serif" font-size="60" font-weight="600" letter-spacing="-1.5">KnifeForge <tspan fill="#4d5a1c">Pro</tspan></text>
+  <text x="64" y="216" fill="#3d3a33" font-family="IBM Plex Sans, Segoe UI, Helvetica, Arial, sans-serif" font-size="22">L'atelier du coutelier, au dixième de millimètre.</text>
+  <text x="64" y="262" fill="#5c574c" font-family="IBM Plex Mono, Consolas, Menlo, monospace" font-size="15">dessin coté · nesting sur stock · DXF / SVG · devis et factures</text>
+  <text x="64" y="288" fill="#8a8372" font-family="IBM Plex Mono, Consolas, Menlo, monospace" font-size="15">courbes à 0,01 mm près · espacement garanti</text>
 
-  <text x="1212" y="312" fill="#475569" font-family="Consolas, Menlo, monospace" font-size="13" text-anchor="end">échelle 3 px / mm · profil « Bushcraft » des données de démo</text>
+  <!-- the library drop point at its default parameters, 1 mm = 2.62 px -->
+  <path d="M915.1 112 C915.1 112 1079.4 112 1079.4 112 C1138.1 112 1176.9 130.1 1208.5 145.5 C1171.2 172.6 1132.2 195.8 1061.8 195.8 C1061.8 195.8 934.6 195.8 934.6 195.8 C934.6 192.1 931.5 189.1 927.8 189.1 C924.1 189.1 921.1 192.1 921.1 195.8 C921.1 199.2 917.5 200.5 912.7 200.5 C903.1 200.5 893.4 171.7 871.6 171.7 C827.6 171.7 788.6 179.3 739 179.3 C684 179.3 689.5 176.6 656.5 176.6 C645.5 176.6 640 164.8 640 144.7 C640 125.8 645.5 114.5 656.5 114.5 C725.3 114.5 915.1 112 915.1 112Z"
+        fill="#ece8de" stroke="#1c1b18" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M937.2 195.8 C937.2 195.8 952.9 179.1 963.4 153.9 C963.4 153.9 1102.2 153.9 1102.2 153.9 C1102.2 153.9 1163.4 148.1 1203.3 145.5"
+        fill="none" stroke="#0f766e" stroke-width="1.3" stroke-dasharray="9 3 2 3"/>
+  <circle cx="695" cy="143.4" r="6.55" fill="#f8f6f1" stroke="#dc2626" stroke-width="1.4"/>
+  <circle cx="858.5" cy="143.4" r="6.55" fill="#f8f6f1" stroke="#dc2626" stroke-width="1.4"/>
+
+  <!-- dimensions -->
+  <g stroke="#5c574c" stroke-width="1" fill="none">
+    <path d="M640 184V262M1208.5 152V262" stroke-dasharray="2 3"/>
+    <path d="M640 250H1208.5"/>
+    <path d="M1079.4 112H1246M1061.8 195.8H1246" stroke-dasharray="2 3"/>
+    <path d="M1236 112V195.8"/>
+  </g>
+  <g fill="#5c574c">
+    <path d="M640 250l10-4v8zM1208.5 250l-10-4v8zM1236 112l-4 10h8zM1236 195.8l-4-10h8z"/>
+  </g>
+  <rect x="888" y="238" width="72" height="24" fill="#f8f6f1"/>
+  <text x="924" y="255" fill="#1c1b18" font-family="IBM Plex Mono, Consolas, Menlo, monospace" font-size="15" text-anchor="middle">217,0</text>
+  <text x="1256" y="154" fill="#1c1b18" font-family="IBM Plex Mono, Consolas, Menlo, monospace" font-size="15" text-anchor="middle" transform="rotate(-90 1256 154)">32,0</text>
+  <text x="1216" y="312" fill="#8a8372" font-family="IBM Plex Mono, Consolas, Menlo, monospace" font-size="12" text-anchor="end">lame drop-point de la bibliothèque · cotes en mm</text>
 </svg>

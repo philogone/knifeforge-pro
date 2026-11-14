@@ -6,6 +6,7 @@ from app.models.knife_model import KnifeModel, KnifeModelMaterial, MaterialRole
 from app.models.material import DimensionType, Material, MaterialCategory
 from app.models.order import Order, OrderLine, OrderStatus
 from app.services import design_templates as tpl
+from tests.helpers import simple_blade
 from fastapi.testclient import TestClient
 
 
@@ -34,7 +35,7 @@ def make_model(db, name="Bushcraft"):
 
 
 def create_design(client, name="Lame", document=None, **extra):
-    body = {"name": name, "kind": "blade", "document": document or tpl.drop_point_blade(), **extra}
+    body = {"name": name, "kind": "blade", "document": document or simple_blade(), **extra}
     response = client.post("/api/admin/designs", json=body)
     assert response.status_code == 201, response.text
     return response.json()
@@ -82,7 +83,7 @@ def test_get_update_recomputes_metrics_and_duplicate_and_delete(client):
 
 
 def test_rejects_invalid_documents_and_unknown_references(client):
-    bad_layer = tpl.drop_point_blade()
+    bad_layer = simple_blade()
     bad_layer["objects"][0]["layer"] = "nope"
     assert client.post("/api/admin/designs", json={"name": "x", "document": bad_layer}).status_code == 422
 
@@ -90,7 +91,7 @@ def test_rejects_invalid_documents_and_unknown_references(client):
     no_layers["layers"] = []
     assert client.post("/api/admin/designs", json={"name": "x", "document": no_layers}).status_code == 422
 
-    huge = tpl.drop_point_blade()
+    huge = simple_blade()
     huge["objects"][0]["contours"][0][0]["x"] = 1e12
     assert client.post("/api/admin/designs", json={"name": "x", "document": huge}).status_code == 422
 

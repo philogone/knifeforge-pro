@@ -6,7 +6,7 @@ from app.schemas.design import DesignDocument
 from app.services import design_templates as tpl
 from app.services.geometry_service import extract_parts
 from app.services.nesting_service import NestItem, pack
-from tests.helpers import rect_doc
+from tests.helpers import rect_doc, simple_blade
 
 
 def items_for(document: DesignDocument, count: int, design_id: int = 1):
@@ -67,7 +67,7 @@ def test_real_shapes_with_holes_nest_at_least_as_well_as_a_grid():
 
 
 def test_nesting_is_deterministic():
-    blade = DesignDocument.model_validate(tpl.drop_point_blade())
+    blade = DesignDocument.model_validate(simple_blade())
     first, _ = pack(items_for(blade, 9), 1000, 100, spacing=2, margin=3)
     second, _ = pack(items_for(blade, 9), 1000, 100, spacing=2, margin=3)
     layout = lambda sheets: [[(p.x, p.y, p.rotation_deg) for p in s.placements] for s in sheets]  # noqa: E731
@@ -75,7 +75,7 @@ def test_nesting_is_deterministic():
 
 
 def test_blades_on_a_narrow_bar_do_not_exceed_bar_bounds():
-    blade = DesignDocument.model_validate(tpl.drop_point_blade())
+    blade = DesignDocument.model_validate(simple_blade())
     sheets, unplaced = pack(items_for(blade, 12), 1000, 50, spacing=2, margin=3)
     assert unplaced == []
     assert [len(s.placements) for s in sheets] == [5, 5, 2]

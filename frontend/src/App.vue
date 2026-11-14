@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 
+import AppLogo from "@/components/AppLogo.vue";
 import NavMenu, { type NavItem } from "@/components/NavMenu.vue";
 import { clearToken } from "@/composables/useApi";
 import { useTheme } from "@/composables/useTheme";
@@ -76,10 +77,7 @@ function logout() {
     <a v-if="showChrome" href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-1.5 btn btn-primary">{{ t("nav.skip") }}</a>
     <nav v-if="showChrome" class="h-14 bg-paper/95 border-b border-slate-200 px-5 flex items-center gap-6 sticky top-0 z-40">
       <router-link to="/" class="flex items-center gap-2 shrink-0 text-slate-900" :aria-label="t('app.title')">
-        <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
-          <rect width="32" height="32" rx="7" class="fill-accent-600" />
-          <path d="M4 14h11l2-3h7c3 0 5 2 6 5-2 3-5 5-9 5h-4l-2-3H4z" class="fill-accent-100" />
-        </svg>
+        <AppLogo :size="26" />
         <span class="font-semibold tracking-tight">KnifeForge <span class="text-accent-700">Pro</span></span>
       </router-link>
 

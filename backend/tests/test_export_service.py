@@ -6,15 +6,14 @@ import ezdxf
 import pytest
 
 from app.schemas.design import DesignDocument
-from app.services import design_templates as tpl
 from app.services.export_service import design_to_dxf, design_to_svg, nesting_to_dxf, nesting_to_svg, plan_svg
 from app.services.nesting_service import NestingResult, NestItem, pack
 from app.services.geometry_service import extract_parts
-from tests.helpers import doc
+from tests.helpers import doc, simple_blade
 
 
 def blade_doc():
-    return DesignDocument.model_validate(tpl.drop_point_blade())
+    return DesignDocument.model_validate(simple_blade())
 
 
 def test_design_svg_is_well_formed_and_uses_real_millimetres_and_curves():

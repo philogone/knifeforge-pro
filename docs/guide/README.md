@@ -98,9 +98,9 @@ L'essentiel :
 - **Calques** : *Découpe* (contours découpés), *Perçages* (retirés des pièces qu'ils
   recouvrent), *Gravure*, *Émouture* (tracée sur les plans, jamais découpée), *Construction*
   (aides, jamais exportées), *Cotes*.
-- **Formes** (*Bibliothèque*) : 17 profils de lames paramétriques (drop-point, clip, lance, tanto,
+- **Formes** (*Bibliothèque*) : 19 profils de lames paramétriques (drop-point, clip, lance, tanto,
   wharncliffe, pied de mouton, pointe relevée, skinner, bowie, office, gyuto, santoku, nakiri,
-  kiritsuke, et trois lames de pliant : drop-point, laguiole, feuille de sauge), plaquettes,
+  kiritsuke, et cinq lames de pliant : drop-point, laguiole, feuille de sauge, London, Yssingeaux), plaquettes,
   gardes, rondelles, fentes de soie. Saisissez les dimensions : la forme est construite à la cote.
   Les lames fixes viennent avec leur soie pleine dessinée en manche (choil d'affûtage, garde,
   creux de l'index, renflement de paume) ou, pour les couteaux de cuisine, avec un talon droit ;

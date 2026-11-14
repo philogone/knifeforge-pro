@@ -11,6 +11,12 @@ modification (dossier « Sauvegardes avant mise à jour »), puis mise à niveau
 
 ## [Non publié]
 
+### Ajouté
+- Deux lames de pliant régionales dans la bibliothèque : **London** (tranchant droit, dos qui
+  plonge en longue courbe) et **Yssingeaux** (lame fine, pointe au milieu).
+- Modèle de départ et dessin de démonstration **« Félicie »** : une lame dessinée à la main avec
+  l'outil (grand choil, talon en bec).
+
 ### Modifié
 - **Nouveau logo et nouvelle icône** (application, onglet du navigateur, installeurs) : une lame
   drop-point à soie pleine, lisible dès 16 px.

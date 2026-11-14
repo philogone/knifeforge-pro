@@ -228,7 +228,7 @@ def test_seed_creates_demo_designs_that_nest(db):
     from app.services.seed_service import seed_mock_data, seed_mock_designs
 
     seed_mock_data(db)
-    assert seed_mock_designs(db) == 3
+    assert seed_mock_designs(db) == 4
     assert seed_mock_designs(db) == 0  # idempotent
     from app.models.design import Design
 
@@ -238,9 +238,9 @@ def test_seed_creates_demo_designs_that_nest(db):
 def test_demo_data_controls_include_designs_and_backup_export(client, db):
     seed = client.post("/api/admin/settings/mock-data/seed").json()
     assert seed["seeded"] > 0
-    assert len(client.get("/api/admin/designs").json()) == 3
+    assert len(client.get("/api/admin/designs").json()) == 4
     backup = client.get("/api/admin/settings/export").json()
-    assert len(backup["designs"]) == 3 and backup["designs"][0]["document"]["layers"]
+    assert len(backup["designs"]) == 4 and backup["designs"][0]["document"]["layers"]
 
     client.post("/api/admin/settings/mock-data/clear")
     assert client.get("/api/admin/designs").json() == []

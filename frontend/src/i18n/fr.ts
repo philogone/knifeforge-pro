@@ -1179,6 +1179,8 @@ export const fr: Record<string, string> = {
   "shape.folderDropPoint": "Lame de pliant drop-point",
   "shape.laguiole": "Lame de pliant laguiole (yatagan)",
   "shape.sageLeaf": "Lame de pliant feuille de sauge (Nontron)",
+  "shape.london": "Lame de pliant London",
+  "shape.yssingeaux": "Lame de pliant Yssingeaux",
   "stl.export": "Pièce 3D (STL)",
   "stl.hint": "Les pièces de découpe extrudées à l'épaisseur indiquée (par défaut celle de la matière du gabarit), pour imprimer en 3D un gabarit de traçage ou de perçage, ou une maquette.",
   "stl.thickness": "Épaisseur ({u})",

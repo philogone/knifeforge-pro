@@ -179,6 +179,8 @@ export const SHAPES: ShapeDef[] = [
   bladeShape("folderDropPoint", 85, 20, 24, 0, 1, 4, 55, dropPointBlade, "folder"),
   bladeShape("laguiole", 105, 20, 26, 0, 1, 4, 55, laguiole, "folder"),
   bladeShape("sageLeaf", 90, 22, 26, 0, 1, 4, 55, sageLeaf, "folder"),
+  bladeShape("london", 80, 22, 24, 0, 1, 4, 55, london, "folder"),
+  bladeShape("yssingeaux", 90, 18, 24, 0, 1, 4, 55, yssingeaux, "folder"),
 ];
 
 /**
@@ -496,6 +498,28 @@ function sageLeaf(t: number, l: number, h: number) {
   return {
     tip,
     nodes: [n(t, 0), n(F(0.4), -h * 0.06, -l * 0.2, 0, l * 0.24, 0), tipNode(tip[0], tip[1], 30, l * 0.14, 30, l * 0.14), n(F(0.45), h, l * 0.26, 0, 0, 0), n(t, h)],
+  };
+}
+
+function london(t: number, l: number, h: number) {
+  // London (French folder): straight edge, the spine runs straight then rolls down in one long
+  // curve to a point on the edge line
+  const F = (f: number) => t + l * f;
+  const tip: [number, number] = [F(1), h];
+  return {
+    tip,
+    nodes: [n(t, 0), n(F(0.4), 0, 0, 0, l * 0.34, 0), n(tip[0], tip[1], -Math.cos(rad(50)) * h * 0.85, -Math.sin(rad(50)) * h * 0.85, 0, 0), n(t, h)],
+  };
+}
+
+function yssingeaux(t: number, l: number, h: number) {
+  // Yssingeaux (French folder): slender blade, straight spine dropping late to a tip near the
+  // middle, light belly
+  const F = (f: number) => t + l * f;
+  const tip: [number, number] = [F(1), h * 0.46];
+  return {
+    tip,
+    nodes: [n(t, 0), n(F(0.62), 0, 0, 0, l * 0.18, 0), tipNode(tip[0], tip[1], 28, l * 0.1, 30, l * 0.12), n(F(0.6), h, l * 0.18, 0, 0, 0), n(t, h)],
   };
 }
 

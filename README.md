@@ -220,8 +220,7 @@ Le détail des choix techniques est dans [`HANDOVER.md`](HANDOVER.md#knifeforge-
 | **macOS** récent, puce Apple (M1 et suivantes) | [KnifeForge-Pro-macOS.dmg](https://github.com/philogone/knifeforge-pro/releases/latest/download/KnifeForge-Pro-macOS.dmg) | Glisser KnifeForge Pro dans Applications. Au premier lancement (application non notariée) : *Réglages Système › Confidentialité et sécurité › Ouvrir quand même*. |
 
 Chaque version publie aussi `SHA256SUMS.txt` (empreintes des fichiers) et les rapports de
-validation Factur-X. Le dépôt étant privé, les liens demandent d'être connecté à un compte
-GitHub qui y a accès ; les clients reçoivent l'installeur par la fiche de vente.
+validation Factur-X. Le dépôt est public : les liens se téléchargent sans compte.
 
 **Windows**, pas à pas :
 

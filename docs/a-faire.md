@@ -67,7 +67,7 @@ Reste à faire (hors code) :
 - macOS : seulement Apple Silicon (pas d'Intel), application non notariée (compte Apple
   développeur payant pour l'éviter).
 - Les liens « dernière version » du README ne marchent qu'avec une version **publiée** (pas une
-  préversion) ; le dépôt étant privé, ils demandent un compte GitHub autorisé.
+  préversion). Dépôt rendu public le 14 novembre 2026 : liens accessibles sans compte.
 
 ## Lot 10 — fait le 13 novembre 2026
 

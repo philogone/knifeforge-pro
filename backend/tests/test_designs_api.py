@@ -110,7 +110,7 @@ def test_deleting_a_material_keeps_the_design(client, db):
 
 def test_templates_endpoint(client):
     templates = client.get("/api/admin/designs/templates").json()
-    assert {t["key"] for t in templates} >= {"blank", "drop-point-blade", "handle-scale"}
+    assert {t["key"] for t in templates} >= {"blank", "felicie", "handle-scale"}
     created = client.post("/api/admin/designs", json={"name": "t", "document": templates[1]["document"]})
     assert created.status_code == 201
 

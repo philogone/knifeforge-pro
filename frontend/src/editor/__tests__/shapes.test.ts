@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { SHAPES, documentParts, ellipse, normalizeParams, partsBounds, placeParts, roundedRect, type ShapePart } from "../shapes";
+import { SHAPES, documentParts, shapeDocument, ellipse, normalizeParams, partsBounds, placeParts, roundedRect, type ShapePart } from "../shapes";
 import type { DesignDocument, DocNode } from "../types";
 
 /** Exact area of a closed Bézier contour (Green's theorem on each cubic). */
@@ -136,6 +136,15 @@ describe("library shapes", () => {
       const grind = byRole(parts, "grind").flatMap((g) => sample(g.contours[0], false).slice(2, -2));
       expect(grind.every((p) => inside(p, ring)), `${def.key} grind`).toBe(true);
     }
+  });
+
+  it("turns a library shape into a new design's document, each part on its role's layer", () => {
+    const doc = shapeDocument(SHAPES.find((d) => d.key === "london")!);
+    const roles = new Map(doc.layers.map((l) => [l.id, l.role]));
+    expect(doc.objects.map((o) => roles.get(o.layer)).sort()).toEqual(["cut", "grind", "hole"]);
+    const b = partsBounds(documentParts(doc))!;
+    expect(b.minX).toBeCloseTo(0, 6);
+    expect(b.minY).toBeCloseTo(0, 6);
   });
 
   it("clamps parameters and rounds counts", () => {

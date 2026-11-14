@@ -5,6 +5,7 @@ import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { saveBlob } from "@/composables/useApi";
+import { SHAPES, SHAPE_GROUPS, shapeDocument } from "@/editor/shapes";
 import { documentToSvg } from "@/editor/svgPreview";
 import { useI18n } from "@/i18n";
 import { errorMessage } from "@/i18n/apiErrors";
@@ -19,6 +20,15 @@ const route = useRoute();
 const kinds: DesignKind[] = ["blade", "handle_scale", "guard", "bolster", "sheath", "template", "other"];
 
 const templates = ref<DesignTemplate[]>([]);
+// the blade profiles of the shape library, by family, as starting points too
+const BLADE_GROUPS = SHAPE_GROUPS.filter((g) => g !== "parts");
+const shapeTemplates = computed(() =>
+  BLADE_GROUPS.map((group) => ({
+    group,
+    items: SHAPES.filter((s) => s.group === group).map((s): DesignTemplate => ({ key: `shape:${s.key}`, name: t(s.label), kind: "blade", document: shapeDocument(s) })),
+  })),
+);
+const allTemplates = computed(() => [...templates.value, ...shapeTemplates.value.flatMap((g) => g.items)]);
 const designs = ref<DesignSummary[]>([]);
 const thumbs = reactive<Record<number, string>>({});
 const loading = ref(true);
@@ -82,14 +92,14 @@ const visible = computed(() => designs.value.filter((d) => !filter.kind || d.kin
 watch(
   () => form.template,
   (key) => {
-    const tpl = templates.value.find((x) => x.key === key);
+    const tpl = allTemplates.value.find((x) => x.key === key);
     if (tpl) form.kind = tpl.kind;
   },
 );
 
 async function create() {
   error.value = "";
-  const tpl = templates.value.find((x) => x.key === form.template);
+  const tpl = allTemplates.value.find((x) => x.key === form.template);
   if (!tpl) return;
   try {
     const created = await store.createDesign({
@@ -165,18 +175,23 @@ const sortOptions = computed(() => [
     <form v-if="showNew" class="sheet p-4 mb-6 space-y-4" @submit.prevent="create">
       <div>
         <label class="field-label mb-2">{{ t("designs.template") }}</label>
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <button
-            v-for="tpl in templates"
-            :key="tpl.key"
-            type="button"
-            class="rounded-lg border p-2 text-left text-xs"
-            :class="form.template === tpl.key ? 'border-accent-500 ring-2 ring-accent-200' : 'border-slate-200 hover:border-slate-300'"
-            @click="form.template = tpl.key"
-          >
-            <div class="h-20 mb-1 rounded plate [&>svg]:w-full [&>svg]:h-full" v-html="documentToSvg(tpl.document)"></div>
-            {{ templateLabel(tpl.key, tpl.name) }}
-          </button>
+        <div class="max-h-[28rem] overflow-y-auto pr-1 space-y-3">
+          <div v-for="g in [{ group: 'base', items: templates }, ...shapeTemplates]" :key="g.group">
+            <p class="text-xs font-semibold text-slate-500 mb-1.5">{{ g.group === "base" ? t("designs.templateBase") : t(`shape.group.${g.group}`) }}</p>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <button
+                v-for="tpl in g.items"
+                :key="tpl.key"
+                type="button"
+                class="rounded-lg border p-2 text-left text-xs"
+                :class="form.template === tpl.key ? 'border-accent-500 ring-2 ring-accent-200' : 'border-slate-200 hover:border-slate-300'"
+                @click="form.template = tpl.key"
+              >
+                <div class="h-20 mb-1 rounded plate [&>svg]:w-full [&>svg]:h-full" v-html="documentToSvg(tpl.document)"></div>
+                {{ templateLabel(tpl.key, tpl.name) }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-3">

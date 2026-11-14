@@ -243,11 +243,10 @@ def oval_guard(width: float = 42, height: float = 16, slot_w: float = 18, slot_h
     return document(objects)
 
 
+# Blade profiles are offered from the editor's shape library (frontend/src/editor/shapes.ts),
+# grouped by family; the server lists the other starting points.
 TEMPLATES: list[dict[str, Any]] = [
     {"key": "blank", "name": "Page vierge", "kind": "template", "build": blank_document},
-    {"key": "drop-point-blade", "name": "Lame drop-point à soie pleine", "kind": "blade", "build": full_tang_blade},
-    {"key": "folder-blade", "name": "Lame de pliant drop-point", "kind": "blade", "build": folder_blade},
-    {"key": "yatagan-blade", "name": "Lame de pliant yatagan", "kind": "blade", "build": lambda: folder_blade(105, 20, 26, 4, "yatagan")},
     {"key": "felicie", "name": "Couteau « Félicie » (exemple dessiné à la main)", "kind": "blade", "build": felicie},
     {"key": "handle-scale", "name": "Plaquette de manche", "kind": "handle_scale", "build": handle_scale},
     {"key": "folder-handle-scale", "name": "Plaquette de pliant galbée", "kind": "handle_scale", "build": folder_handle_scale},

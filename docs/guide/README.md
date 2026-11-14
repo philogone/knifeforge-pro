@@ -98,10 +98,13 @@ L'essentiel :
 - **Calques** : *Découpe* (contours découpés), *Perçages* (retirés des pièces qu'ils
   recouvrent), *Gravure*, *Émouture* (tracée sur les plans, jamais découpée), *Construction*
   (aides, jamais exportées), *Cotes*.
-- **Formes** (*Bibliothèque*) : 14 profils de lames paramétriques (drop-point, clip, lance, tanto,
+- **Formes** (*Bibliothèque*) : 17 profils de lames paramétriques (drop-point, clip, lance, tanto,
   wharncliffe, pied de mouton, pointe relevée, skinner, bowie, office, gyuto, santoku, nakiri,
-  kiritsuke), plaquettes, gardes, rondelles, fentes de soie. Saisissez les dimensions : la forme
-  est construite à la cote.
+  kiritsuke, et trois lames de pliant : drop-point, laguiole, feuille de sauge), plaquettes,
+  gardes, rondelles, fentes de soie. Saisissez les dimensions : la forme est construite à la cote.
+  Les lames fixes viennent avec leur soie pleine dessinée en manche (choil d'affûtage, garde,
+  creux de l'index, renflement de paume) ou, pour les couteaux de cuisine, avec un talon droit ;
+  les lames de pliant avec leur talon arrondi autour du pivot.
 - **Courbes** : outil Plume pour les nœuds, outil Nœuds pour tirer un segment et le courber ;
   congés et chanfreins sur un angle ; arc par 3 points ; symétrie.
 - **Saisie au clavier** : pendant un tracé, tapez une longueur et validez par Entrée.

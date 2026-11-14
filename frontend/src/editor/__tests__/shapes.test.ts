@@ -89,6 +89,55 @@ describe("library shapes", () => {
     }
   });
 
+  it("every blade is a simple outline holding its holes and grind line", () => {
+    const sample = (c: DocNode[], closed: boolean) => {
+      const pts: [number, number][] = [];
+      const last = closed ? c.length : c.length - 1;
+      for (let i = 0; i < last; i++) {
+        const a = c[i];
+        const b = c[(i + 1) % c.length];
+        for (let k = 0; k < 24; k++) {
+          const t = k / 24;
+          const u = 1 - t;
+          const w = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
+          pts.push([w[0] * a.x + w[1] * (a.x + a.ox) + w[2] * (b.x + b.ix) + w[3] * b.x, w[0] * a.y + w[1] * (a.y + a.oy) + w[2] * (b.y + b.iy) + w[3] * b.y]);
+        }
+      }
+      if (!closed) pts.push([c[c.length - 1].x, c[c.length - 1].y]);
+      return pts;
+    };
+    const inside = ([x, y]: [number, number], ring: [number, number][]) => {
+      let r = false;
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [xi, yi] = ring[i];
+        const [xj, yj] = ring[j];
+        if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) r = !r;
+      }
+      return r;
+    };
+    const crosses = (p: [number, number], q: [number, number], r: [number, number], s: [number, number]) => {
+      const d = (a: [number, number], b: [number, number], c: [number, number]) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+      return d(p, q, r) * d(p, q, s) < 0 && d(r, s, p) * d(r, s, q) < 0;
+    };
+    for (const def of SHAPES.filter((d) => d.params.some((p) => p.key === "blade"))) {
+      const parts = def.build(normalizeParams(def, {}));
+      const ring = sample(byRole(parts, "cut")[0].contours[0], true);
+      let selfCrossing = false;
+      for (let i = 0; i < ring.length && !selfCrossing; i++) {
+        for (let j = i + 2; j < ring.length; j++) {
+          if (i === 0 && j === ring.length - 1) continue;
+          if (crosses(ring[i], ring[(i + 1) % ring.length], ring[j], ring[(j + 1) % ring.length])) selfCrossing = true;
+        }
+      }
+      expect(selfCrossing, `${def.key} crosses itself`).toBe(false);
+      const holes = byRole(parts, "hole").flatMap((h) => sample(h.contours[0], true));
+      expect(holes.every((p) => inside(p, ring)), `${def.key} holes`).toBe(true);
+      // the grind line ends on the outline (edge, tip): check the points strictly between
+      const grind = byRole(parts, "grind").flatMap((g) => sample(g.contours[0], false).slice(2, -2));
+      expect(grind.every((p) => inside(p, ring)), `${def.key} grind`).toBe(true);
+    }
+  });
+
   it("clamps parameters and rounds counts", () => {
     const def = SHAPES.find((d) => d.key === "handleScale")!;
     const p = normalizeParams(def, { length: -5, pins: 2.6, width: "abc" });

@@ -9,16 +9,16 @@ from ezdxf import path as ezpath
 from shapely.geometry import LineString, Point, Polygon
 
 from app.schemas.design import DesignDocument
-from app.services import design_templates as tpl
 from app.services.arcs import cubic_point, cubic_to_arcs
 from app.services.export_service import design_to_dxf, design_to_svg, kerf_compensated_rings
 from app.services.geometry_service import DEFAULT_TOLERANCE_MM, document_bounds, extract_parts
+from tests.helpers import simple_blade
 
 TOL = DEFAULT_TOLERANCE_MM + 1e-6
 
 
 def blade():
-    return DesignDocument.model_validate(tpl.drop_point_blade())
+    return DesignDocument.model_validate(simple_blade())
 
 
 def _dxf_cut_paths(data: bytes):

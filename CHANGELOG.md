@@ -11,6 +11,19 @@ modification (dossier « Sauvegardes avant mise à jour »), puis mise à niveau
 
 ## [Non publié]
 
+### Modifié
+- **Nouveau logo et nouvelle icône** (application, onglet du navigateur, installeurs) : une lame
+  drop-point à soie pleine, lisible dès 16 px.
+- **Profils de lames redessinés** : vraies pointes, ventre et dos tendus, choil d'affûtage, garde
+  et manche ergonomique pour les lames fixes, talon droit pour la cuisine.
+- Modèles de départ et données de démonstration : lame à soie pleine, lame de pliant, plaquette
+  de pliant galbée ; page de connexion, bannière du README et vidéo de présentation refaites avec
+  ces dessins.
+
+### Ajouté
+- Trois lames de pliant dans la bibliothèque : drop-point, laguiole (yatagan), feuille de sauge
+  (Nontron), avec talon arrondi et perçage du pivot. Modèle de départ « Lame de pliant laguiole ».
+
 ## [0.11.0] — 2026-11-13
 
 Maquette 3D, outils du forgeron, licence libre.

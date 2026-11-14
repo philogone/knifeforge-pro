@@ -30,7 +30,6 @@
     background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
   }
   .scene { position: absolute; inset: 0; opacity: 0; }
-  .kicker { position: absolute; left: 140px; top: 110px; font-size: 26px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--olive); }
   .title { position: absolute; left: 140px; top: 150px; font-size: 76px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; }
   .caption { position: absolute; left: 140px; bottom: 110px; font-size: 30px; color: var(--text); }
   .caption b { color: var(--ink); font-weight: 600; }
@@ -63,7 +62,7 @@
 <!-- 1. opening -->
 <section class="scene" id="s1">
   <div class="logo" id="s1logo" style="left: 50%; top: 380px; transform: translateX(-50%);">
-    <svg width="150" height="150" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#4d5a1c"/><path id="s1glyph" d="M4 14h11l2-3h7c3 0 5 2 6 5-2 3-5 5-9 5h-4l-2-3H4z" fill="#e7ecd2"/></svg>
+    <svg width="150" height="150" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#4d5a1c"/><g transform="translate(16.2 16.2) rotate(-35) scale(.84) translate(-18.5 -3.4)"><path d="M.8.4 14.4 0V4.6C12.6 4.6 11.6 4.1 10 4.4 7.5 4.9 5 5.5 2.8 5.3 1 5.1 0 4.3 0 2.6 0 1.4.3.5.8.4Z" fill="#e7ecd2"/><circle cx="4.6" cy="2.5" r=".6" fill="#4d5a1c"/><circle cx="10.4" cy="2.2" r=".6" fill="#4d5a1c"/><path d="M15.4 0H27C30.6 0 34 1.4 37 3 34 5.4 30.4 6.2 26.4 6.2H18.2C17.4 6.2 17.3 7 16.4 7 15.8 7 15.4 6.6 15.4 6Z" fill="#fff"/><path d="M19.6 6.2C20.4 4.6 20.6 3.5 22 3.5H29C32 3.5 34.4 3.2 37 3 34 5.4 30.4 6.2 26.4 6.2Z" fill="#cfd8a6"/></g></svg>
     <div class="name">KnifeForge <span>Pro</span></div>
   </div>
   <p class="tagline" id="s1tag" style="top: 600px;">De l'esquisse à la facture, au centième, chez vous.</p>
@@ -71,35 +70,34 @@
 
 <!-- 2..4: the drawing board, shared by three scenes -->
 <section class="scene" id="board">
-  <p class="kicker" id="bk"></p>
   <h1 class="title" id="bt"></h1>
   <svg id="draw" width="1920" height="1080" style="position:absolute; left:0; top:0;" viewBox="0 0 1920 1080">
     <g id="blade" transform="translate(500 470) scale(5)">
-      <path id="bladeFill" d="M0 6.4 L64 6.4 L70 0 L150.64 0 C169.68 0 173.04 5.44 182 17.6 C176.4 27.2 154 32 131.6 32 L70 32 L64 22.4 L0 22.4 Z" fill="#ece8de" stroke="none"/>
-      <path id="bladeLine" d="M0 6.4 L64 6.4 L70 0 L150.64 0 C169.68 0 173.04 5.44 182 17.6 C176.4 27.2 154 32 131.6 32 L70 32 L64 22.4 L0 22.4 Z" fill="none" stroke="#1c1b18" stroke-width="0.32" stroke-linejoin="round"/>
-      <path id="grindLine" d="M73 32 C73 22.4 76 16 80 16 L139.4 16 C155 16 168 16.5 182 17.6" fill="none" stroke="#0f766e" stroke-width="0.22" stroke-dasharray="3 1 0.6 1"/>
-      <circle class="pin" cx="15.4" cy="14.4" r="2.5" fill="#f8f6f1" stroke="#dc2626" stroke-width="0.28"/>
-      <circle class="pin" cx="43.4" cy="14.4" r="2.5" fill="#f8f6f1" stroke="#dc2626" stroke-width="0.28"/>
+      <path id="bladeFill" d="M105 0 C105 0 167.72 0 167.72 0 C190.12 0 204.92 6.91 217 12.8 C202.76 23.15 187.88 32 161 32 C161 32 112.42 32 112.42 32 C112.42 30.59 111.28 29.44 109.86 29.44 C108.45 29.44 107.3 30.59 107.3 32 C107.3 33.28 105.92 33.76 104.08 33.76 C100.4 33.76 96.7 22.8 88.4 22.8 C71.6 22.8 56.7 25.68 37.8 25.68 C16.8 25.68 18.9 24.67 6.3 24.67 C2.1 24.67 0 20.16 0 12.48 C0 5.28 2.1 0.96 6.3 0.96 C32.55 0.96 105 0 105 0Z" fill="#ece8de" stroke="none"/>
+      <path id="bladeLine" d="M105 0 C105 0 167.72 0 167.72 0 C190.12 0 204.92 6.91 217 12.8 C202.76 23.15 187.88 32 161 32 C161 32 112.42 32 112.42 32 C112.42 30.59 111.28 29.44 109.86 29.44 C108.45 29.44 107.3 30.59 107.3 32 C107.3 33.28 105.92 33.76 104.08 33.76 C100.4 33.76 96.7 22.8 88.4 22.8 C71.6 22.8 56.7 25.68 37.8 25.68 C16.8 25.68 18.9 24.67 6.3 24.67 C2.1 24.67 0 20.16 0 12.48 C0 5.28 2.1 0.96 6.3 0.96 C32.55 0.96 105 0 105 0Z" fill="none" stroke="#1c1b18" stroke-width="0.32" stroke-linejoin="round"/>
+      <path id="grindLine" d="M113.42 32 C113.42 32 119.42 25.6 123.42 16 C123.42 16 176.4 16 176.4 16 C176.4 16 199.76 13.76 215 12.8" fill="none" stroke="#0f766e" stroke-width="0.22" stroke-dasharray="3 1 0.6 1"/>
+      <circle class="pin" cx="21" cy="12" r="2.5" fill="#f8f6f1" stroke="#dc2626" stroke-width="0.28"/>
+      <circle class="pin" cx="83.4" cy="12" r="2.5" fill="#f8f6f1" stroke="#dc2626" stroke-width="0.28"/>
       <g id="notches"></g>
       <g id="balance" opacity="0">
-        <circle cx="62" cy="15" r="2.2" fill="none" stroke="#4d5a1c" stroke-width="0.35"/>
-        <path d="M58 15 H66 M62 11 V19" stroke="#4d5a1c" stroke-width="0.35"/>
+        <circle cx="98" cy="13" r="2.2" fill="none" stroke="#4d5a1c" stroke-width="0.35"/>
+        <path d="M94 13 H102 M98 9 V17" stroke="#4d5a1c" stroke-width="0.35"/>
       </g>
     </g>
     <!-- folder: the blade's ghost turning about its pivot -->
     <g id="ghostWrap" transform="translate(500 470) scale(5)" opacity="0">
       <g id="ghost">
-        <path d="M0 6.4 L64 6.4 L70 0 L150.64 0 C169.68 0 173.04 5.44 182 17.6 C176.4 27.2 154 32 131.6 32 L70 32 L64 22.4 L0 22.4 Z" fill="rgba(77,90,28,0.10)" stroke="#4d5a1c" stroke-width="0.26" stroke-dasharray="1.6 0.8"/>
+        <path d="M105 0 C105 0 167.72 0 167.72 0 C190.12 0 204.92 6.91 217 12.8 C202.76 23.15 187.88 32 161 32 C161 32 112.42 32 112.42 32 C112.42 30.59 111.28 29.44 109.86 29.44 C108.45 29.44 107.3 30.59 107.3 32 C107.3 33.28 105.92 33.76 104.08 33.76 C100.4 33.76 96.7 22.8 88.4 22.8 C71.6 22.8 56.7 25.68 37.8 25.68 C16.8 25.68 18.9 24.67 6.3 24.67 C2.1 24.67 0 20.16 0 12.48 C0 5.28 2.1 0.96 6.3 0.96 C32.55 0.96 105 0 105 0Z" fill="rgba(77,90,28,0.10)" stroke="#4d5a1c" stroke-width="0.26" stroke-dasharray="1.6 0.8"/>
       </g>
-      <circle cx="15.4" cy="14.4" r="0.8" fill="#4d5a1c"/>
+      <circle cx="21" cy="12" r="0.8" fill="#4d5a1c"/>
     </g>
     <!-- dimension -->
     <g id="dim" opacity="0">
-      <line id="dimLine" x1="850" y1="680" x2="1410" y2="680" stroke="#334155" stroke-width="2"/>
-      <path d="M850 680 l14 -7 v14 z M1410 680 l-14 -7 v14 z" fill="#334155"/>
-      <line x1="850" y1="635" x2="850" y2="695" stroke="#334155" stroke-width="1.2"/>
-      <line x1="1410" y1="565" x2="1410" y2="695" stroke="#334155" stroke-width="1.2"/>
-      <text id="dimText" x="1130" y="725" text-anchor="middle" font-size="34" fill="#1c1b18">112 mm</text>
+      <line id="dimLine" x1="1025" y1="680" x2="1585" y2="680" stroke="#334155" stroke-width="2"/>
+      <path d="M1025 680 l14 -7 v14 z M1585 680 l-14 -7 v14 z" fill="#334155"/>
+      <line x1="1025" y1="650" x2="1025" y2="695" stroke="#334155" stroke-width="1.2"/>
+      <line x1="1585" y1="545" x2="1585" y2="695" stroke="#334155" stroke-width="1.2"/>
+      <text id="dimText" x="1305" y="725" text-anchor="middle" font-size="34" fill="#1c1b18">112 mm</text>
     </g>
     <!-- nesting: a sheet with the parts placed -->
     <g id="sheet" opacity="0">
@@ -117,7 +115,6 @@
 
 <!-- 5. workshop -->
 <section class="scene" id="s5">
-  <p class="kicker">Suivez l'atelier</p>
   <h1 class="title">L'atelier,<br>d'un coup d'œil.</h1>
   <div class="frame" id="s5frame" style="left:880px; top:150px; width:920px; height:780px;">
     <div class="bar"><i></i><i></i><i></i></div>
@@ -128,7 +125,6 @@
 
 <!-- 6. invoicing -->
 <section class="scene" id="s6">
-  <p class="kicker">Facturez</p>
   <h1 class="title">Devis, acomptes,<br>factures conformes</h1>
   <div class="frame" id="s6frame" style="left:880px; top:150px; width:920px; height:780px;">
     <div class="bar"><i></i><i></i><i></i></div>
@@ -143,7 +139,6 @@
 
 <!-- 7. at home -->
 <section class="scene" id="s7">
-  <p class="kicker">Chez vous</p>
   <h1 class="title" style="max-width:1500px;">Vos données restent dans votre atelier.</h1>
   <div class="chip" id="h1" style="left:140px; top:440px; opacity:0;"><span class="dot"></span>Installé sur votre ordinateur, sans abonnement</div>
   <div class="chip" id="h2" style="left:140px; top:530px; opacity:0;"><span class="dot"></span>Aucun compte en ligne, aucune donnée chez l'éditeur</div>
@@ -166,7 +161,7 @@
 <!-- 8. end card -->
 <section class="scene" id="s8">
   <div class="logo" style="left: 50%; top: 360px; transform: translateX(-50%);">
-    <svg width="150" height="150" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#4d5a1c"/><path d="M4 14h11l2-3h7c3 0 5 2 6 5-2 3-5 5-9 5h-4l-2-3H4z" fill="#e7ecd2"/></svg>
+    <svg width="150" height="150" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#4d5a1c"/><g transform="translate(16.2 16.2) rotate(-35) scale(.84) translate(-18.5 -3.4)"><path d="M.8.4 14.4 0V4.6C12.6 4.6 11.6 4.1 10 4.4 7.5 4.9 5 5.5 2.8 5.3 1 5.1 0 4.3 0 2.6 0 1.4.3.5.8.4Z" fill="#e7ecd2"/><circle cx="4.6" cy="2.5" r=".6" fill="#4d5a1c"/><circle cx="10.4" cy="2.2" r=".6" fill="#4d5a1c"/><path d="M15.4 0H27C30.6 0 34 1.4 37 3 34 5.4 30.4 6.2 26.4 6.2H18.2C17.4 6.2 17.3 7 16.4 7 15.8 7 15.4 6.6 15.4 6Z" fill="#fff"/><path d="M19.6 6.2C20.4 4.6 20.6 3.5 22 3.5H29C32 3.5 34.4 3.2 37 3 34 5.4 30.4 6.2 26.4 6.2Z" fill="#cfd8a6"/></g></svg>
     <div class="name">KnifeForge <span>Pro</span></div>
   </div>
   <p class="tagline" style="top: 580px;">De l'esquisse à la facture, au centième, chez vous.</p>
@@ -191,15 +186,15 @@ const DURATION = 53.5;
 const bladeLen = $("bladeLine").getTotalLength();
 $("bladeLine").style.strokeDasharray = `${bladeLen} ${bladeLen}`;
 
-// jimping: 14 V notches on the spine, x 82 → 108
-const NOTCH_X = Array.from({ length: 14 }, (_, i) => 82 + i * 2);
+// jimping: 14 V notches on the spine, x 109 → 135
+const NOTCH_X = Array.from({ length: 14 }, (_, i) => 109 + i * 2);
 $("notches").innerHTML = NOTCH_X.map((x) => `<path d="M${x - 0.85} -0.05 L${x + 0.85} -0.05 L${x} 1.3 Z" fill="#f8f6f1" stroke="#1c1b18" stroke-width="0.16" opacity="0"/>`).join("");
 const notchEls = [...$("notches").children];
 
 // nesting parts: [start x, y, scale, end x, y, rotation]
 const BLADE_D = $("bladeLine").getAttribute("d");
-const BLADE = `<g transform="scale(3.4) translate(-91 -16)"><path d="${BLADE_D}" fill="#ece8de" stroke="#1c1b18" stroke-width="0.55" stroke-linejoin="round"/></g>`;
-const SCALE = `<rect x="-115" y="-27" width="230" height="54" rx="14" fill="#ece8de" stroke="#1c1b18" stroke-width="2"/><circle cx="-80" cy="0" r="6" fill="#fff" stroke="#dc2626" stroke-width="2"/><circle cx="80" cy="0" r="6" fill="#fff" stroke="#dc2626" stroke-width="2"/>`;
+const BLADE = `<g transform="scale(2.85) translate(-108.5 -17)"><path d="${BLADE_D}" fill="#ece8de" stroke="#1c1b18" stroke-width="0.55" stroke-linejoin="round"/></g>`;
+const SCALE = `<g transform="scale(2.1) translate(-55 -11.75)"><path d="M9.9 1.32 C42.9 1.32 71.5 0 99 0 C105.08 0 110 4.92 110 11 C110 17.08 105.08 22 99 22 C92.4 22 88 20.5 81.4 20.5 C68.2 20.5 57.2 23.5 39.6 23.5 C19.8 23.5 4.4 21.56 0 14.96 C0 7.92 4.4 1.32 9.9 1.32Z" fill="#ece8de" stroke="#1c1b18" stroke-width="0.95" stroke-linejoin="round"/><circle cx="99" cy="11" r="2" fill="#fff" stroke="#dc2626" stroke-width="0.95"/><circle cx="15.4" cy="11" r="1.5" fill="#fff" stroke="#dc2626" stroke-width="0.95"/></g>`;
 const GUARD = `<ellipse rx="70" ry="28" fill="#ece8de" stroke="#1c1b18" stroke-width="2"/><rect x="-30" y="-8" width="60" height="16" rx="8" fill="#fff" stroke="#dc2626" stroke-width="2"/>`;
 const PARTS = [
   { html: BLADE, from: [420, 900], to: [1340, 365], rot: 0 },
@@ -214,9 +209,9 @@ $("parts").innerHTML = PARTS.map((p) => `<g>${p.html}</g>`).join("");
 const partEls = [...$("parts").children];
 
 function boardText(t) {
-  if (t < 13) return ["1 · Dessinez", "À la cote, au centième.", "Courbes à <b>0,01 mm</b> · millimètres ou <b>pouces</b> · 14 profils de lames paramétriques"];
-  if (t < 21) return ["2 · Vérifiez", "Les outils du coutelier.", "Crantage · <b>pliants</b> · masse et équilibre · feuille 1:1 · maquette STL"];
-  return ["3 · Découpez juste", "Du dessin à la machine.", "Nesting à espacement garanti · DXF compensé · <b>planche de contrôle</b> de votre machine"];
+  if (t < 13) return ["À la cote, au centième.", "Courbes à <b>0,01 mm</b> · millimètres ou <b>pouces</b> · 17 profils de lames paramétriques"];
+  if (t < 21) return ["Les outils du coutelier.", "Crantage · <b>pliants</b> · masse et équilibre · feuille 1:1 · maquette STL"];
+  return ["Du dessin à la machine.", "Nesting à espacement garanti · DXF compensé · <b>planche de contrôle</b> de votre machine"];
 }
 
 function render(t) {
@@ -229,13 +224,12 @@ function render(t) {
   $("s1tag").style.transform = `translateY(${lerp(18, 0, out((t - 1.8) / 0.8))}px)`;
 
   // 2–4. the board
-  const [kick, title, cap] = boardText(t);
-  $("bk").textContent = kick;
+  const [title, cap] = boardText(t);
   $("bt").textContent = title;
   $("bc").innerHTML = cap;
   const swap = (a) => 1 - Math.min(k(t, a - 0.35, a), 1 - k(t, a, a + 0.35));
   const textVis = Math.min(swap(13), swap(21));
-  for (const id of ["bk", "bt", "bc"]) $(id).style.opacity = textVis;
+  for (const id of ["bt", "bc"]) $(id).style.opacity = textVis;
   // the swinging blade passes over the caption: let it step aside meanwhile
   $("bc").style.opacity = textVis * (1 - 0.85 * Math.min(k(t, 15.4, 15.8), 1 - k(t, 18.6, 19)));
 
@@ -249,7 +243,7 @@ function render(t) {
   });
   // dimension, then inches
   $("dim").style.opacity = Math.min(k(t, 8.6, 9.2), 1 - k(t, 12.6, 13));
-  $("dimLine").setAttribute("x2", String(lerp(850, 1410, k(t, 8.6, 9.4))));
+  $("dimLine").setAttribute("x2", String(lerp(1025, 1585, k(t, 8.6, 9.4))));
   $("dimText").textContent = t < 10.6 ? "112 mm" : "4,4094 in";
   $("dimText").style.opacity = t < 10.6 ? k(t, 9.2, 9.6) : k(t, 10.6, 11);
 
@@ -258,7 +252,7 @@ function render(t) {
   $("c1").style.opacity = Math.min(k(t, 14.4, 14.8), 1 - k(t, 15.4, 15.7));
   const swingP = k(t, 15.6, 17.6);
   $("ghostWrap").setAttribute("opacity", String(Math.min(k(t, 15.4, 15.7), 1 - k(t, 18.6, 19))));
-  $("ghost").setAttribute("transform", `rotate(${24 * swingP} 15.4 14.4)`);
+  $("ghost").setAttribute("transform", `rotate(${24 * swingP} 21 12)`);
   $("c2").style.opacity = Math.min(k(t, 17.5, 17.8), 1 - k(t, 18.6, 18.9));
   $("balance").setAttribute("opacity", String(Math.min(k(t, 19, 19.4), 1 - k(t, 20.6, 21))));
   $("c3").style.opacity = Math.min(k(t, 19.2, 19.6), 1 - k(t, 20.6, 20.9));

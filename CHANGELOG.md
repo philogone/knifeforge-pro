@@ -11,6 +11,15 @@ modification (dossier « Sauvegardes avant mise à jour »), puis mise à niveau
 
 ## [Non publié]
 
+### Ajouté
+- **Modèles régionaux traditionnels** dans la bibliothèque, rangée par familles (pièces, lames
+  fixes, cuisine, pliants et régionaux) : **London** (Thiers), **Yssingeaux** (lame bourbonnaise),
+  **Saint-Amand** (feuille de saule), **vendetta** corse, à côté du Nontron (feuille de sauge) et
+  du yatagan. Seules des formes anciennes, libres de droits, sont dessinées ; les noms protégés
+  (indication géographique, marques) ne sont pas employés.
+- Modèle de départ et dessin de démonstration **« Félicie »** : une lame dessinée à la main avec
+  l'outil (grand choil, talon en bec).
+
 ### Modifié
 - **Nouveau logo et nouvelle icône** (application, onglet du navigateur, installeurs) : une lame
   drop-point à soie pleine, lisible dès 16 px.
@@ -21,8 +30,8 @@ modification (dossier « Sauvegardes avant mise à jour »), puis mise à niveau
   ces dessins.
 
 ### Ajouté
-- Trois lames de pliant dans la bibliothèque : drop-point, laguiole (yatagan), feuille de sauge
-  (Nontron), avec talon arrondi et perçage du pivot. Modèle de départ « Lame de pliant laguiole ».
+- Trois lames de pliant dans la bibliothèque : drop-point, yatagan, feuille de sauge (Nontron),
+  avec talon arrondi et perçage du pivot. Modèle de départ « Lame de pliant yatagan ».
 
 ## [0.11.0] — 2026-11-13
 

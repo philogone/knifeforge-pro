@@ -93,7 +93,7 @@ def _drop_point(t: float, l: float, h: float) -> tuple[list[dict[str, float]], t
     ], tip
 
 
-def _laguiole(t: float, l: float, h: float) -> tuple[list[dict[str, float]], tuple[float, float]]:
+def _yatagan(t: float, l: float, h: float) -> tuple[list[dict[str, float]], tuple[float, float]]:
     tip = (t + l, h * 0.24)
     return [
         node(t, 0),
@@ -157,9 +157,9 @@ def full_tang_blade(
 
 def folder_blade(blade_len: float = 85, height: float = 20, talon_len: float = 24, pivot_d: float = 4, profile: str = "drop-point") -> dict[str, Any]:
     """Folding knife blade: round tang about the pivot hole, flat kick, sharpening choil.
-    `profile` is "drop-point" or "laguiole" (yatagan)."""
+    `profile` is "drop-point" or "yatagan"."""
     t, l, h = talon_len, blade_len, height
-    body, tip = (_laguiole if profile == "laguiole" else _drop_point)(t, l, h)
+    body, tip = (_yatagan if profile == "yatagan" else _drop_point)(t, l, h)
     last = body.pop()
     rc = max(1, min(3, h * 0.08))
     r = h / 2
@@ -214,6 +214,25 @@ def folder_handle_scale(length: float = 110, width: float = 22, pivot_d: float =
     return document(objects)
 
 
+def felicie() -> dict[str, Any]:
+    """« Félicie », a fixed blade drawn by hand by a knifemaker (Philogone) with this tool and
+    shared as an example: deep finger choil, short handle with a bird's-head butt, 211 × 31 mm."""
+    blade = [
+        node(211, 8, -22.722, 22.045, -53.218, -9.338),
+        node(84, 0, 0, 0, -30.543, 0),
+        node(0, 6, 16.295, -4.452, 1.692, 16.662),
+        node(41, 26, -10.977, 9.293, 26.108, -15.33),
+        node(85, 31, -3.382, -10.836, 90.286, -0.94),
+    ]
+    objects = [
+        _path("blade", "cut", "Lame", [blade]),
+        _path("grind", "grind", "Émouture", [[node(81, 24, 0, 0, 14.786, -18.359), node(185, 8, -35.249, -1.28, 0, 0)]], closed=False),
+        _path("pin1", "holes", "Perçage 1", [circle_nodes(24, 14, 2)]),
+        _path("pin2", "holes", "Perçage 2", [circle_nodes(67, 10, 2)]),
+    ]
+    return document(objects)
+
+
 def oval_guard(width: float = 42, height: float = 16, slot_w: float = 18, slot_h: float = 4.5) -> dict[str, Any]:
     objects = [
         _path("guard", "cut", "Garde", [ellipse_nodes(width / 2, height / 2, width / 2, height / 2)]),
@@ -228,7 +247,8 @@ TEMPLATES: list[dict[str, Any]] = [
     {"key": "blank", "name": "Page vierge", "kind": "template", "build": blank_document},
     {"key": "drop-point-blade", "name": "Lame drop-point à soie pleine", "kind": "blade", "build": full_tang_blade},
     {"key": "folder-blade", "name": "Lame de pliant drop-point", "kind": "blade", "build": folder_blade},
-    {"key": "laguiole-blade", "name": "Lame de pliant laguiole", "kind": "blade", "build": lambda: folder_blade(105, 20, 26, 4, "laguiole")},
+    {"key": "yatagan-blade", "name": "Lame de pliant yatagan", "kind": "blade", "build": lambda: folder_blade(105, 20, 26, 4, "yatagan")},
+    {"key": "felicie", "name": "Couteau « Félicie » (exemple dessiné à la main)", "kind": "blade", "build": felicie},
     {"key": "handle-scale", "name": "Plaquette de manche", "kind": "handle_scale", "build": handle_scale},
     {"key": "folder-handle-scale", "name": "Plaquette de pliant galbée", "kind": "handle_scale", "build": folder_handle_scale},
     {"key": "oval-guard", "name": "Garde ovale à fente", "kind": "guard", "build": oval_guard},

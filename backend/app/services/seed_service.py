@@ -304,6 +304,7 @@ def seed_mock_designs(db: Session) -> int:
         ("Bushcraft — profil de lame", DesignKind.BLADE, bushcraft, steel, tpl.full_tang_blade()),
         ("Pliant — lame damas", DesignKind.BLADE, folder, damascus, tpl.folder_blade()),
         ("Pliant — plaquettes G10", DesignKind.HANDLE_SCALE, folder, g10, tpl.folder_handle_scale()),
+        ("Félicie — lame à grand choil", DesignKind.BLADE, bushcraft, steel, tpl.felicie()),
     ]
     created = 0
     for name, kind, knife_model, mat, doc in specs:

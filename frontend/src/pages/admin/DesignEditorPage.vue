@@ -8,7 +8,7 @@ import { useSnapshotDirty } from "@/composables/useSnapshotDirty";
 import { initialPlacement, loadImageFile, mmPerPixel, type BackgroundState, type Straighten } from "@/editor/background";
 import { ROLE_STYLE } from "@/editor/constants";
 import { STANDARD_HOLES_MM, type Axis } from "@/editor/drafting";
-import { SHAPES, documentParts, isLengthParam, normalizeParams, partsBounds, placeParts, type ShapeParam, type ShapePart } from "@/editor/shapes";
+import { SHAPES, SHAPE_GROUPS, documentParts, isLengthParam, normalizeParams, partsBounds, placeParts, type ShapeParam, type ShapePart } from "@/editor/shapes";
 import { documentToSvg } from "@/editor/svgPreview";
 import { BUNDLED_FONTS, loadFont, missingGlyphs, textContours } from "@/editor/text";
 import { EditorEngine, formatMm } from "@/editor/engine";
@@ -1857,7 +1857,10 @@ const toolLabel = (name: ToolName) => t(`tool.${name}`);
         <div class="grid grid-cols-[11rem_1fr] gap-3">
           <div class="space-y-1 max-h-80 overflow-y-auto">
             <template v-if="library.source === 'shapes'">
-              <button v-for="d in SHAPES" :key="d.key" type="button" class="w-full text-left px-2 py-1 rounded" :class="library.shape === d.key ? 'bg-accent-50 text-accent-700 font-medium' : 'hover:bg-slate-50'" @click="library.shape = d.key; centreLibraryPlacement()">{{ t(d.label) }}</button>
+              <div v-for="g in SHAPE_GROUPS" :key="g">
+                <p class="px-2 pt-2 pb-0.5 text-xs font-semibold text-slate-500">{{ t(`shape.group.${g}`) }}</p>
+                <button v-for="d in SHAPES.filter((s) => s.group === g)" :key="d.key" type="button" class="w-full text-left px-2 py-1 rounded" :class="library.shape === d.key ? 'bg-accent-50 text-accent-700 font-medium' : 'hover:bg-slate-50'" @click="library.shape = d.key; centreLibraryPlacement()">{{ t(d.label) }}</button>
+              </div>
             </template>
             <template v-else>
               <p v-if="!library.designs.length" class="text-xs text-slate-500">{{ t("library.noDesigns") }}</p>

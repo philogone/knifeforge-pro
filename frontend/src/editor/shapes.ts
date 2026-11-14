@@ -28,10 +28,15 @@ export interface ShapeParam {
 /** a length parameter follows the editor's display unit (mm or in) */
 export const isLengthParam = (p: ShapeParam) => !p.integer && !p.percent;
 
+/** Families the library lists the shapes under. */
+export type ShapeGroup = "parts" | "fixed" | "kitchen" | "folder";
+export const SHAPE_GROUPS: ShapeGroup[] = ["parts", "fixed", "kitchen", "folder"];
+
 export interface ShapeDef {
   key: string;
   /** i18n key */
   label: string;
+  group: ShapeGroup;
   params: ShapeParam[];
   build: (p: Record<string, number>) => ShapePart[];
 }
@@ -99,6 +104,7 @@ export const SHAPES: ShapeDef[] = [
   {
     key: "handleScale",
     label: "shape.handleScale",
+    group: "parts",
     params: [
       { key: "length", label: "shape.p.length", value: 110, min: 10, max: 600 },
       { key: "width", label: "shape.p.width", value: 25, min: 5, max: 200 },
@@ -115,6 +121,7 @@ export const SHAPES: ShapeDef[] = [
   {
     key: "ovalGuard",
     label: "shape.ovalGuard",
+    group: "parts",
     params: [
       { key: "width", label: "shape.p.width", value: 42, min: 5, max: 300 },
       { key: "height", label: "shape.p.height", value: 16, min: 3, max: 200 },
@@ -129,6 +136,7 @@ export const SHAPES: ShapeDef[] = [
   {
     key: "straightGuard",
     label: "shape.straightGuard",
+    group: "parts",
     params: [
       { key: "width", label: "shape.p.width", value: 60, min: 5, max: 300 },
       { key: "height", label: "shape.p.height", value: 12, min: 3, max: 200 },
@@ -144,6 +152,7 @@ export const SHAPES: ShapeDef[] = [
   {
     key: "washer",
     label: "shape.washer",
+    group: "parts",
     params: [
       { key: "outer", label: "shape.p.outerD", value: 20, min: 1, max: 300 },
       { key: "inner", label: "shape.p.innerD", value: 6.35, min: 0, max: 299 },
@@ -156,6 +165,7 @@ export const SHAPES: ShapeDef[] = [
   {
     key: "tangSlot",
     label: "shape.tangSlot",
+    group: "parts",
     params: [
       { key: "length", label: "shape.p.slotL", value: 18, min: 1, max: 200 },
       { key: "width", label: "shape.p.slotW", value: 4.5, min: 0.5, max: 50 },
@@ -177,8 +187,12 @@ export const SHAPES: ShapeDef[] = [
   bladeShape("nakiri", 165, 50, 120, 24, 3, 4.76, 70, nakiri, "kitchen"),
   bladeShape("kiritsuke", 240, 46, 130, 24, 3, 4.76, 70, kiritsuke, "kitchen"),
   bladeShape("folderDropPoint", 85, 20, 24, 0, 1, 4, 55, dropPointBlade, "folder"),
-  bladeShape("laguiole", 105, 20, 26, 0, 1, 4, 55, laguiole, "folder"),
+  bladeShape("yatagan", 105, 20, 26, 0, 1, 4, 55, yatagan, "folder"),
   bladeShape("sageLeaf", 90, 22, 26, 0, 1, 4, 55, sageLeaf, "folder"),
+  bladeShape("london", 80, 22, 24, 0, 1, 4, 55, london, "folder"),
+  bladeShape("yssingeaux", 90, 18, 24, 0, 1, 4, 55, yssingeaux, "folder"),
+  bladeShape("saintAmand", 85, 16, 22, 0, 1, 3.5, 55, willowLeaf, "folder"),
+  bladeShape("vendetta", 110, 18, 24, 0, 1, 4, 55, vendetta, "folder"),
 ];
 
 /**
@@ -231,6 +245,7 @@ function bladeShape(
   return {
     key,
     label: `shape.${key}`,
+    group: heel === "hunter" ? "fixed" : heel,
     params,
     build: (p) => {
       const { blade: l, height: h, tang: t } = p;
@@ -470,8 +485,8 @@ function kiritsuke(t: number, l: number, h: number) {
   };
 }
 
-function laguiole(t: number, l: number, h: number) {
-  // yatagan: the spine drops in a light hollow to a raised tip; the edge is straight at the heel,
+function yatagan(t: number, l: number, h: number) {
+  // yatagan (Aubrac, Basque country…): the spine drops in a light hollow to a raised tip; the edge is straight at the heel,
   // hollow just after it and full towards the tip
   const F = (f: number) => t + l * f;
   const tip: [number, number] = [F(1), h * 0.24];
@@ -496,6 +511,50 @@ function sageLeaf(t: number, l: number, h: number) {
   return {
     tip,
     nodes: [n(t, 0), n(F(0.4), -h * 0.06, -l * 0.2, 0, l * 0.24, 0), tipNode(tip[0], tip[1], 30, l * 0.14, 30, l * 0.14), n(F(0.45), h, l * 0.26, 0, 0, 0), n(t, h)],
+  };
+}
+
+function london(t: number, l: number, h: number) {
+  // London (French folder): straight edge, the spine runs straight then rolls down in one long
+  // curve to a point on the edge line
+  const F = (f: number) => t + l * f;
+  const tip: [number, number] = [F(1), h];
+  return {
+    tip,
+    nodes: [n(t, 0), n(F(0.4), 0, 0, 0, l * 0.34, 0), n(tip[0], tip[1], -Math.cos(rad(50)) * h * 0.85, -Math.sin(rad(50)) * h * 0.85, 0, 0), n(t, h)],
+  };
+}
+
+function yssingeaux(t: number, l: number, h: number) {
+  // Yssingeaux (French folder): slender blade, straight spine dropping late to a tip near the
+  // middle, light belly
+  const F = (f: number) => t + l * f;
+  const tip: [number, number] = [F(1), h * 0.46];
+  return {
+    tip,
+    nodes: [n(t, 0), n(F(0.62), 0, 0, 0, l * 0.18, 0), tipNode(tip[0], tip[1], 28, l * 0.1, 30, l * 0.12), n(F(0.6), h, l * 0.18, 0, 0, 0), n(t, h)],
+  };
+}
+
+function willowLeaf(t: number, l: number, h: number) {
+  // feuille de saule (Saint-Amand, Aquitaine): a slender leaf, spine and edge curving evenly
+  // to a central point
+  const F = (f: number) => t + l * f;
+  const tip: [number, number] = [F(1), h * 0.5];
+  return {
+    tip,
+    nodes: [n(t, 0), n(F(0.42), -h * 0.04, -l * 0.18, 0, l * 0.28, 0), tipNode(tip[0], tip[1], 20, l * 0.16, 20, l * 0.16), n(F(0.48), h, l * 0.28, 0, 0, 0), n(t, h)],
+  };
+}
+
+function vendetta(t: number, l: number, h: number) {
+  // vendetta (Corsica): long narrow stiletto blade, straight spine and edge tapering to a
+  // sharp point a little above the middle
+  const F = (f: number) => t + l * f;
+  const tip: [number, number] = [F(1), h * 0.42];
+  return {
+    tip,
+    nodes: [n(t, 0), n(F(0.5), 0, 0, 0, l * 0.2, 0), tipNode(tip[0], tip[1], 10, l * 0.2, 14, l * 0.22), n(F(0.45), h, l * 0.22, 0, 0, 0), n(t, h)],
   };
 }
 

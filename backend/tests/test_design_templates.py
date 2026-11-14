@@ -18,8 +18,8 @@ def _blade(document):
 
 @pytest.mark.parametrize(
     "build",
-    [tpl.full_tang_blade, tpl.folder_blade, lambda: tpl.folder_blade(105, 20, 26, 4, "laguiole"), tpl.folder_handle_scale],
-    ids=["full-tang", "folder", "laguiole", "folder-scale"],
+    [tpl.full_tang_blade, tpl.folder_blade, lambda: tpl.folder_blade(105, 20, 26, 4, "yatagan"), tpl.folder_handle_scale, tpl.felicie],
+    ids=["full-tang", "folder", "yatagan", "folder-scale", "felicie"],
 )
 def test_blade_outline_is_simple_and_holds_its_details(build):
     doc, objects, blade = _blade(build())

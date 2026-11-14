@@ -17,6 +17,8 @@ modification (dossier « Sauvegardes avant mise à jour »), puis mise à niveau
   **Saint-Amand** (feuille de saule), **vendetta** corse, à côté du Nontron (feuille de sauge) et
   du yatagan. Seules des formes anciennes, libres de droits, sont dessinées ; les noms protégés
   (indication géographique, marques) ne sont pas employés.
+- **Nouveau gabarit** propose toutes les lames de la bibliothèque comme point de départ, rangées
+  par familles (lames fixes, cuisine, pliants et régionaux), en plus des modèles de base.
 - Modèle de départ et dessin de démonstration **« Félicie »** : une lame dessinée à la main avec
   l'outil (grand choil, talon en bec).
 

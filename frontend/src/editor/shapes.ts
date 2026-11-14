@@ -2,6 +2,7 @@
  *  each drawn from (0, 0) at its top-left, then inserted where the user wants it.
  *  Also turns another design into a reusable shape ("my templates"). */
 
+import { defaultLayers } from "./constants";
 import { arcNodes, circleNodes } from "./drafting";
 import type { DesignDocument, DocNode, LayerRole } from "./types";
 
@@ -623,6 +624,19 @@ export function placeParts(parts: ShapePart[], x: number, y: number): ShapePart[
   const dx = x - b.minX;
   const dy = y - b.minY;
   return parts.map((part) => ({ ...part, contours: part.contours.map((c) => c.map((node) => ({ ...node, x: round4(node.x + dx), y: round4(node.y + dy) }))) }));
+}
+
+/** A library shape at its default parameters, as a new design's document (top-left at 0, 0). */
+export function shapeDocument(def: ShapeDef): DesignDocument {
+  const layers = defaultLayers();
+  const layerOf = (role: LayerRole) => layers.find((l) => l.role === role)!.id;
+  const parts = placeParts(def.build(normalizeParams(def, {})), 0, 0);
+  return {
+    version: 1,
+    unit: "mm",
+    layers,
+    objects: parts.map((p, i) => ({ id: `${def.key}-${i + 1}`, type: "path" as const, layer: layerOf(p.role), name: p.name || null, closed: p.closed, contours: p.contours })),
+  };
 }
 
 const REUSABLE_ROLES: LayerRole[] = ["cut", "hole", "engrave", "grind"];

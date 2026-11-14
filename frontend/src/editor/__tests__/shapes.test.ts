@@ -139,9 +139,9 @@ describe("library shapes", () => {
   });
 
   it("turns a library shape into a new design's document, each part on its role's layer", () => {
-    const doc = shapeDocument(SHAPES.find((d) => d.key === "london")!);
+    const doc = shapeDocument(SHAPES.find((d) => d.key === "gyuto")!);
     const roles = new Map(doc.layers.map((l) => [l.id, l.role]));
-    expect(doc.objects.map((o) => roles.get(o.layer)).sort()).toEqual(["cut", "grind", "hole"]);
+    expect(doc.objects.map((o) => roles.get(o.layer)).sort()).toEqual(["cut", "grind", "hole", "hole", "hole"]);
     const b = partsBounds(documentParts(doc))!;
     expect(b.minX).toBeCloseTo(0, 6);
     expect(b.minY).toBeCloseTo(0, 6);

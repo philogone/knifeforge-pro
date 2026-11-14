@@ -187,6 +187,46 @@ Laissé de côté (décidé le 13 novembre 2026) : le **volet bâtiment** des fe
 garantie, TVA réduite en rénovation). À ne reprendre que comme un lot complet, si ces clients
 sont visés un jour.
 
+## Lot 13 — Assistant pliants (décidé le 14 novembre 2026)
+
+Pas de gabarits régionaux « tout faits » : les profils dessinés de mémoire ne ressemblaient pas
+aux vrais modèles et ont été retirés. À la place, un **assistant** qui part du **mécanisme** et
+calcule les pièces d'un couteau fermant juste, au centième.
+
+**1. Choisir le mécanisme** : cran plat, cran forcé, galantine, piémontais (sans ressort, à
+friction, lame à queue), deux clous (axe et clou de butée), pompe (avant) et pompe arrière. Le
+fonctionnement exact de chacun est relevé avec toi avant le code ; on peut ajouter le liner lock
+plus tard.
+
+**2. Donner les grandes cotes** : longueur de lame et de manche, épaisseurs (lame, ressort,
+platines, plaquettes), diamètre de l'axe et des clous, hauteur du manche.
+
+**3. L'assistant calcule** :
+- la **position exacte de l'axe** par rapport au dos et au ventre du manche ;
+- le **talon** de la lame : rayon autour de l'axe, cran(s) et demi-cran selon le mécanisme ;
+- les **butées** en ouverture et en fermeture (clou de butée, talon sur le ressort, queue) et
+  leur angle ;
+- le **ressort** : forme, mouche, course, flèche et pression relative (cran plat, cran forcé,
+  pompe) ;
+- la **garde** : pointe et tranchant fermés à l'abri dans le manche, distance au ressort et aux
+  clous.
+
+**4. Animation du mécanisme**, même partielle : la lame tourne autour de l'axe, le ressort se
+lève et retombe, les points de contact sont montrés ; contacts imprévus et jeux signalés à
+0,01 mm près. On part de l'outil « Pliant » existant (rotation et course, lot 8).
+
+**5. Sortie** : les pièces cotées (lame, deux platines, ressort, plaquettes, mitres, clous), chacune
+sur son calque, prêtes pour le plan client, le nesting, le DXF compensé et la maquette 3D.
+
+**6. Modèles régionaux** : ils reviennent comme **réglages de l'assistant** (mécanisme et
+proportions), relevés sur de vraies pièces (photos à plat avec réglet, vectorisées et contrôlées
+à ±0,1 mm) ou sur des gabarits partagés avec l'accord de leur auteur, source et licence notées.
+Aucun nom protégé (indication géographique, marque) n'est employé.
+
+Terminé quand : pour chaque mécanisme, un couteau sorti de l'assistant se monte et fonctionne
+comme prévu, vérifié sur une vraie pièce découpée ; les calculs ont leurs tests de précision ;
+l'animation montre les contacts ; le guide explique chaque mécanisme et ses limites.
+
 ## Plus tard
 
 - Vue téléphone de l'atelier (commandes du jour, étape, stock) en lecture.
@@ -197,7 +237,8 @@ sont visés un jour.
 ## Ordre de marche
 
 1. ~~Lot 6~~ → 2. ~~Lot 7~~ → 3. ~~Lot 8~~ et ~~lot 9~~ → 4. ~~Lot 10~~ → 5. ~~Lot 11~~ → 6. Lot 12
-(la longueur développée peut être avancée seule : elle ne dépend d'aucun autre lot).
+(reste : stock au poids, formes du forgeron) → 7. réponses aux limites connues du README →
+8. Lot 13 (assistant pliants).
 
 À chaque lot : tests verts (`pytest`, `npm test`, `vue-tsc`, build), captures vérifiées,
 documentation à jour, puis fusion.

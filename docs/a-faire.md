@@ -111,7 +111,18 @@ Reste du lot 12 :
   colliers) : non faite.
 - **Étude** auprès de deux ou trois forgerons : à faire par toi.
 
-## Prochain : fin du lot 12, puis ta passe de test
+## Refonte des dessins — 14 novembre 2026
+
+Logo, icône, profils de lames fixes et de cuisine, modèles de départ, vidéo. Les lames de pliant
+régionales dessinées de mémoire ont été retirées : elles reviendront par l'assistant pliants
+(lot 13), relevées sur de vraies pièces.
+
+Reste :
+- Lames fixes jugées « pas top » : à refaire sur de vraies pièces ou de vrais gabarits.
+- Couteau de table : pas encore dans la bibliothèque.
+- Captures du guide (`docs/guide/img`) et quelques captures du README avec l'ancien logo.
+
+## Prochain : fin du lot 12, limites connues, puis lot 13
 
 Voir [`roadmap.md`](roadmap.md).
 

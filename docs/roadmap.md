@@ -229,6 +229,22 @@ l'animation montre les contacts ; le guide explique chaque mécanisme et ses lim
 
 ## Plus tard
 
+- **Vectoriser une photo ou un dessin** (idée notée le 24 novembre 2026, sans IA, tout sur la
+  machine) : à partir d'une photo contrastée ou d'un scan d'un couteau isolé, ou d'un dessin au
+  crayon, produire un tracé vectoriel prêt à produire.
+  - Part de l'image de fond déjà étalonnée et redressée dans l'éditeur.
+  - Seuil automatique (Otsu) ou au curseur, nettoyage, contour au sous-pixel (axe du trait pour
+    un dessin au crayon).
+  - Ajustement en courbes de Bézier (méthode à la Potrace), angles vifs gardés, écart maximal
+    choisi ; perçages reconnus comme vrais cercles, dos droits comme vrais segments.
+  - Carte des écarts tracé / image et écart maximal affiché.
+  - Précision dictée par la prise de vue : scanner à plat 600 dpi ≈ 0,04 mm par pixel ; au
+    téléphone, mire obligatoire et précision réelle affichée, sans promesse.
+  - Code maison en TypeScript de préférence (pas de dépendance lourde) ; OpenCV possible côté
+    serveur (licence compatible, environ 50 Mo de plus).
+  - Validation décidée : un vrai couteau scanné à plat, dont les cotes sont connues ; le tracé
+    obtenu est comparé à ces cotes.
+
 - Vue téléphone de l'atelier (commandes du jour, étape, stock) en lecture.
 - Nesting sur les chutes existantes.
 - Matériaux comptés à l'unité dans le nesting.

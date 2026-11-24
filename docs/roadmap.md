@@ -242,6 +242,8 @@ l'animation montre les contacts ; le guide explique chaque mécanisme et ses lim
     téléphone, mire obligatoire et précision réelle affichée, sans promesse.
   - Code maison en TypeScript de préférence (pas de dépendance lourde) ; OpenCV possible côté
     serveur (licence compatible, environ 50 Mo de plus).
+  - Validation décidée : un vrai couteau scanné à plat, dont les cotes sont connues ; le tracé
+    obtenu est comparé à ces cotes.
 
 - Vue téléphone de l'atelier (commandes du jour, étape, stock) en lecture.
 - Nesting sur les chutes existantes.
